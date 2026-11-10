@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
-import { BarChart } from 'react-native-gifted-charts';
+import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
 import { StatCard } from '../../components/common/StatCard';
@@ -98,23 +98,7 @@ export default function ReportsScreen() {
         <Surface style={styles.chartCard} elevation={1}>
           <Text style={styles.chartTitle}>Sales Trend (Daily in ₹)</Text>
           <View style={styles.chartWrapper}>
-            {report.chartData && report.chartData.length > 0 ? (
-              <BarChart
-                data={report.chartData}
-                barWidth={24}
-                spacing={16}
-                roundedTop
-                roundedBottom
-                frontColor={COLORS.secondary}
-                noOfSections={4}
-                yAxisTextStyle={{ color: COLORS.textMuted, fontSize: 10 }}
-                xAxisLabelTextStyle={{ color: COLORS.textSecondary, fontSize: 11 }}
-                width={screenWidth - 90}
-                height={160}
-              />
-            ) : (
-              <Text style={styles.noData}>No chart data available for this range</Text>
-            )}
+            <SalesBarChart data={report.chartData} height={160} />
           </View>
         </Surface>
 
