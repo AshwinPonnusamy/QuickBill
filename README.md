@@ -8,7 +8,7 @@ QuickBill is a production-quality, offline-first mobile point-of-sale and retail
 
 1. **Authentication & Multi-Role Staff:**
    - Supabase Auth integration with Phone OTP and Email/Password.
-   - Profile management and English / Tamil (தமிழ்) language toggling.
+   - Profile and account management.
    - Offline fallback mode for zero-latency startup.
 
 2. **Shop Registration & Multi-Business Setup:**
@@ -50,7 +50,7 @@ QuickBill is a production-quality, offline-first mobile point-of-sale and retail
    - Daily, weekly, monthly, and all-time revenue breakdowns.
    - Strict separation between gross revenue and wholesale profits.
    - Payment method distributions (Cash vs UPI vs Card vs Udhar).
-   - Interactive sales trend bar chart using `react-native-gifted-charts`.
+   - Interactive sales trend bar chart.
 
 9. **Subscription Engine:**
    - Free Plan vs Pro Business Plan comparison.
@@ -90,12 +90,12 @@ QuickBill/
 │   └── subscription.tsx          # Free vs Pro upgrade screen
 ├── components/
 │   └── common/
-│       ├── Header.tsx            # Top App Bar with Tamil switch
+│       ├── Header.tsx            # Top App Bar with sync status
 │       ├── StatCard.tsx          # Metric cards
 │       └── SyncStatusBadge.tsx   # Synced / Pending / Failed pills
 ├── constants/
 │   ├── theme.ts                  # Material 3 colors & spacing
-│   └── translations.ts           # English & Tamil translations
+│   └── translations.ts           # Centralized UI text & labels
 ├── database/
 │   └── sqlite.ts                 # Local offline SQLite database
 ├── services/

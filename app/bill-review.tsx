@@ -77,9 +77,6 @@ export default function BillReviewScreen() {
             <View key={idx} style={styles.tableRow}>
               <View style={styles.colItem}>
                 <Text style={styles.itemName}>{it.cartItem.name}</Text>
-                {it.cartItem.nameTamil ? (
-                  <Text style={styles.itemTamil}>{it.cartItem.nameTamil}</Text>
-                ) : null}
                 {it.cartItem.taxRate > 0 ? (
                   <Text style={styles.taxSub}>GST {it.cartItem.taxRate}%</Text>
                 ) : null}

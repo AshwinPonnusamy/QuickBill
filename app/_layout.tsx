@@ -22,7 +22,7 @@ export default function RootLayout() {
 
       // 2. Restore saved language
       const savedLang = await AsyncStorage.getItem('qb_language');
-      if (savedLang === 'en' || savedLang === 'ta') {
+      if (savedLang === 'en') {
         setLanguage(savedLang);
       }
 

@@ -127,7 +127,7 @@ export default function SettingsScreen() {
             <Text style={styles.menuIcon}>🌐</Text>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.languageSettings}</Text>
-              <Text style={styles.menuSub}>Current: {language === 'en' ? 'English' : 'தமிழ் (Tamil)'}</Text>
+              <Text style={styles.menuSub}>Current: English</Text>
             </View>
             <Text style={styles.arrow}>›</Text>
           </TouchableOpacity>

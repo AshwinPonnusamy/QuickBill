@@ -27,7 +27,6 @@ export const pdfService = {
         <tr style="border-bottom: 1px dashed #CBD5E1;">
           <td style="padding: 6px 2px; font-size: ${isThermal ? '12px' : '13px'};">
             ${idx + 1}. ${it.productName}
-            ${it.productNameTamil ? `<br/><small style="color: #64748B;">${it.productNameTamil}</small>` : ''}
           </td>
           <td style="padding: 6px 2px; text-align: center; font-size: ${isThermal ? '12px' : '13px'};">
             ${it.quantity} ${it.unit}

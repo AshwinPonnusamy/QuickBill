@@ -18,13 +18,13 @@ import { Invoice } from '../../types';
 
 // Pre-seeded retail inventory for zero-setup instant demo
 const DEFAULT_SAMPLE_PRODUCTS = [
-  { name: 'Tea / Chai', nameTamil: 'தேநீர்', sellingPricePaise: 1500, unit: 'cup' as const, taxRate: 5, stockQuantity: 200, lowStockThreshold: 20, isFavourite: true, isActive: true },
-  { name: 'Filter Coffee', nameTamil: 'பில்டர் காபி', sellingPricePaise: 2500, unit: 'cup' as const, taxRate: 5, stockQuantity: 150, lowStockThreshold: 15, isFavourite: true, isActive: true },
-  { name: 'Full Cream Milk (500ml)', nameTamil: 'பால் பாக்கெட்', sellingPricePaise: 3200, unit: 'packet' as const, taxRate: 0, stockQuantity: 40, lowStockThreshold: 10, isFavourite: true, isActive: true },
-  { name: 'Ponni Boiled Rice (1kg)', nameTamil: 'பொன்னி அரிசி', sellingPricePaise: 6500, unit: 'kg' as const, taxRate: 0, stockQuantity: 8, lowStockThreshold: 15, isFavourite: true, isActive: true }, // Low stock!
-  { name: 'Refined Sunflower Oil (1L)', nameTamil: 'சூரியகாந்தி எண்ணெய்', sellingPricePaise: 13500, unit: 'packet' as const, taxRate: 5, stockQuantity: 25, lowStockThreshold: 5, isFavourite: false, isActive: true },
-  { name: 'Marie Gold Biscuits', nameTamil: 'மேரி பிஸ்கட்', sellingPricePaise: 1000, unit: 'packet' as const, taxRate: 18, stockQuantity: 50, lowStockThreshold: 10, isFavourite: true, isActive: true },
-  { name: 'Wheat Bread (400g)', nameTamil: 'ரொட்டி பிரெட்', sellingPricePaise: 4000, unit: 'packet' as const, taxRate: 0, stockQuantity: 4, lowStockThreshold: 8, isFavourite: false, isActive: true }, // Low stock!
+  { name: 'Tea / Chai', sellingPricePaise: 1500, unit: 'cup' as const, taxRate: 5, stockQuantity: 200, lowStockThreshold: 20, isFavourite: true, isActive: true },
+  { name: 'Filter Coffee', sellingPricePaise: 2500, unit: 'cup' as const, taxRate: 5, stockQuantity: 150, lowStockThreshold: 15, isFavourite: true, isActive: true },
+  { name: 'Full Cream Milk (500ml)', sellingPricePaise: 3200, unit: 'packet' as const, taxRate: 0, stockQuantity: 40, lowStockThreshold: 10, isFavourite: true, isActive: true },
+  { name: 'Ponni Boiled Rice (1kg)', sellingPricePaise: 6500, unit: 'kg' as const, taxRate: 0, stockQuantity: 8, lowStockThreshold: 15, isFavourite: true, isActive: true }, // Low stock!
+  { name: 'Refined Sunflower Oil (1L)', sellingPricePaise: 13500, unit: 'packet' as const, taxRate: 5, stockQuantity: 25, lowStockThreshold: 5, isFavourite: false, isActive: true },
+  { name: 'Marie Gold Biscuits', sellingPricePaise: 1000, unit: 'packet' as const, taxRate: 18, stockQuantity: 50, lowStockThreshold: 10, isFavourite: true, isActive: true },
+  { name: 'Wheat Bread (400g)', sellingPricePaise: 4000, unit: 'packet' as const, taxRate: 0, stockQuantity: 4, lowStockThreshold: 8, isFavourite: false, isActive: true }, // Low stock!
 ];
 
 export default function HomeDashboard() {
@@ -88,7 +88,7 @@ export default function HomeDashboard() {
           <View style={styles.heroRow}>
             <View>
               <Text variant="headlineMedium" style={styles.heroGreeting}>
-                வணக்கம், {business?.ownerName || 'Merchant'} 🙏
+                Welcome, {business?.ownerName || 'Merchant'} 👋
               </Text>
               <Text variant="bodySmall" style={styles.heroSub}>
                 {business?.name} • {business?.isGstRegistered ? 'GSTIN Active' : 'Regular Billing'}
@@ -457,4 +457,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

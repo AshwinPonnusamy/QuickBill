@@ -21,13 +21,9 @@ export const Header: React.FC<HeaderProps> = ({
   showSettings = true,
 }) => {
   const router = useRouter();
-  const { language, setLanguage } = useAuthStore();
+  const { language } = useAuthStore();
   const { business } = useBusinessStore();
   const t = TRANSLATIONS[language];
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'ta' : 'en');
-  };
 
   return (
     <Surface style={styles.header} elevation={2}>
@@ -50,10 +46,6 @@ export const Header: React.FC<HeaderProps> = ({
         </View>
 
         <View style={styles.actions}>
-          <TouchableOpacity onPress={toggleLanguage} style={styles.langPill}>
-            <Text style={styles.langText}>{language === 'en' ? 'தமிழ்' : 'ENG'}</Text>
-          </TouchableOpacity>
-
           {showSettings ? (
             <TouchableOpacity onPress={() => router.push('/settings' as any)} style={styles.iconBtn}>
               <Text style={styles.iconText}>⚙️</Text>
@@ -102,17 +94,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
   },
-  langPill: {
-    backgroundColor: COLORS.secondary,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: ROUNDNESS.full,
-  },
-  langText: {
-    color: COLORS.white,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
   iconBtn: {
     padding: 6,
     borderRadius: ROUNDNESS.full,
@@ -122,4 +103,3 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
-

@@ -17,7 +17,6 @@ export default function RegisterScreen() {
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(language);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
@@ -40,8 +39,7 @@ export default function RegisterScreen() {
 
     setIsLoading(true);
     try {
-      setLanguage(selectedLang);
-      const res = await authService.signUp(identifier, password, fullName, selectedLang);
+      const res = await authService.signUp(identifier, password, fullName, 'en');
       if (res.error) {
         Alert.alert(t.error, res.error);
         setIsLoading(false);
@@ -126,27 +124,6 @@ export default function RegisterScreen() {
             style={styles.input}
             left={<TextInput.Icon icon={() => <Text>🔐</Text>} />}
           />
-
-          {/* Language selector chips */}
-          <Text style={styles.langLabel}>App Interface Language:</Text>
-          <View style={styles.langRow}>
-            <TouchableOpacity
-              onPress={() => setSelectedLang('en')}
-              style={[styles.langChip, selectedLang === 'en' && styles.activeChip]}
-            >
-              <Text style={[styles.langChipText, selectedLang === 'en' && styles.activeChipText]}>
-                English
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSelectedLang('ta')}
-              style={[styles.langChip, selectedLang === 'ta' && styles.activeChip]}
-            >
-              <Text style={[styles.langChipText, selectedLang === 'ta' && styles.activeChipText]}>
-                தமிழ் (Tamil)
-              </Text>
-            </TouchableOpacity>
-          </View>
 
           <Button
             mode="contained"

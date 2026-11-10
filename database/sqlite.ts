@@ -70,7 +70,6 @@ export async function initDatabase(): Promise<void> {
       invoice_id TEXT NOT NULL,
       product_id TEXT,
       product_name TEXT NOT NULL,
-      product_name_tamil TEXT,
       unit TEXT NOT NULL,
       quantity REAL NOT NULL,
       unit_price_paise INTEGER NOT NULL,
@@ -106,7 +105,6 @@ export async function initDatabase(): Promise<void> {
       business_id TEXT NOT NULL,
       category_id TEXT,
       name TEXT NOT NULL,
-      name_tamil TEXT,
       sku TEXT,
       barcode TEXT,
       selling_price_paise INTEGER NOT NULL,
@@ -127,7 +125,6 @@ export async function initDatabase(): Promise<void> {
       id TEXT PRIMARY KEY,
       business_id TEXT NOT NULL,
       name TEXT NOT NULL,
-      name_tamil TEXT,
       icon TEXT,
       color TEXT,
       is_active INTEGER NOT NULL DEFAULT 1
@@ -266,16 +263,15 @@ export function saveInvoiceLocally(
       for (const item of items) {
         db.runSync(
           `INSERT OR REPLACE INTO local_invoice_items (
-            id, invoice_id, product_id, product_name, product_name_tamil, unit,
+            id, invoice_id, product_id, product_name, unit,
             quantity, unit_price_paise, subtotal_paise, tax_rate, cgst_paise,
             sgst_paise, igst_paise, tax_paise, discount_paise, total_paise
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
           [
             item.id || `${invoice.id}-${item.productId || Math.random()}`,
             invoice.id,
             item.productId || null,
             item.productName,
-            item.productNameTamil || null,
             item.unit,
             item.quantity,
             item.unitPricePaise,
@@ -486,17 +482,16 @@ export function cacheLocalProducts(products: Product[]): void {
     for (const p of products) {
       db.runSync(
         `INSERT OR REPLACE INTO local_products (
-          id, business_id, category_id, name, name_tamil, sku, barcode,
+          id, business_id, category_id, name, sku, barcode,
           selling_price_paise, purchase_price_paise, unit, tax_rate,
           is_tax_inclusive, stock_quantity, low_stock_threshold,
           image_url, is_favourite, is_active, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);`,
         [
           p.id,
           p.businessId,
           p.categoryId || null,
           p.name,
-          p.nameTamil || null,
           p.sku || null,
           p.barcode || null,
           p.sellingPricePaise,
@@ -536,7 +531,6 @@ export function getLocalProducts(businessId: string): Product[] {
       businessId: r.business_id,
       categoryId: r.category_id,
       name: r.name,
-      nameTamil: r.name_tamil,
       sku: r.sku,
       barcode: r.barcode,
       sellingPricePaise: r.selling_price_paise,

@@ -28,7 +28,6 @@ export default function ProductsScreen() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
-  const [nameTamil, setNameTamil] = useState('');
   const [sku, setSku] = useState('');
   const [sellingPrice, setSellingPrice] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
@@ -51,7 +50,6 @@ export default function ProductsScreen() {
     const matchesCat = selectedCat ? p.categoryId === selectedCat : true;
     const matchesSearch = search.trim() === '' ||
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.nameTamil && p.nameTamil.toLowerCase().includes(search.toLowerCase())) ||
       (p.sku && p.sku.includes(search));
     return matchesCat && matchesSearch;
   });
@@ -60,7 +58,6 @@ export default function ProductsScreen() {
     setIsEditing(false);
     setEditingId(null);
     setName('');
-    setNameTamil('');
     setSku('');
     setSellingPrice('');
     setPurchasePrice('');
@@ -78,7 +75,6 @@ export default function ProductsScreen() {
     setIsEditing(true);
     setEditingId(p.id);
     setName(p.name);
-    setNameTamil(p.nameTamil || '');
     setSku(p.sku || '');
     setSellingPrice(String(paiseToRupees(p.sellingPricePaise)));
     setPurchasePrice(p.purchasePricePaise ? String(paiseToRupees(p.purchasePricePaise)) : '');
@@ -106,7 +102,6 @@ export default function ProductsScreen() {
     const payload = {
       id: isEditing && editingId ? editingId : undefined,
       name: name.trim(),
-      nameTamil: nameTamil.trim() || undefined,
       sku: sku.trim() || undefined,
       sellingPricePaise: rupeesToPaise(Number(sellingPrice)),
       purchasePricePaise: purchasePrice ? rupeesToPaise(Number(purchasePrice)) : undefined,
@@ -198,7 +193,7 @@ export default function ProductsScreen() {
               style={[styles.catChip, selectedCat === c.id && styles.activeCatChip]}
             >
               <Text style={[styles.catChipText, selectedCat === c.id && styles.activeCatChipText]}>
-                {language === 'ta' && c.nameTamil ? c.nameTamil : c.name}
+                {c.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -214,7 +209,6 @@ export default function ProductsScreen() {
               <View style={styles.prodMain}>
                 <View style={styles.prodInfo}>
                   <Text style={styles.prodName}>{p.name}</Text>
-                  {p.nameTamil ? <Text style={styles.prodTamil}>{p.nameTamil}</Text> : null}
                   <Text style={styles.prodMeta}>
                     GST {p.taxRate}% • {p.unit} {p.sku ? `• SKU: ${p.sku}` : ''}
                   </Text>
@@ -275,15 +269,6 @@ export default function ProductsScreen() {
               placeholder="e.g. Basmati Rice"
               value={name}
               onChangeText={setName}
-              mode="outlined"
-              style={styles.modalInput}
-            />
-
-            <TextInput
-              label={t.productNameTamil}
-              placeholder="எ.கா. பாசுமதி அரிசி"
-              value={nameTamil}
-              onChangeText={setNameTamil}
               mode="outlined"
               style={styles.modalInput}
             />
@@ -501,10 +486,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.textPrimary,
-  },
-  prodTamil: {
-    fontSize: 12,
-    color: COLORS.textMuted,
   },
   prodMeta: {
     fontSize: 11,

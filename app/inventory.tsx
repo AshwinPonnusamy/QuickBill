@@ -81,7 +81,6 @@ export default function InventoryScreen() {
               <View style={styles.cardMain}>
                 <View style={styles.infoCol}>
                   <Text style={styles.prodName}>{p.name}</Text>
-                  {p.nameTamil ? <Text style={styles.prodTamil}>{p.nameTamil}</Text> : null}
                   <Text style={styles.thresholdText}>
                     Alert limit: {p.lowStockThreshold} {p.unit}
                   </Text>

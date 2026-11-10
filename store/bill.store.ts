@@ -51,7 +51,6 @@ export const useBillStore = create<BillState>((set, get) => ({
         id: `cart-${product.id}-${Date.now()}`,
         productId: product.id,
         name: product.name,
-        nameTamil: product.nameTamil,
         unit: product.unit,
         quantity,
         unitPricePaise: product.sellingPricePaise,

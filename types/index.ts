@@ -1,6 +1,6 @@
 // QuickBill Data Types & Domain Interfaces
 
-export type SupportedLanguage = 'en' | 'ta';
+export type SupportedLanguage = 'en';
 
 export type BusinessType = 
   | 'restaurant' 
@@ -58,7 +58,6 @@ export interface Category {
   id: string;
   businessId: string;
   name: string;
-  nameTamil?: string;
   icon?: string;
   color?: string;
   isActive: boolean;
@@ -82,7 +81,6 @@ export interface Product {
   businessId: string;
   categoryId?: string;
   name: string;
-  nameTamil?: string;
   sku?: string;
   barcode?: string;
   sellingPricePaise: number; // In paise (₹1.00 = 100 paise)
@@ -121,7 +119,6 @@ export interface CartItem {
   id: string; // product id or custom id
   productId?: string;
   name: string;
-  nameTamil?: string;
   unit: ProductUnit;
   quantity: number;
   unitPricePaise: number;
@@ -164,7 +161,6 @@ export interface InvoiceItem {
   invoiceId?: string;
   productId?: string;
   productName: string;
-  productNameTamil?: string;
   unit: ProductUnit;
   quantity: number;
   unitPricePaise: number;

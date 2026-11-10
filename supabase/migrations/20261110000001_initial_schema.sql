@@ -52,7 +52,6 @@ CREATE TABLE IF NOT EXISTS public.categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    name_tamil TEXT,
     icon TEXT,
     color TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -65,7 +64,6 @@ CREATE TABLE IF NOT EXISTS public.products (
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
     category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
     name TEXT NOT NULL,
-    name_tamil TEXT,
     sku TEXT,
     barcode TEXT,
     selling_price_paise BIGINT NOT NULL,
@@ -135,7 +133,6 @@ CREATE TABLE IF NOT EXISTS public.invoice_items (
     invoice_id UUID NOT NULL REFERENCES public.invoices(id) ON DELETE CASCADE,
     product_id UUID REFERENCES public.products(id) ON DELETE SET NULL,
     product_name TEXT NOT NULL,
-    product_name_tamil TEXT,
     unit TEXT NOT NULL,
     quantity NUMERIC(10,3) NOT NULL,
     unit_price_paise BIGINT NOT NULL,
@@ -417,7 +414,7 @@ BEGIN
 
     -- 3. Insert Invoice Items & Update Stock
     FOR v_item IN SELECT * FROM jsonb_to_recordset(p_items) AS x(
-        product_id UUID, product_name TEXT, product_name_tamil TEXT,
+        product_id UUID, product_name TEXT,
         unit TEXT, quantity NUMERIC, unit_price_paise BIGINT,
         subtotal_paise BIGINT, tax_rate NUMERIC, cgst_paise BIGINT,
         sgst_paise BIGINT, igst_paise BIGINT, tax_paise BIGINT,
@@ -425,12 +422,12 @@ BEGIN
     )
     LOOP
         INSERT INTO public.invoice_items (
-            invoice_id, product_id, product_name, product_name_tamil,
+            invoice_id, product_id, product_name,
             unit, quantity, unit_price_paise, subtotal_paise,
             tax_rate, cgst_paise, sgst_paise, igst_paise,
             tax_paise, discount_paise, total_paise
         ) VALUES (
-            v_invoice_id, v_item.product_id, v_item.product_name, v_item.product_name_tamil,
+            v_invoice_id, v_item.product_id, v_item.product_name,
             v_item.unit, v_item.quantity, v_item.unit_price_paise, v_item.subtotal_paise,
             v_item.tax_rate, v_item.cgst_paise, v_item.sgst_paise, v_item.igst_paise,
             v_item.tax_paise, v_item.discount_paise, v_item.total_paise

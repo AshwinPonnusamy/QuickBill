@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Text, Button, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -11,37 +11,29 @@ const { width } = Dimensions.get('window');
 const SLIDES = [
   {
     icon: '⚡',
-    titleEn: 'Lightning Fast Billing',
-    titleTa: 'மின்னல் வேக பில்லிங்',
-    descEn: 'Generate retail bills in 3 quick taps. Easy barcode and quick product lookup.',
-    descTa: '3 எளிய தொடுதல்களில் பில் தயாரிக்கவும். விரைவான பார்கோடு மற்றும் பொருள் தேர்வு.',
+    title: 'Lightning Fast Billing',
+    desc: 'Generate retail bills in 3 quick taps. Easy barcode and quick product lookup.',
   },
   {
     icon: '📶',
-    titleEn: '100% Offline-First',
-    titleTa: 'முழுமையான ஆஃப்லைன் பில்லிங்',
-    descEn: 'Never stop billing even with zero internet. Bills automatically sync to the cloud later.',
-    descTa: 'இணையம் இல்லாவிட்டாலும் பில்லிங் நிற்காது. இணையம் வந்ததும் தானாக ஒத்திசைவு ஆகும்.',
+    title: '100% Offline-First',
+    desc: 'Never stop billing even with zero internet. Bills automatically sync to the cloud later.',
   },
   {
     icon: '🖨️',
-    titleEn: 'Thermal & WhatsApp PDF',
-    titleTa: 'தெர்மல் பிரிண்ட் & வாட்ஸ்அப் ரசீது',
-    descEn: 'Instant Bluetooth thermal receipt printing and one-tap WhatsApp PDF sharing.',
-    descTa: 'புளூடூத் அச்சுப்பொறி மூலம் ரசீது அச்சிடலாம் மற்றும் வாட்ஸ்அப்பில் பகிரலாம்.',
+    title: 'Thermal & WhatsApp PDF',
+    desc: 'Instant Bluetooth thermal receipt printing and one-tap WhatsApp PDF sharing.',
   },
   {
     icon: '📒',
-    titleEn: 'Udhar & Customer Ledger',
-    titleTa: 'உதார் & வாடிக்கையாளர் கணக்கு',
-    descEn: 'Track customer credit, pending payments, and send automatic payment reminders.',
-    descTa: 'வாடிக்கையாளர் கடன் பாக்கி மற்றும் நிலுவைத் தொகையை எளிதாகக் கண்காணிக்கவும்.',
+    title: 'Udhar & Customer Ledger',
+    desc: 'Track customer credit, pending payments, and send automatic payment reminders.',
   },
 ];
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { language, setLanguage } = useAuthStore();
+  const { language } = useAuthStore();
   const t = TRANSLATIONS[language];
   const [activeSlide, setActiveSlide] = useState(0);
 
@@ -52,12 +44,6 @@ export default function OnboardingScreen() {
       {/* Top Header */}
       <View style={styles.topBar}>
         <Text style={styles.brandTitle}>QuickBill</Text>
-        <TouchableOpacity
-          style={styles.langBtn}
-          onPress={() => router.push('/(auth)/language' as any)}
-        >
-          <Text style={styles.langBtnText}>{language === 'en' ? 'தமிழ்' : 'English'}</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Main Slide Card */}
@@ -65,10 +51,10 @@ export default function OnboardingScreen() {
         <Surface style={styles.slideCard} elevation={2}>
           <Text style={styles.slideIcon}>{slide.icon}</Text>
           <Text variant="headlineSmall" style={styles.slideTitle}>
-            {language === 'ta' ? slide.titleTa : slide.titleEn}
+            {slide.title}
           </Text>
           <Text variant="bodyMedium" style={styles.slideDesc}>
-            {language === 'ta' ? slide.descTa : slide.descEn}
+            {slide.desc}
           </Text>
 
           {/* Dots Indicator */}
@@ -132,24 +118,13 @@ const styles = StyleSheet.create({
   },
   topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
   },
   brandTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: COLORS.primary,
-  },
-  langBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: COLORS.primaryContainer,
-  },
-  langBtnText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    fontSize: 13,
   },
   slideContainer: {
     alignItems: 'center',
@@ -216,4 +191,3 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
-

@@ -63,7 +63,6 @@ export default function CreateBillScreen() {
     const matchesCategory = selectedCat ? p.categoryId === selectedCat : true;
     const matchesSearch = search.trim() === '' || 
       p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.nameTamil && p.nameTamil.toLowerCase().includes(search.toLowerCase())) ||
       (p.barcode && p.barcode.includes(search));
     return matchesCategory && matchesSearch;
   });
@@ -192,7 +191,7 @@ export default function CreateBillScreen() {
                   selectedCat === cat.id && styles.activeCategoryChipText,
                 ]}
               >
-                {language === 'ta' && cat.nameTamil ? cat.nameTamil : cat.name}
+                {cat.name}
               </Text>
             </TouchableOpacity>
           ))}
@@ -213,7 +212,7 @@ export default function CreateBillScreen() {
             <Surface style={styles.productCard} elevation={1}>
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>
-                  {language === 'ta' && item.nameTamil ? item.nameTamil : item.name}
+                  {item.name}
                 </Text>
                 <Text style={styles.productUnit}>per {item.unit}</Text>
                 <Text style={styles.productPrice}>{formatRupees(item.sellingPricePaise)}</Text>

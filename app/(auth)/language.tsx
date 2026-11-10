@@ -1,85 +1,48 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Surface } from 'react-native-paper';
+import { Text, Surface, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
-import { SupportedLanguage } from '../../types';
 
 export default function LanguageScreen() {
   const router = useRouter();
   const { language, setLanguage } = useAuthStore();
 
-  const handleSelectLanguage = (lang: SupportedLanguage) => {
-    setLanguage(lang);
-    router.back();
-  };
-
   return (
     <View style={styles.container}>
       <Text variant="headlineMedium" style={styles.title}>
-        Choose Your Language
+        App Language
       </Text>
       <Text variant="bodyMedium" style={styles.subtitle}>
-        மொழியைத் தேர்ந்தெடுக்கவும்
+        QuickBill operates in English for Indian retail billing
       </Text>
 
       <View style={styles.optionsContainer}>
-        {/* English Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => handleSelectLanguage('en')}
-          style={styles.cardWrapper}
-        >
-          <Surface
-            style={[
-              styles.card,
-              language === 'en' && styles.selectedCard,
-            ]}
-            elevation={language === 'en' ? 3 : 1}
-          >
-            <View style={styles.flagIcon}>
-              <Text style={styles.flagEmoji}>🇮🇳</Text>
-            </View>
-            <View style={styles.textContainer}>
-              <Text variant="titleMedium" style={styles.cardTitle}>
-                English
-              </Text>
-              <Text variant="bodySmall" style={styles.cardSub}>
-                Default business language
-              </Text>
-            </View>
-            <Text style={styles.checkIcon}>{language === 'en' ? '✅' : '⚪'}</Text>
-          </Surface>
-        </TouchableOpacity>
+        <Surface style={[styles.card, styles.selectedCard]} elevation={2}>
+          <View style={styles.flagIcon}>
+            <Text style={styles.flagEmoji}>🇮🇳</Text>
+          </View>
+          <View style={styles.textContainer}>
+            <Text variant="titleMedium" style={styles.cardTitle}>
+              English
+            </Text>
+            <Text variant="bodySmall" style={styles.cardSub}>
+              Standard retail business language
+            </Text>
+          </View>
+          <Text style={styles.checkIcon}>✅</Text>
+        </Surface>
 
-        {/* Tamil Card */}
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => handleSelectLanguage('ta')}
-          style={styles.cardWrapper}
+        <Button
+          mode="contained"
+          buttonColor={COLORS.primary}
+          textColor={COLORS.white}
+          style={styles.btn}
+          onPress={() => router.back()}
         >
-          <Surface
-            style={[
-              styles.card,
-              language === 'ta' && styles.selectedCard,
-            ]}
-            elevation={language === 'ta' ? 3 : 1}
-          >
-            <View style={styles.flagIcon}>
-              <Text style={styles.flagEmoji}>🏛️</Text>
-            </View>
-            <View style={styles.textContainer}>
-              <Text variant="titleMedium" style={styles.cardTitle}>
-                தமிழ் (Tamil)
-              </Text>
-              <Text variant="bodySmall" style={styles.cardSub}>
-                தமிழ் வழி எளிய பில்லிங்
-              </Text>
-            </View>
-            <Text style={styles.checkIcon}>{language === 'ta' ? '✅' : '⚪'}</Text>
-          </Surface>
-        </TouchableOpacity>
+          Confirm
+        </Button>
       </View>
     </View>
   );
@@ -104,10 +67,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   optionsContainer: {
-    gap: SPACING.md,
-  },
-  cardWrapper: {
-    width: '100%',
+    gap: SPACING.lg,
   },
   card: {
     flexDirection: 'row',
@@ -116,10 +76,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRadius: ROUNDNESS.lg,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: COLORS.secondary,
   },
   selectedCard: {
-    borderColor: COLORS.secondary,
     backgroundColor: '#E6F8FA',
   },
   flagIcon: {
@@ -148,5 +107,8 @@ const styles = StyleSheet.create({
   checkIcon: {
     fontSize: 20,
   },
+  btn: {
+    borderRadius: ROUNDNESS.md,
+    marginTop: SPACING.md,
+  },
 });
-

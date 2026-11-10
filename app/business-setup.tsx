@@ -10,15 +10,15 @@ import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
 import { BusinessType } from '../types';
 
-const BUSINESS_TYPES: { type: BusinessType; labelEn: string; labelTa: string; icon: string }[] = [
-  { type: 'restaurant', labelEn: 'Restaurant / Cafe', labelTa: 'உணவகம்', icon: '🍽️' },
-  { type: 'grocery', labelEn: 'Grocery / Kirana', labelTa: 'மளிகை கடை', icon: '🛒' },
-  { type: 'bakery', labelEn: 'Bakery & Sweets', labelTa: 'பேக்கரி / இனிப்பகம்', icon: '🧁' },
-  { type: 'tea_shop', labelEn: 'Tea / Snack Stall', labelTa: 'தேனீர் கடை', icon: '☕' },
-  { type: 'clothing', labelEn: 'Clothing / Textiles', labelTa: 'ஜவுளி கடை', icon: '👕' },
-  { type: 'supermarket', labelEn: 'Supermarket', labelTa: 'சூப்பர் மார்க்கெட்', icon: '🏬' },
-  { type: 'retail', labelEn: 'General Retail', labelTa: 'சில்லறை கடை', icon: '🛍️' },
-  { type: 'other', labelEn: 'Other Retail Store', labelTa: 'பிற கடைகள்', icon: '🏪' },
+const BUSINESS_TYPES: { type: BusinessType; label: string; icon: string }[] = [
+  { type: 'restaurant', label: 'Restaurant / Cafe', icon: '🍽️' },
+  { type: 'grocery', label: 'Grocery / Kirana', icon: '🛒' },
+  { type: 'bakery', label: 'Bakery & Sweets', icon: '🧁' },
+  { type: 'tea_shop', label: 'Tea / Snack Stall', icon: '☕' },
+  { type: 'clothing', label: 'Clothing / Textiles', icon: '👕' },
+  { type: 'supermarket', label: 'Supermarket', icon: '🏬' },
+  { type: 'retail', label: 'General Retail', icon: '🛍️' },
+  { type: 'other', label: 'Other Retail Store', icon: '🏪' },
 ];
 
 export default function BusinessSetupScreen() {
@@ -226,7 +226,7 @@ export default function BusinessSetupScreen() {
                 style={[styles.typeLabel, isSelected && styles.selectedTypeLabel]}
                 numberOfLines={1}
               >
-                {language === 'ta' ? item.labelTa : item.labelEn}
+                {item.label}
               </Text>
             </TouchableOpacity>
           );

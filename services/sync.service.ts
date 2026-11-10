@@ -68,7 +68,6 @@ export const syncService = {
               business_id: product.businessId,
               category_id: product.categoryId || null,
               name: product.name,
-              name_tamil: product.nameTamil || null,
               sku: product.sku || null,
               barcode: product.barcode || null,
               selling_price_paise: product.sellingPricePaise,

@@ -151,9 +151,6 @@ export default function ReceiptPreviewScreen() {
             <View key={idx} style={styles.itemRow}>
               <View style={styles.colName}>
                 <Text style={styles.itemNameText}>{it.productName}</Text>
-                {it.productNameTamil ? (
-                  <Text style={styles.itemTamilText}>{it.productNameTamil}</Text>
-                ) : null}
               </View>
               <Text style={styles.colQty}>{it.quantity}</Text>
               <Text style={styles.colPrice}>{formatRupees(it.unitPricePaise, false)}</Text>

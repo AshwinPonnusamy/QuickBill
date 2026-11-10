@@ -34,7 +34,6 @@ export const productService = {
         businessId: p.business_id,
         categoryId: p.category_id,
         name: p.name,
-        nameTamil: p.name_tamil,
         sku: p.sku,
         barcode: p.barcode,
         sellingPricePaise: Number(p.selling_price_paise),
@@ -65,11 +64,11 @@ export const productService = {
   async getCategories(businessId: string): Promise<Category[]> {
     if (!isSupabaseConfigured()) {
       const defaultCategories: Category[] = [
-        { id: 'cat-1', businessId, name: 'Beverages / Tea / Coffee', nameTamil: 'பானங்கள் / தேநீர்', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-2', businessId, name: 'Snacks & Sweets', nameTamil: 'தின்பண்டங்கள்', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-3', businessId, name: 'Meals / Tiffin', nameTamil: 'உணவு / டிபன்', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-4', businessId, name: 'Groceries / Provisions', nameTamil: 'மளிகைப் பொருட்கள்', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-5', businessId, name: 'Dairy & Bakery', nameTamil: 'பால் & பேக்கரி', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'cat-1', businessId, name: 'Beverages / Tea / Coffee', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'cat-2', businessId, name: 'Snacks & Sweets', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'cat-3', businessId, name: 'Meals / Tiffin', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'cat-4', businessId, name: 'Groceries / Provisions', isActive: true, createdAt: new Date().toISOString() },
+        { id: 'cat-5', businessId, name: 'Dairy & Bakery', isActive: true, createdAt: new Date().toISOString() },
       ];
       return defaultCategories;
     }
@@ -88,7 +87,6 @@ export const productService = {
         id: c.id,
         businessId: c.business_id,
         name: c.name,
-        nameTamil: c.name_tamil,
         icon: c.icon,
         color: c.color,
         isActive: c.is_active,
@@ -102,13 +100,12 @@ export const productService = {
   /**
    * Create category
    */
-  async createCategory(businessId: string, name: string, nameTamil?: string): Promise<Category | null> {
+  async createCategory(businessId: string, name: string): Promise<Category | null> {
     const id = `cat-${Date.now()}`;
     const newCategory: Category = {
       id,
       businessId,
       name,
-      nameTamil,
       isActive: true,
       createdAt: new Date().toISOString(),
     };
@@ -123,7 +120,6 @@ export const productService = {
         .insert({
           business_id: businessId,
           name,
-          name_tamil: nameTamil,
         })
         .select()
         .single();
@@ -133,7 +129,6 @@ export const productService = {
         id: data.id,
         businessId: data.business_id,
         name: data.name,
-        nameTamil: data.name_tamil,
         isActive: data.is_active,
         createdAt: data.created_at,
       };
@@ -173,7 +168,6 @@ export const productService = {
         business_id: businessId,
         category_id: product.categoryId || null,
         name: product.name,
-        name_tamil: product.nameTamil || null,
         sku: product.sku || null,
         barcode: product.barcode || null,
         selling_price_paise: product.sellingPricePaise,
