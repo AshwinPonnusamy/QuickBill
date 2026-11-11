@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { Button, Card, Divider, Badge } from '../../components/heroui';
 import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -25,6 +25,7 @@ import {
   Users,
   ShieldCheck,
   ShoppingBag,
+  BarChart3,
 } from '../../components/common/Icons';
 
 type ReportTab = 'overview' | 'gst' | 'items' | 'customers';
@@ -56,11 +57,57 @@ export default function ReportsScreen() {
 
   const report: SalesReportMetrics = reportService.generateReport(invoices, period);
 
+  const reportTabs: { id: ReportTab; label: string; Icon: any }[] = [
+    { id: 'overview', label: 'Overview', Icon: BarChart3 },
+    { id: 'gst', label: 'GST Report', Icon: ShieldCheck },
+    { id: 'items', label: 'Top Items', Icon: ShoppingBag },
+    { id: 'customers', label: 'Customers', Icon: Users },
+  ];
+
   return (
     <View style={styles.container}>
       <Header title={t.reportsTitle} showBack={false} />
 
-      {/* Period Selection Ribbon */}
+      {/* Main Feature Tabs (Scrollable & Responsive Segment Bar) */}
+      <View style={styles.tabContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabScrollContent}
+        >
+          {reportTabs.map((tab) => {
+            const isSelected = activeTab === tab.id;
+            const IconComponent = tab.Icon;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                activeOpacity={0.8}
+                onPress={() => setActiveTab(tab.id)}
+                style={[
+                  styles.tabPill,
+                  isSelected && styles.tabPillSelected,
+                ]}
+              >
+                <IconComponent
+                  size={15}
+                  color={isSelected ? COLORS.white : COLORS.textSecondary}
+                  style={{ marginRight: 6 }}
+                />
+                <Text
+                  style={[
+                    styles.tabPillText,
+                    isSelected && styles.tabPillTextSelected,
+                  ]}
+                >
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
+      {/* Period Selection Ribbon (Daily, Weekly, Monthly, All) */}
       <View style={styles.periodBar}>
         {[
           { id: 'daily', label: t.daily },
@@ -80,30 +127,6 @@ export default function ReportsScreen() {
               onPress={() => setPeriod(p.id as any)}
             >
               {p.label}
-            </Button>
-          );
-        })}
-      </View>
-
-      {/* Report Module Tabs */}
-      <View style={styles.tabNavBar}>
-        {[
-          { id: 'overview', label: 'Sales & Modes' },
-          { id: 'gst', label: 'GST Tax Report' },
-          { id: 'items', label: 'Item Performance' },
-          { id: 'customers', label: 'Customers & Udhar' },
-        ].map((tab) => {
-          const isSelected = activeTab === tab.id;
-          return (
-            <Button
-              key={tab.id}
-              variant={isSelected ? 'solid' : 'light'}
-              color={isSelected ? 'primary' : 'default'}
-              size="sm"
-              radius="md"
-              onPress={() => setActiveTab(tab.id as ReportTab)}
-            >
-              {tab.label}
             </Button>
           );
         })}
@@ -318,22 +341,47 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.background,
   },
-  periodBar: {
-    flexDirection: 'row',
-    padding: SPACING.sm,
+  tabContainer: {
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    gap: 8,
+    paddingVertical: SPACING.xs,
   },
-  tabNavBar: {
+  tabScrollContent: {
+    paddingHorizontal: SPACING.base,
+    gap: 8,
+    alignItems: 'center',
+  },
+  tabPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: ROUNDNESS.full,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  tabPillSelected: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  tabPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+  },
+  tabPillTextSelected: {
+    color: COLORS.white,
+  },
+  periodBar: {
     flexDirection: 'row',
     paddingHorizontal: SPACING.base,
     paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    gap: 6,
+    gap: 8,
   },
   scrollContent: {
     padding: SPACING.base,
