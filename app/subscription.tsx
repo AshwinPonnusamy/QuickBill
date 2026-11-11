@@ -392,13 +392,15 @@ const styles = StyleSheet.create({
   starterBadge: {
     backgroundColor: COLORS.secondary,
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    marginVertical: 6,
     borderRadius: ROUNDNESS.full,
   },
   proBadge: {
     backgroundColor: '#0F766E',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
+    marginVertical: 6,
     borderRadius: ROUNDNESS.full,
   },
   badgeText: {

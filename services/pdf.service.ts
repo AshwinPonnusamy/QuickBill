@@ -1,5 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { File, Paths } from 'expo-file-system';
+import { Share, Platform } from 'react-native';
 import { Invoice, Business } from '../types';
 import { formatRupees, paiseToRupees } from '../utils/billingCalculator';
 
@@ -181,7 +183,8 @@ export const pdfService = {
   },
 
   /**
-   * Generates PDF file on device
+   * Generates PDF file on device and stages it in the cache directory
+   * with a clean filename for safe reading and sharing.
    */
   async createPdfFile(
     invoice: Invoice,
@@ -189,15 +192,33 @@ export const pdfService = {
     templateType: 'thermal' | 'a4' = 'thermal'
   ): Promise<string> {
     const html = this.generateReceiptHtml(invoice, business, templateType);
-    const { uri } = await Print.printToFileAsync({
+    const { uri: generatedUri } = await Print.printToFileAsync({
       html,
       width: templateType === 'thermal' ? 280 : undefined,
     });
-    return uri;
+
+    try {
+      const sanitizedNumber = (invoice.invoiceNumber || 'receipt').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const targetFilename = `QuickBill_${sanitizedNumber}.pdf`;
+      const targetFile = new File(Paths.cache, targetFilename);
+
+      if (targetFile.exists) {
+        targetFile.delete();
+      }
+
+      const generatedFile = new File(generatedUri);
+      await generatedFile.copy(targetFile);
+
+      return targetFile.uri;
+    } catch {
+      // Fallback to original uri if copying fails
+      return generatedUri;
+    }
   },
 
   /**
-   * Shares PDF via WhatsApp or OS share sheet
+   * Shares PDF via OS share sheet (WhatsApp, Drive, Email, etc.)
+   * Falls back gracefully if OS-level sharing is rejected or unavailable.
    */
   async shareReceipt(
     invoice: Invoice,
@@ -205,13 +226,50 @@ export const pdfService = {
     templateType: 'thermal' | 'a4' = 'thermal'
   ): Promise<void> {
     const uri = await this.createPdfFile(invoice, business, templateType);
+    const cleanUri = uri.startsWith('file://') ? uri : `file://${uri}`;
+
+    let shared = false;
+
+    // 1. Try Expo Sharing (handles Android FileProvider and iOS AirDrop)
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(uri, {
-        UTI: '.pdf',
-        mimeType: 'application/pdf',
-        dialogTitle: `Receipt ${invoice.invoiceNumber}`,
-      });
+      try {
+        await Sharing.shareAsync(cleanUri, {
+          UTI: '.pdf',
+          mimeType: 'application/pdf',
+          dialogTitle: `Receipt ${invoice.invoiceNumber}`,
+        });
+        shared = true;
+      } catch (shareErr) {
+        console.warn('ExpoSharing failed, trying preview/fallback:', shareErr);
+      }
     }
+
+    if (shared) return;
+
+    // 2. Try native File preview (iOS Quick Look / Android ACTION_VIEW)
+    try {
+      const fileToPreview = new File(cleanUri);
+      if (fileToPreview.exists && (await File.canPreview(fileToPreview))) {
+        await File.preview(fileToPreview, {
+          title: `Receipt ${invoice.invoiceNumber}`,
+          mimeType: 'application/pdf',
+        });
+        return;
+      }
+    } catch (previewErr) {
+      console.warn('File.preview fallback failed:', previewErr);
+    }
+
+    // 3. Fallback to React Native Share text summary
+    const totalPaise = invoice.grandTotalPaise ?? invoice.subtotalPaise ?? 0;
+    const summary = `${business.name} - Bill #${invoice.invoiceNumber}\nDate: ${new Date(
+      invoice.createdAt
+    ).toLocaleDateString('en-IN')}\nTotal: ${formatRupees(totalPaise)}\nThank you for your business!`;
+
+    await Share.share({
+      title: `Bill ${invoice.invoiceNumber}`,
+      message: summary,
+    });
   },
 
   /**
