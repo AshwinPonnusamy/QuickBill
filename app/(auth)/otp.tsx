@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
+import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
@@ -77,40 +77,35 @@ export default function OtpScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerArea}>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text style={styles.title}>
             {step === 'phone' ? 'Mobile Login' : t.verifyOtp}
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             {step === 'phone'
               ? 'Enter your mobile number to receive a secure login code'
               : `Enter the verification code sent to +91 ${phone}`}
           </Text>
         </View>
 
-        <Surface style={styles.formCard} elevation={2}>
+        <Card radius="xl" shadow="md" style={styles.formCard}>
           {step === 'phone' ? (
             <>
-              <TextInput
+              <Input
                 label={t.phone}
                 placeholder="10-digit mobile number"
                 value={phone}
                 onChangeText={setPhone}
                 keyboardType="phone-pad"
                 maxLength={10}
-                mode="outlined"
-                outlineColor={COLORS.border}
-                activeOutlineColor={COLORS.primary}
-                style={styles.input}
-                left={<TextInput.Affix text="+91 " />}
+                startContent={<Text style={styles.affix}>+91</Text>}
               />
               <Button
-                mode="contained"
-                buttonColor={COLORS.primary}
-                textColor={COLORS.white}
-                loading={isLoading}
-                disabled={isLoading}
+                color="primary"
+                size="lg"
+                radius="md"
+                fullWidth
+                isLoading={isLoading}
                 style={styles.submitBtn}
-                contentStyle={styles.btnContent}
                 onPress={handleSendOtp}
               >
                 {t.sendOtp}
@@ -118,26 +113,21 @@ export default function OtpScreen() {
             </>
           ) : (
             <>
-              <TextInput
+              <Input
                 label="Verification Code (OTP)"
                 placeholder="e.g. 123456"
                 value={otp}
                 onChangeText={setOtp}
                 keyboardType="number-pad"
                 maxLength={6}
-                mode="outlined"
-                outlineColor={COLORS.border}
-                activeOutlineColor={COLORS.secondary}
-                style={styles.input}
               />
               <Button
-                mode="contained"
-                buttonColor={COLORS.secondary}
-                textColor={COLORS.white}
-                loading={isLoading}
-                disabled={isLoading}
+                color="secondary"
+                size="lg"
+                radius="md"
+                fullWidth
+                isLoading={isLoading}
                 style={styles.submitBtn}
-                contentStyle={styles.btnContent}
                 onPress={handleVerifyOtp}
               >
                 {t.verifyOtp} & Enter
@@ -147,7 +137,7 @@ export default function OtpScreen() {
               </TouchableOpacity>
             </>
           )}
-        </Surface>
+        </Card>
 
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back to Login with Password</Text>
@@ -173,6 +163,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
+    fontSize: 24,
     color: COLORS.primary,
   },
   subtitle: {
@@ -180,24 +171,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     paddingHorizontal: SPACING.base,
+    fontSize: 14,
   },
   formCard: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
+  affix: {
+    color: COLORS.textSecondary,
+    fontWeight: '600',
+    fontSize: 14,
   },
   submitBtn: {
     marginTop: SPACING.sm,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
   },
   changePhoneBtn: {
     alignItems: 'center',
@@ -218,4 +203,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 

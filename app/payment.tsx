@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { Button, Card, Input } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -112,7 +112,7 @@ export default function PaymentScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Payable Hero Surface */}
-        <Surface style={styles.payableCard} elevation={2}>
+        <Card radius="xl" shadow="md" style={styles.payableCard}>
           <Text style={styles.payableLabel}>{t.payableAmount}</Text>
           <Text style={styles.payableValue}>{formatRupees(grandTotalPaise)}</Text>
           {customer ? (
@@ -120,7 +120,7 @@ export default function PaymentScreen() {
               Customer: {customer.name} {customer.outstandingBalancePaise > 0 ? `(Prior Udhar: ${formatRupees(customer.outstandingBalancePaise)})` : ''}
             </Text>
           ) : null}
-        </Surface>
+        </Card>
 
         {/* Method Selector Tabs */}
         <Text style={styles.sectionTitle}>{t.selectPaymentMethod}</Text>
@@ -135,37 +135,36 @@ export default function PaymentScreen() {
             const isSelected = paymentMethod === m.id;
             const IconComponent = m.Icon;
             return (
-              <TouchableOpacity
+              <Button
                 key={m.id}
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="md"
+                radius="md"
+                startContent={
+                  <IconComponent
+                    size={16}
+                    color={isSelected ? COLORS.white : COLORS.textSecondary}
+                  />
+                }
+                style={styles.methodBtn}
                 onPress={() => setPaymentMethod(m.id as PaymentMethod)}
-                style={[styles.methodTab, isSelected && styles.activeMethodTab]}
               >
-                <IconComponent
-                  size={15}
-                  color={isSelected ? COLORS.white : COLORS.textSecondary}
-                  style={{ marginRight: 4 }}
-                />
-                <Text
-                  style={[styles.methodTabText, isSelected && styles.activeMethodTabText]}
-                >
-                  {m.label}
-                </Text>
-              </TouchableOpacity>
+                {m.label}
+              </Button>
             );
           })}
         </View>
 
         {/* Dynamic Payment Method View */}
         {paymentMethod === 'cash' ? (
-          <Surface style={styles.methodCard} elevation={1}>
-            <TextInput
+          <Card radius="lg" shadow="sm" style={styles.methodCard}>
+            <Input
               label={t.cashReceived}
               value={cashReceived}
               onChangeText={setCashReceived}
               keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
-              left={<TextInput.Affix text="₹ " />}
+              startContent={<Text style={{ color: COLORS.textSecondary, fontWeight: 'bold' }}>₹</Text>}
             />
 
             {/* Quick cash denomination buttons */}
@@ -174,11 +173,10 @@ export default function PaymentScreen() {
               {[grandTotalRupees, 100, 200, 500, 2000].map((amt, idx) => (
                 <Button
                   key={idx}
-                  mode="outlined"
-                  textColor={COLORS.primary}
-                  style={styles.tenderButton}
-                  labelStyle={styles.tenderBtnLabel}
-                  compact
+                  variant="flat"
+                  color="default"
+                  size="sm"
+                  radius="md"
                   onPress={() => handleQuickCash(amt)}
                 >
                   {amt === grandTotalRupees ? 'Exact' : `₹${amt}`}
@@ -191,11 +189,11 @@ export default function PaymentScreen() {
               <Text style={styles.changeLabel}>{t.changeReturn}:</Text>
               <Text style={styles.changeValue}>{formatRupees(changeToReturnPaise)}</Text>
             </View>
-          </Surface>
+          </Card>
         ) : null}
 
         {paymentMethod === 'upi' ? (
-          <Surface style={styles.methodCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.methodCard}>
             <View style={styles.upiQrBox}>
               <View style={styles.upiQrWrapper}>
                 <QrCode size={48} color={COLORS.secondary} />
@@ -205,34 +203,30 @@ export default function PaymentScreen() {
               <Text style={styles.upiAmount}>{formatRupees(grandTotalPaise)}</Text>
             </View>
 
-            <TextInput
+            <Input
               label={t.paymentReference}
               placeholder="e.g. 12-digit UTR or Transaction ID"
               value={paymentReference}
               onChangeText={setPaymentReference}
-              mode="outlined"
-              style={styles.input}
             />
-          </Surface>
+          </Card>
         ) : null}
 
         {paymentMethod === 'card' ? (
-          <Surface style={styles.methodCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.methodCard}>
             <Text style={styles.cardHeader}>POS Card Swipe / Tap</Text>
             <Text style={styles.cardSub}>Swipe customer Debit/Credit card on your card terminal.</Text>
-            <TextInput
+            <Input
               label="Card Approval / Auth Code (Optional)"
               placeholder="e.g. AUTH-9821"
               value={paymentReference}
               onChangeText={setPaymentReference}
-              mode="outlined"
-              style={styles.input}
             />
-          </Surface>
+          </Card>
         ) : null}
 
         {paymentMethod === 'credit' ? (
-          <Surface style={[styles.methodCard, styles.creditCardSurface]} elevation={1}>
+          <Card radius="lg" shadow="sm" style={[styles.methodCard, styles.creditCardSurface]}>
             <View style={styles.creditHeaderRow}>
               <AlertTriangle size={18} color={COLORS.error} style={{ marginRight: 6 }} />
               <Text style={styles.creditHeader}>Udhar / Unpaid Credit Sale</Text>
@@ -240,47 +234,41 @@ export default function PaymentScreen() {
             <Text style={styles.creditNotice}>
               This invoice will be marked as UNPAID. The outstanding balance of {formatRupees(grandTotalPaise)} will be automatically added to {customer?.name || 'the customer'}'s ledger.
             </Text>
-          </Surface>
+          </Card>
         ) : null}
 
         {paymentMethod === 'split' ? (
-          <Surface style={styles.methodCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.methodCard}>
             <Text style={styles.splitHeader}>Split Payment (Cash + UPI)</Text>
-            <TextInput
+            <Input
               label="Cash Amount (₹)"
               value={splitCash}
               onChangeText={setSplitCash}
               keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
             />
-            <TextInput
+            <Input
               label="UPI Amount (₹)"
               value={splitUpi}
               onChangeText={setSplitUpi}
               keyboardType="numeric"
-              mode="outlined"
-              style={styles.input}
             />
-          </Surface>
+          </Card>
         ) : null}
       </ScrollView>
 
       {/* Settle Action Button */}
-      <Surface style={styles.bottomBar} elevation={4}>
+      <Card radius="none" shadow="lg" style={styles.bottomBar}>
         <Button
-          mode="contained"
-          buttonColor={paymentMethod === 'credit' ? COLORS.warning : COLORS.success}
-          textColor={COLORS.white}
-          loading={isSubmitting}
-          disabled={isSubmitting}
-          style={styles.confirmBtn}
-          contentStyle={styles.btnContent}
+          color={paymentMethod === 'credit' ? 'warning' : 'success'}
+          size="lg"
+          radius="md"
+          fullWidth
+          isLoading={isSubmitting}
           onPress={handleConfirmPayment}
         >
           {t.markPaid} ({formatRupees(grandTotalPaise)})
         </Button>
-      </Surface>
+      </Card>
     </View>
   );
 }
@@ -296,7 +284,6 @@ const styles = StyleSheet.create({
   },
   payableCard: {
     backgroundColor: COLORS.primary,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.lg,
     alignItems: 'center',
     marginBottom: SPACING.lg,
@@ -331,41 +318,12 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
     marginBottom: SPACING.lg,
   },
-  methodTab: {
+  methodBtn: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: COLORS.surface,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderRadius: ROUNDNESS.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-  },
-  activeMethodTab: {
-    borderColor: COLORS.secondary,
-    backgroundColor: COLORS.secondary,
-  },
-  methodTabText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  activeMethodTabText: {
-    color: COLORS.white,
   },
   methodCard: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.base,
-    borderRadius: ROUNDNESS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
   },
   quickCashLabel: {
     fontSize: 12,
@@ -378,19 +336,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: SPACING.md,
-  },
-  tenderButton: {
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-    backgroundColor: COLORS.surfaceVariant,
-  },
-  tenderBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginHorizontal: 8,
-    marginVertical: 4,
   },
   changeBanner: {
     flexDirection: 'row',
@@ -491,11 +436,5 @@ const styles = StyleSheet.create({
     padding: SPACING.base,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-  },
-  confirmBtn: {
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 8,
   },
 });

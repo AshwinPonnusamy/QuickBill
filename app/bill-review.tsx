@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Text } from 'react-native';
+import { Button, Card, Divider } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -26,7 +26,7 @@ export default function BillReviewScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Business & Invoice Header Card */}
-        <Surface style={styles.card} elevation={1}>
+        <Card radius="lg" shadow="sm" style={styles.card}>
           <Text style={styles.bizName}>{business?.name || 'QuickBill Store'}</Text>
           <Text style={styles.bizAddress}>{business?.address}</Text>
           <Text style={styles.bizPhone}>Phone: {business?.phone}</Text>
@@ -34,7 +34,7 @@ export default function BillReviewScreen() {
             <Text style={styles.gstText}>GSTIN: {business.gstin}</Text>
           ) : null}
 
-          <View style={styles.divider} />
+          <Divider style={{ marginVertical: SPACING.sm }} />
 
           <View style={styles.rowBetween}>
             <View>
@@ -60,10 +60,10 @@ export default function BillReviewScreen() {
               </View>
             ) : null}
           </View>
-        </Surface>
+        </Card>
 
         {/* Itemized Table */}
-        <Surface style={styles.card} elevation={1}>
+        <Card radius="lg" shadow="sm" style={styles.card}>
           <Text style={styles.sectionTitle}>Itemized Products ({calculation.items.length})</Text>
 
           <View style={styles.tableHeader}>
@@ -86,10 +86,10 @@ export default function BillReviewScreen() {
               <Text style={styles.colTotal}>{formatRupees(it.totalPaise, false)}</Text>
             </View>
           ))}
-        </Surface>
+        </Card>
 
         {/* Financial & GST Breakdown Card */}
-        <Surface style={styles.card} elevation={1}>
+        <Card radius="lg" shadow="sm" style={styles.card}>
           <Text style={styles.sectionTitle}>Bill Breakdown</Text>
 
           <View style={styles.summaryRow}>
@@ -133,37 +133,38 @@ export default function BillReviewScreen() {
             </View>
           ) : null}
 
-          <View style={styles.divider} />
+          <Divider style={{ marginVertical: SPACING.sm }} />
 
           <View style={styles.summaryRow}>
             <Text style={styles.grandTotalLabel}>{t.grandTotal}:</Text>
             <Text style={styles.grandTotalVal}>{formatRupees(calculation.grandTotalPaise)}</Text>
           </View>
-        </Surface>
+        </Card>
       </ScrollView>
 
       {/* Action Bar */}
-      <Surface style={styles.bottomBar} elevation={4}>
+      <Card radius="none" shadow="lg" style={styles.bottomBar}>
         <Button
-          mode="outlined"
-          textColor={COLORS.primary}
-          style={styles.editBtn}
+          variant="bordered"
+          color="primary"
+          size="lg"
+          radius="md"
+          style={{ flex: 1 }}
           onPress={() => router.back()}
         >
           {t.editBill}
         </Button>
 
         <Button
-          mode="contained"
-          buttonColor={COLORS.secondary}
-          textColor={COLORS.white}
-          style={styles.payBtn}
-          contentStyle={styles.btnContent}
+          color="secondary"
+          size="lg"
+          radius="md"
+          style={{ flex: 2 }}
           onPress={() => router.push('/payment' as any)}
         >
           {t.proceedToPayment} →
         </Button>
-      </Surface>
+      </Card>
     </View>
   );
 }
@@ -178,12 +179,8 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   bizName: {
     fontSize: 16,
@@ -204,11 +201,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.primary,
     marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: SPACING.sm,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -281,10 +273,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  itemTamil: {
-    fontSize: 11,
-    color: COLORS.textMuted,
-  },
   taxSub: {
     fontSize: 9,
     color: COLORS.secondary,
@@ -327,17 +315,4 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
-  editBtn: {
-    flex: 1,
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.primary,
-  },
-  payBtn: {
-    flex: 2,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
-  },
 });
-

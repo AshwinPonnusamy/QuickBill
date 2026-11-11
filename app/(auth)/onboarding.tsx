@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Dimensions, Text } from 'react-native';
+import { Card, Button } from '../../components/heroui';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Zap, WifiOff, Printer, BookOpen } from '../../components/common/Icons';
@@ -49,14 +49,14 @@ export default function OnboardingScreen() {
 
       {/* Main Slide Card */}
       <View style={styles.slideContainer}>
-        <Surface style={styles.slideCard} elevation={2}>
+        <Card radius="xl" shadow="md" style={styles.slideCard}>
           <View style={styles.slideIconWrapper}>
             <slide.Icon size={44} color={COLORS.secondary} />
           </View>
-          <Text variant="headlineSmall" style={styles.slideTitle}>
+          <Text style={styles.slideTitle}>
             {slide.title}
           </Text>
-          <Text variant="bodyMedium" style={styles.slideDesc}>
+          <Text style={styles.slideDesc}>
             {slide.desc}
           </Text>
 
@@ -70,29 +70,29 @@ export default function OnboardingScreen() {
               />
             ))}
           </View>
-        </Surface>
+        </Card>
       </View>
 
       {/* Bottom Actions */}
       <View style={styles.bottomBar}>
         {activeSlide < SLIDES.length - 1 ? (
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.actionBtn}
-            contentStyle={styles.btnContent}
             onPress={() => setActiveSlide(activeSlide + 1)}
           >
             {t.continue} →
           </Button>
         ) : (
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.actionBtn}
-            contentStyle={styles.btnContent}
             onPress={() => router.push('/(auth)/login' as any)}
           >
             {t.login} / {t.register}
@@ -137,11 +137,7 @@ const styles = StyleSheet.create({
   slideCard: {
     width: '100%',
     padding: SPACING.xl,
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.xl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   slideIconWrapper: {
     width: 80,
@@ -154,13 +150,15 @@ const styles = StyleSheet.create({
   },
   slideTitle: {
     color: COLORS.primary,
-    fontWeight: '700',
+    fontWeight: '800',
+    fontSize: 20,
     textAlign: 'center',
     marginBottom: SPACING.sm,
   },
   slideDesc: {
     color: COLORS.textSecondary,
     textAlign: 'center',
+    fontSize: 14,
     lineHeight: 22,
     paddingHorizontal: SPACING.sm,
   },
@@ -184,10 +182,6 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   actionBtn: {
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 8,
   },
   skipBtn: {
     alignItems: 'center',
@@ -199,3 +193,4 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Text } from 'react-native-paper';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
@@ -33,10 +32,10 @@ export default function SplashScreen() {
       <View style={styles.logoBadge}>
         <Receipt size={44} color={COLORS.secondary} />
       </View>
-      <Text variant="headlineLarge" style={styles.title}>
+      <Text style={styles.title}>
         {t.appName}
       </Text>
-      <Text variant="bodyMedium" style={styles.tagline}>
+      <Text style={styles.tagline}>
         {t.tagline}
       </Text>
 
@@ -68,17 +67,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
-  logoIcon: {
-    fontSize: 48,
-  },
   title: {
     color: COLORS.white,
     fontWeight: '800',
+    fontSize: 28,
     letterSpacing: 0.5,
   },
   tagline: {
     color: '#94A3B8',
     marginTop: SPACING.xs,
+    fontSize: 14,
     textAlign: 'center',
   },
   loader: {
@@ -93,4 +91,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+
 

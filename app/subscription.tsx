@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { Button, Card, Badge, Divider } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -60,7 +60,7 @@ export default function SubscriptionScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Current Plan Badge */}
-        <Surface style={styles.currentCard} elevation={1}>
+        <Card radius="lg" shadow="sm" style={styles.currentCard}>
           <Text style={styles.currentLabel}>{t.currentPlan}:</Text>
           <Text style={styles.currentPlanName}>
             {isProActive ? '⭐ QuickBill Pro Business' : 'QuickBill Free Plan'}
@@ -70,32 +70,36 @@ export default function SubscriptionScreen() {
               Renewal: {new Date(subscription.expiresAt).toLocaleDateString('en-IN')}
             </Text>
           ) : null}
-        </Surface>
+        </Card>
 
         {/* Plan Pricing Toggle */}
         <View style={styles.cycleToggle}>
-          <TouchableOpacity
+          <Button
+            variant={cycle === 'monthly' ? 'solid' : 'bordered'}
+            color={cycle === 'monthly' ? 'secondary' : 'default'}
+            size="md"
+            radius="md"
+            style={{ flex: 1 }}
             onPress={() => setCycle('monthly')}
-            style={[styles.cycleBtn, cycle === 'monthly' && styles.activeCycleBtn]}
           >
-            <Text style={[styles.cycleText, cycle === 'monthly' && styles.activeCycleText]}>
-              Monthly (₹299)
-            </Text>
-          </TouchableOpacity>
+            Monthly (₹299)
+          </Button>
 
-          <TouchableOpacity
+          <Button
+            variant={cycle === 'yearly' ? 'solid' : 'bordered'}
+            color={cycle === 'yearly' ? 'secondary' : 'default'}
+            size="md"
+            radius="md"
+            style={{ flex: 1 }}
             onPress={() => setCycle('yearly')}
-            style={[styles.cycleBtn, cycle === 'yearly' && styles.activeCycleBtn]}
           >
-            <Text style={[styles.cycleText, cycle === 'yearly' && styles.activeCycleText]}>
-              Yearly (₹2,499) • Save 30%
-            </Text>
-          </TouchableOpacity>
+            Yearly (₹2,499) • Save 30%
+          </Button>
         </View>
 
         {/* Comparison Plan Cards */}
         {/* 1. FREE PLAN */}
-        <Surface style={styles.planCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.planCard}>
           <View style={styles.planHeader}>
             <Text style={styles.planName}>{t.freePlan}</Text>
             <Text style={styles.planPrice}>₹0 / Forever</Text>
@@ -122,10 +126,10 @@ export default function SubscriptionScreen() {
               <Text style={styles.featureItem}>1 Device & 1 Staff access</Text>
             </View>
           </View>
-        </Surface>
+        </Card>
 
         {/* 2. PRO PLAN */}
-        <Surface style={[styles.planCard, styles.proCard]} elevation={3}>
+        <Card radius="xl" shadow="md" style={[styles.planCard, styles.proCard]}>
           <View style={styles.proBadge}>
             <Text style={styles.proBadgeText}>RECOMMENDED FOR RETAILERS</Text>
           </View>
@@ -162,13 +166,12 @@ export default function SubscriptionScreen() {
 
           {!isProActive ? (
             <Button
-              mode="contained"
-              buttonColor={COLORS.secondary}
-              textColor={COLORS.white}
-              loading={isProcessing}
-              disabled={isProcessing}
+              color="secondary"
+              size="lg"
+              radius="md"
+              fullWidth
+              isLoading={isProcessing}
               style={styles.upgradeBtn}
-              contentStyle={styles.btnContent}
               onPress={handleUpgrade}
             >
               {t.upgradeToPro}
@@ -179,7 +182,7 @@ export default function SubscriptionScreen() {
               <Text style={styles.activeBannerText}>You are already enjoying Pro Benefits</Text>
             </View>
           )}
-        </Surface>
+        </Card>
 
         {/* Restore Purchases */}
         <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
@@ -200,12 +203,8 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   currentCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   currentLabel: {
     fontSize: 11,
@@ -226,39 +225,12 @@ const styles = StyleSheet.create({
   },
   cycleToggle: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surfaceVariant,
-    padding: 4,
-    borderRadius: ROUNDNESS.lg,
+    gap: 8,
     marginBottom: SPACING.lg,
-  },
-  cycleBtn: {
-    flex: 1,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderRadius: ROUNDNESS.md,
-  },
-  activeCycleBtn: {
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cycleText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
-  activeCycleText: {
-    color: COLORS.primary,
   },
   planCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   proCard: {
     borderColor: COLORS.secondary,
@@ -315,16 +287,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   upgradeBtn: {
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
+    marginTop: SPACING.sm,
   },
   activeBanner: {
+    flexDirection: 'row',
     backgroundColor: COLORS.successLight,
     padding: SPACING.md,
     borderRadius: ROUNDNESS.md,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   activeBannerText: {
     color: COLORS.success,
@@ -342,4 +313,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

@@ -1,7 +1,7 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Surface, Text } from 'react-native-paper';
-import { COLORS, ROUNDNESS, SPACING } from '../../constants/theme';
+import { StyleSheet, View, Text } from 'react-native';
+import { Card } from '../heroui';
+import { COLORS, SPACING } from '../../constants/theme';
 
 interface StatCardProps {
   label: string;
@@ -18,25 +18,29 @@ export const StatCard: React.FC<StatCardProps> = ({
   subValue,
   icon,
   color = COLORS.primary,
-  bgColor = COLORS.surface,
+  bgColor,
 }) => {
   return (
-    <Surface style={[styles.card, { backgroundColor: bgColor }]} elevation={1}>
+    <Card
+      radius="lg"
+      shadow="sm"
+      style={[styles.card, bgColor ? { backgroundColor: bgColor } : null]}
+    >
       <View style={styles.topRow}>
-        <Text variant="labelMedium" style={styles.label} numberOfLines={1}>
+        <Text style={styles.label} numberOfLines={1}>
           {label}
         </Text>
         {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
       </View>
-      <Text variant="headlineSmall" style={[styles.value, { color }]}>
+      <Text style={[styles.value, { color }]}>
         {value}
       </Text>
       {subValue ? (
-        <Text variant="bodySmall" style={styles.subValue}>
+        <Text style={styles.subValue}>
           {subValue}
         </Text>
       ) : null}
-    </Surface>
+    </Card>
   );
 };
 
@@ -44,9 +48,6 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     padding: SPACING.md,
-    borderRadius: ROUNDNESS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     minWidth: 140,
   },
   topRow: {
@@ -65,7 +66,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   value: {
-    fontWeight: '700',
+    fontWeight: '800',
     fontSize: 20,
     marginTop: 2,
   },
@@ -75,4 +76,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
 

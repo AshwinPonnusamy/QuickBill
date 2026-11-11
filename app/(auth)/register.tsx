@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
+import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
-import { SupportedLanguage } from '../../types';
 import { User, Phone, Lock, KeyRound } from '../../components/common/Icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { language, setAuth, setLanguage } = useAuthStore();
+  const { language, setAuth } = useAuthStore();
   const t = TRANSLATIONS[language];
 
   const [fullName, setFullName] = useState('');
@@ -64,81 +63,64 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.headerArea}>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text style={styles.title}>
             {t.register}
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Create your account to start managing retail bills effortlessly
           </Text>
         </View>
 
         {/* Form Card */}
-        <Surface style={styles.formCard} elevation={2}>
-          <TextInput
+        <Card radius="xl" shadow="md" style={styles.formCard}>
+          <Input
             label={t.fullName}
             placeholder="e.g. R. Murugan"
             value={fullName}
             onChangeText={setFullName}
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <User size={18} color={COLORS.textSecondary} />} />}
+            startContent={<User size={18} color="#71717A" />}
           />
 
-          <TextInput
+          <Input
             label={t.phone}
             placeholder={t.phonePlaceholder}
             value={identifier}
             onChangeText={setIdentifier}
             keyboardType="email-address"
             autoCapitalize="none"
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <Phone size={18} color={COLORS.textSecondary} />} />}
+            startContent={<Phone size={18} color="#71717A" />}
           />
 
-          <TextInput
+          <Input
             label={t.password}
             placeholder="Minimum 6 characters"
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <Lock size={18} color={COLORS.textSecondary} />} />}
+            startContent={<Lock size={18} color="#71717A" />}
           />
 
-          <TextInput
+          <Input
             label="Confirm Password"
             placeholder="Re-type your password"
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <KeyRound size={18} color={COLORS.textSecondary} />} />}
+            startContent={<KeyRound size={18} color="#71717A" />}
           />
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
-            loading={isLoading}
-            disabled={isLoading}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
+            isLoading={isLoading}
             style={styles.submitBtn}
-            contentStyle={styles.btnContent}
             onPress={handleRegister}
           >
             {t.continue} to Business Setup →
           </Button>
-        </Surface>
+        </Card>
 
         {/* Switch to Login */}
         <View style={styles.bottomLinkContainer}>
@@ -168,6 +150,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
+    fontSize: 24,
     color: COLORS.primary,
   },
   subtitle: {
@@ -175,30 +158,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     paddingHorizontal: SPACING.base,
+    fontSize: 14,
   },
   formCard: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
-  },
-  langLabel: {
-    fontSize: 13,
-    color: COLORS.textSecondary,
-    fontWeight: '600',
-    marginBottom: SPACING.xs,
   },
   submitBtn: {
-    marginTop: SPACING.sm,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
+    marginTop: SPACING.md,
   },
   bottomLinkContainer: {
     flexDirection: 'row',
@@ -216,4 +182,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 

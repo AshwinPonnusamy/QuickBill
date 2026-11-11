@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { Button, Card, Divider } from '../components/heroui';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -29,7 +29,7 @@ export default function ReceiptPreviewScreen() {
         <Header title={t.receiptTitle} showBack={true} />
         <View style={styles.centerBox}>
           <Text>Invoice data unavailable.</Text>
-          <Button mode="contained" onPress={() => router.replace('/(tabs)' as any)}>
+          <Button color="primary" onPress={() => router.replace('/(tabs)' as any)}>
             Go to Dashboard
           </Button>
         </View>
@@ -77,34 +77,39 @@ export default function ReceiptPreviewScreen() {
 
       {/* Template Toggle (Thermal 80mm vs Standard A4) */}
       <View style={styles.templateBar}>
-        <TouchableOpacity
+        <Button
+          variant={template === 'thermal' ? 'solid' : 'bordered'}
+          color={template === 'thermal' ? 'secondary' : 'default'}
+          size="md"
+          radius="md"
+          style={{ flex: 1 }}
+          startContent={<Receipt size={16} color={template === 'thermal' ? COLORS.white : COLORS.textPrimary} />}
           onPress={() => setTemplate('thermal')}
-          style={[styles.templateBtn, template === 'thermal' && styles.activeTemplateBtn]}
         >
-          <Receipt size={16} color={template === 'thermal' ? COLORS.white : COLORS.textPrimary} style={{ marginRight: 6 }} />
-          <Text style={[styles.templateText, template === 'thermal' && styles.activeTemplateText]}>
-            {t.printThermal}
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
+          {t.printThermal}
+        </Button>
+        <Button
+          variant={template === 'a4' ? 'solid' : 'bordered'}
+          color={template === 'a4' ? 'secondary' : 'default'}
+          size="md"
+          radius="md"
+          style={{ flex: 1 }}
+          startContent={<FileText size={16} color={template === 'a4' ? COLORS.white : COLORS.textPrimary} />}
           onPress={() => setTemplate('a4')}
-          style={[styles.templateBtn, template === 'a4' && styles.activeTemplateBtn]}
         >
-          <FileText size={16} color={template === 'a4' ? COLORS.white : COLORS.textPrimary} style={{ marginRight: 6 }} />
-          <Text style={[styles.templateText, template === 'a4' && styles.activeTemplateText]}>
-            {t.printA4}
-          </Text>
-        </TouchableOpacity>
+          {t.printA4}
+        </Button>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Receipt Mock Paper Surface */}
-        <Surface
+        <Card
+          radius="sm"
+          shadow="md"
           style={[
             styles.paperReceipt,
             template === 'thermal' ? styles.thermalWidth : styles.a4Width,
           ]}
-          elevation={3}
         >
           <View style={styles.receiptHeader}>
             <Text style={styles.receiptBizTitle}>{business.name}</Text>
@@ -222,52 +227,58 @@ export default function ReceiptPreviewScreen() {
             <Text style={styles.footerNote}>{t.thankYou}</Text>
             <Text style={styles.footerBrand}>Powered by QuickBill</Text>
           </View>
-        </Surface>
+        </Card>
 
         {/* Print & Share Action Grid */}
         <View style={styles.actionGrid}>
-          <TouchableOpacity
+          <Card
+            isPressable
+            radius="lg"
+            shadow="sm"
             style={styles.actionTile}
             onPress={handleShare}
-            disabled={isProcessing}
           >
             <View style={styles.actionIconWrapper}>
               <Share2 size={22} color={COLORS.secondary} />
             </View>
             <Text style={styles.actionText}>{t.sharePdf}</Text>
-          </TouchableOpacity>
+          </Card>
 
-          <TouchableOpacity
+          <Card
+            isPressable
+            radius="lg"
+            shadow="sm"
             style={styles.actionTile}
             onPress={handlePrint}
-            disabled={isProcessing}
           >
             <View style={styles.actionIconWrapper}>
               <Printer size={22} color={COLORS.primary} />
             </View>
             <Text style={styles.actionText}>{t.printReceipt}</Text>
-          </TouchableOpacity>
+          </Card>
 
-          <TouchableOpacity
+          <Card
+            isPressable
+            radius="lg"
+            shadow="sm"
             style={styles.actionTile}
             onPress={handleDownload}
-            disabled={isProcessing}
           >
             <View style={styles.actionIconWrapper}>
               <Download size={22} color={COLORS.secondary} />
             </View>
             <Text style={styles.actionText}>{t.downloadPdf}</Text>
-          </TouchableOpacity>
+          </Card>
         </View>
 
         {/* Create Next Bill Button */}
         <Button
-          mode="contained"
-          buttonColor={COLORS.secondary}
-          textColor={COLORS.white}
+          color="secondary"
+          size="lg"
+          radius="md"
+          fullWidth
+          startContent={<Plus size={18} color={COLORS.white} />}
           style={styles.nextBillBtn}
-          contentStyle={styles.btnContent}
-          icon={() => <Plus size={18} color={COLORS.white} />}
           onPress={() => router.replace('/(tabs)/new-bill' as any)}
         >
           {t.createNewBill}
@@ -290,27 +301,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: SPACING.sm,
   },
-  templateBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: ROUNDNESS.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.background,
-  },
-  activeTemplateBtn: {
-    backgroundColor: COLORS.primaryContainer,
-  },
-  templateText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeTemplateText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-  },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
@@ -318,7 +308,6 @@ const styles = StyleSheet.create({
   },
   paperReceipt: {
     backgroundColor: COLORS.white,
-    borderRadius: ROUNDNESS.sm,
     padding: SPACING.base,
     borderWidth: 1,
     borderColor: '#CBD5E1',
@@ -416,10 +405,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: COLORS.textPrimary,
   },
-  itemTamilText: {
-    fontSize: 10,
-    color: COLORS.textMuted,
-  },
   totalsSection: {
     marginVertical: 4,
   },
@@ -474,12 +459,9 @@ const styles = StyleSheet.create({
   },
   actionTile: {
     flex: 1,
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    justifyContent: 'center',
   },
   actionIconWrapper: {
     width: 40,
@@ -498,10 +480,6 @@ const styles = StyleSheet.create({
   },
   nextBillBtn: {
     width: '100%',
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 8,
   },
   centerBox: {
     flex: 1,
@@ -510,4 +488,3 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
 });
-

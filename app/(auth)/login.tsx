@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
+import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
@@ -68,46 +68,37 @@ export default function LoginScreen() {
           <View style={styles.logoBadge}>
             <Receipt size={32} color={COLORS.secondary} />
           </View>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text style={styles.title}>
             {t.login}
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Enter your credentials to access your billing account
           </Text>
         </View>
 
         {/* Input Form Card */}
-        <Surface style={styles.formCard} elevation={2}>
-          <TextInput
+        <Card radius="xl" shadow="md" style={styles.formCard}>
+          <Input
             label={t.phone}
             placeholder={t.phonePlaceholder}
             value={identifier}
             onChangeText={setIdentifier}
             keyboardType="email-address"
             autoCapitalize="none"
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <Phone size={18} color={COLORS.textSecondary} />} />}
+            startContent={<Phone size={18} color="#71717A" />}
           />
 
-          <TextInput
+          <Input
             label={t.password}
             placeholder={t.passwordPlaceholder}
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <Lock size={18} color={COLORS.textSecondary} />} />}
-            right={
-              <TextInput.Icon
-                icon={() => showPassword ? <EyeOff size={18} color={COLORS.textSecondary} /> : <Eye size={18} color={COLORS.textSecondary} />}
-                onPress={() => setShowPassword(!showPassword)}
-              />
+            startContent={<Lock size={18} color="#71717A" />}
+            endContent={
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                {showPassword ? <EyeOff size={18} color="#71717A" /> : <Eye size={18} color="#71717A" />}
+              </TouchableOpacity>
             }
           />
 
@@ -122,18 +113,17 @@ export default function LoginScreen() {
           </View>
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
-            loading={isLoading}
-            disabled={isLoading}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
+            isLoading={isLoading}
             style={styles.submitBtn}
-            contentStyle={styles.btnContent}
             onPress={handleLogin}
           >
             {t.login}
           </Button>
-        </Surface>
+        </Card>
 
         {/* Switch to Register */}
         <View style={styles.bottomLinkContainer}>
@@ -170,11 +160,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: SPACING.md,
   },
-  logoIcon: {
-    fontSize: 32,
-  },
   title: {
     fontWeight: '800',
+    fontSize: 24,
     color: COLORS.primary,
   },
   subtitle: {
@@ -182,17 +170,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     paddingHorizontal: SPACING.lg,
+    fontSize: 14,
   },
   formCard: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
   },
   rowBetween: {
     flexDirection: 'row',
@@ -207,10 +188,6 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: SPACING.lg,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
   },
   bottomLinkContainer: {
     flexDirection: 'row',
@@ -228,4 +205,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
 

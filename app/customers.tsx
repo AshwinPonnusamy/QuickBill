@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, Button, Surface, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -73,23 +73,20 @@ export default function CustomersScreen() {
       <Header title={t.customersTitle} showBack={true} />
 
       <View style={styles.searchRow}>
-        <TextInput
+        <Input
           placeholder="Search by customer name or mobile..."
           value={search}
           onChangeText={setSearch}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.secondary}
+          startContent={<Search size={18} color={COLORS.textSecondary} />}
           style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
         />
         <Button
-          mode="contained"
-          buttonColor={COLORS.primary}
-          textColor={COLORS.white}
-          style={styles.addBtn}
-          icon={() => <Plus size={16} color={COLORS.white} />}
+          color="primary"
+          size="md"
+          radius="md"
+          startContent={<Plus size={16} color={COLORS.white} />}
           onPress={() => setModalVisible(true)}
+          style={styles.addBtn}
         >
           Add
         </Button>
@@ -97,14 +94,14 @@ export default function CustomersScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {filteredCustomers.length === 0 ? (
-          <Surface style={styles.emptyCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <Users size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No customers registered yet</Text>
             <Text style={styles.emptySub}>Tap 'Add' to register a customer account with Udhar tracking.</Text>
-          </Surface>
+          </Card>
         ) : (
           filteredCustomers.map((c) => (
-            <Surface key={c.id} style={styles.custCard} elevation={1}>
+            <Card key={c.id} radius="lg" shadow="sm" style={styles.custCard}>
               <View style={styles.custTop}>
                 <View>
                   <Text style={styles.custName}>{c.name}</Text>
@@ -136,9 +133,11 @@ export default function CustomersScreen() {
               {c.outstandingBalancePaise > 0 ? (
                 <View style={styles.custBottom}>
                   <Button
-                    mode="outlined"
-                    textColor={COLORS.secondary}
-                    style={styles.collectBtn}
+                    variant="bordered"
+                    color="secondary"
+                    size="sm"
+                    radius="md"
+                    fullWidth
                     onPress={() =>
                       Alert.alert(
                         'Collect Udhar Payment',
@@ -164,82 +163,74 @@ export default function CustomersScreen() {
                   </Button>
                 </View>
               ) : null}
-            </Surface>
+            </Card>
           ))
         )}
       </ScrollView>
 
       {/* Add Customer Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modalBox}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        contentContainerStyle={styles.modalBox}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Add New Customer
           </Text>
-
-          <TextInput
+        </ModalHeader>
+        <ModalBody>
+          <Input
             label="Customer Full Name *"
             placeholder="e.g. S. Kumar"
             value={name}
             onChangeText={setName}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label="Mobile Number"
             placeholder="10-digit number"
             value={phone}
             onChangeText={setPhone}
             keyboardType="phone-pad"
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label="Email Address"
             placeholder="customer@gmail.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label="Address"
             placeholder="Street, Area, Landmark"
             value={address}
             onChangeText={setAddress}
             multiline
             numberOfLines={2}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label="GSTIN (For B2B Billing)"
             placeholder="15-character GSTIN"
             value={gstin}
             onChangeText={(txt) => setGstin(txt.toUpperCase())}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.modalSubmit}
             onPress={handleAddCustomer}
           >
             Save Customer Profile
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
     </View>
   );
 }
@@ -258,25 +249,33 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: COLORS.surface,
   },
   addBtn: {
     height: 44,
-    justifyContent: 'center',
-    borderRadius: ROUNDNESS.md,
   },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
   },
+  emptyCard: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    marginVertical: SPACING.xl,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  emptySub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   custCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   custTop: {
     flexDirection: 'row',
@@ -296,21 +295,18 @@ const styles = StyleSheet.create({
   custPhone: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginTop: 2,
   },
   custAddress: {
     fontSize: 11,
     color: COLORS.textMuted,
-    marginTop: 2,
   },
   balanceBlock: {
     alignItems: 'flex-end',
   },
   balanceLabel: {
-    fontSize: 10,
-    color: COLORS.textSecondary,
-    fontWeight: 'bold',
-    textTransform: 'uppercase',
+    fontSize: 11,
+    color: COLORS.textMuted,
+    fontWeight: '600',
   },
   balanceVal: {
     fontSize: 16,
@@ -324,56 +320,20 @@ const styles = StyleSheet.create({
     color: COLORS.success,
   },
   custBottom: {
-    marginTop: SPACING.sm,
-    paddingTop: SPACING.sm,
+    marginTop: SPACING.md,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-  },
-  collectBtn: {
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.secondary,
-  },
-  emptyCard: {
-    padding: SPACING.xl,
-    borderRadius: ROUNDNESS.lg,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: SPACING.sm,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textPrimary,
-  },
-  emptySub: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    textAlign: 'center',
-    marginTop: 4,
+    paddingTop: SPACING.sm,
   },
   modalBox: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
-  modalInput: {
-    marginBottom: SPACING.sm,
-    backgroundColor: COLORS.surface,
+    fontSize: 18,
   },
   modalSubmit: {
-    marginTop: SPACING.md,
-    borderRadius: ROUNDNESS.md,
+    marginTop: SPACING.sm,
   },
 });
-

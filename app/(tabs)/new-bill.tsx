@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert } from 'react-native';
-import { Text, TextInput, Button, Surface, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -116,7 +116,7 @@ export default function CreateBillScreen() {
       <Header title={t.createBillTitle} showBack={false} />
 
       {/* Customer Bar */}
-      <Surface style={styles.customerBar} elevation={1}>
+      <Card radius="none" shadow="sm" style={styles.customerBar}>
         <TouchableOpacity
           style={styles.customerSelector}
           onPress={() => setCustomerModalVisible(true)}
@@ -141,31 +141,31 @@ export default function CreateBillScreen() {
             <X size={16} color={COLORS.error} />
           </TouchableOpacity>
         ) : null}
-      </Surface>
+      </Card>
 
       {/* Search Bar & Custom Item Trigger */}
       <View style={styles.searchRow}>
-        <TextInput
+        <Input
           placeholder={t.search}
           value={search}
           onChangeText={setSearch}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.secondary}
-          style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
-          right={
+          startContent={<Search size={18} color={COLORS.textSecondary} />}
+          endContent={
             search ? (
-              <TextInput.Icon icon={() => <X size={18} color={COLORS.textSecondary} />} onPress={() => setSearch('')} />
-            ) : null
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            ) : undefined
           }
+          style={styles.searchInput}
         />
         <Button
-          mode="contained-tonal"
-          buttonColor={COLORS.primaryContainer}
-          textColor={COLORS.primary}
-          style={styles.customBtn}
+          variant="flat"
+          color="primary"
+          size="md"
+          radius="md"
           onPress={() => setCustomItemVisible(true)}
+          style={styles.customBtn}
         >
           + Custom
         </Button>
@@ -175,12 +175,10 @@ export default function CreateBillScreen() {
       <View style={styles.categoryRibbon}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
           <Button
-            mode={selectedCat === null ? 'contained' : 'outlined'}
-            buttonColor={selectedCat === null ? COLORS.secondary : undefined}
-            textColor={selectedCat === null ? COLORS.white : COLORS.textPrimary}
-            style={[styles.categoryButton, selectedCat === null && styles.activeCategoryButton]}
-            labelStyle={styles.categoryBtnLabel}
-            compact
+            variant={selectedCat === null ? 'solid' : 'bordered'}
+            color={selectedCat === null ? 'secondary' : 'default'}
+            size="sm"
+            radius="md"
             onPress={() => setSelectedCat(null)}
           >
             {t.all}
@@ -191,12 +189,10 @@ export default function CreateBillScreen() {
             return (
               <Button
                 key={cat.id}
-                mode={isSelected ? 'contained' : 'outlined'}
-                buttonColor={isSelected ? COLORS.secondary : undefined}
-                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-                style={[styles.categoryButton, isSelected && styles.activeCategoryButton]}
-                labelStyle={styles.categoryBtnLabel}
-                compact
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
                 onPress={() => setSelectedCat(cat.id)}
               >
                 {cat.name}
@@ -217,7 +213,7 @@ export default function CreateBillScreen() {
           const cartQty = inCartItem?.quantity || 0;
 
           return (
-            <Surface style={styles.productCard} elevation={1}>
+            <Card radius="lg" shadow="sm" style={styles.productCard}>
               <View style={styles.productInfo}>
                 <Text style={styles.productName} numberOfLines={2}>
                   {item.name}
@@ -227,13 +223,16 @@ export default function CreateBillScreen() {
               </View>
 
               {cartQty === 0 ? (
-                <TouchableOpacity
+                <Button
+                  color="secondary"
+                  variant="flat"
+                  size="sm"
+                  radius="sm"
+                  fullWidth
                   onPress={() => addToCart(item, 1)}
-                  style={styles.addBtn}
-                  activeOpacity={0.8}
                 >
-                  <Text style={styles.addBtnText}>+ ADD</Text>
-                </TouchableOpacity>
+                  + ADD
+                </Button>
               ) : (
                 <View style={styles.stepperRow}>
                   <TouchableOpacity
@@ -251,13 +250,13 @@ export default function CreateBillScreen() {
                   </TouchableOpacity>
                 </View>
               )}
-            </Surface>
+            </Card>
           );
         }}
       />
 
       {/* Cart Summary Drawer / Bottom Bar */}
-      <Surface style={styles.bottomBar} elevation={4}>
+      <Card radius="none" shadow="lg" style={styles.bottomBar}>
         <View style={styles.summaryRow}>
           <TouchableOpacity
             style={styles.discountTrigger}
@@ -279,75 +278,81 @@ export default function CreateBillScreen() {
 
         <View style={styles.actionRow}>
           {cart.length > 0 ? (
-            <TouchableOpacity onPress={clearBill} style={styles.clearBtn}>
-              <Text style={styles.clearText}>Clear</Text>
-            </TouchableOpacity>
+            <Button
+              variant="light"
+              color="danger"
+              size="md"
+              radius="md"
+              onPress={clearBill}
+            >
+              Clear
+            </Button>
           ) : null}
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
-            style={[styles.continueBtn, cart.length === 0 && styles.disabledBtn]}
-            contentStyle={styles.continueBtnContent}
-            disabled={cart.length === 0}
+            color="secondary"
+            size="lg"
+            radius="md"
+            isDisabled={cart.length === 0}
+            style={{ flex: 1 }}
             onPress={handleProceed}
           >
             {t.proceedToReview} →
           </Button>
         </View>
-      </Surface>
+      </Card>
 
       {/* MODAL 1: Add Custom Item */}
-      <Portal>
-        <Modal
-          visible={customItemVisible}
-          onDismiss={() => setCustomItemVisible(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={customItemVisible}
+        onDismiss={() => setCustomItemVisible(false)}
+        contentContainerStyle={styles.modalContent}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Add Custom Item
           </Text>
-          <TextInput
+        </ModalHeader>
+        <ModalBody>
+          <Input
             label="Item Description"
             placeholder="e.g. Samosa Plate / Custom Charge"
             value={customName}
             onChangeText={setCustomName}
-            mode="outlined"
-            style={styles.modalInput}
           />
-          <TextInput
+          <Input
             label="Price (₹)"
             placeholder="e.g. 50"
             value={customPrice}
             onChangeText={setCustomPrice}
             keyboardType="numeric"
-            mode="outlined"
-            style={styles.modalInput}
-            left={<TextInput.Affix text="₹ " />}
+            startContent={<Text style={{ color: COLORS.textSecondary, fontWeight: 'bold' }}>₹</Text>}
           />
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.modalSubmit}
             onPress={handleAddCustom}
           >
             Add to Bill Cart
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
 
       {/* MODAL 2: Customer Selection */}
-      <Portal>
-        <Modal
-          visible={customerModalVisible}
-          onDismiss={() => setCustomerModalVisible(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={customerModalVisible}
+        onDismiss={() => setCustomerModalVisible(false)}
+        contentContainerStyle={styles.modalContent}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Select Customer
           </Text>
+        </ModalHeader>
+        <ModalBody>
           <TouchableOpacity
             style={styles.customerOption}
             onPress={() => {
@@ -376,91 +381,101 @@ export default function CreateBillScreen() {
           </ScrollView>
 
           <Text style={styles.orDivider}>— or Add New Customer —</Text>
-          <TextInput
+          <Input
             label="Customer Name"
             placeholder="Full Name"
             value={newCustName}
             onChangeText={setNewCustName}
-            mode="outlined"
-            style={styles.modalInput}
           />
-          <TextInput
+          <Input
             label="Mobile Number (Optional)"
             placeholder="10-digit phone"
             value={newCustPhone}
             onChangeText={setNewCustPhone}
             keyboardType="phone-pad"
-            mode="outlined"
-            style={styles.modalInput}
           />
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.modalSubmit}
             onPress={handleAddNewCustomer}
           >
             Save & Select Customer
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
 
       {/* MODAL 3: Discount */}
-      <Portal>
-        <Modal
-          visible={discountModalVisible}
-          onDismiss={() => setDiscountModalVisible(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={discountModalVisible}
+        onDismiss={() => setDiscountModalVisible(false)}
+        contentContainerStyle={styles.modalContent}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Apply Bill Discount
           </Text>
+        </ModalHeader>
+        <ModalBody>
           <View style={styles.discTypeRow}>
-            <TouchableOpacity
+            <Button
+              variant={discType === 'fixed' ? 'solid' : 'bordered'}
+              color={discType === 'fixed' ? 'secondary' : 'default'}
+              size="sm"
+              radius="md"
+              style={{ flex: 1 }}
               onPress={() => setDiscType('fixed')}
-              style={[styles.discTypeBtn, discType === 'fixed' && styles.activeDiscType]}
             >
-              <Text style={styles.discTypeText}>Fixed (₹)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              Fixed (₹)
+            </Button>
+            <Button
+              variant={discType === 'percentage' ? 'solid' : 'bordered'}
+              color={discType === 'percentage' ? 'secondary' : 'default'}
+              size="sm"
+              radius="md"
+              style={{ flex: 1 }}
               onPress={() => setDiscType('percentage')}
-              style={[styles.discTypeBtn, discType === 'percentage' && styles.activeDiscType]}
             >
-              <Text style={styles.discTypeText}>Percentage (%)</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+              Percentage (%)
+            </Button>
+            <Button
+              variant={discType === 'none' ? 'solid' : 'bordered'}
+              color={discType === 'none' ? 'secondary' : 'default'}
+              size="sm"
+              radius="md"
+              style={{ flex: 1 }}
               onPress={() => {
                 setDiscType('none');
                 setDiscVal('');
               }}
-              style={[styles.discTypeBtn, discType === 'none' && styles.activeDiscType]}
             >
-              <Text style={styles.discTypeText}>None</Text>
-            </TouchableOpacity>
+              None
+            </Button>
           </View>
 
           {discType !== 'none' ? (
-            <TextInput
+            <Input
               label={discType === 'fixed' ? 'Discount Amount (₹)' : 'Discount Percentage (%)'}
               value={discVal}
               onChangeText={setDiscVal}
               keyboardType="numeric"
-              mode="outlined"
-              style={styles.modalInput}
             />
           ) : null}
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.modalSubmit}
             onPress={handleApplyDiscount}
           >
             Apply Discount
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
     </View>
   );
 }
@@ -519,10 +534,6 @@ const styles = StyleSheet.create({
     padding: 6,
     marginLeft: 8,
   },
-  clearCustText: {
-    color: COLORS.textMuted,
-    fontWeight: 'bold',
-  },
   discountRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -536,13 +547,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: COLORS.surface,
   },
   customBtn: {
     height: 44,
-    justifyContent: 'center',
-    borderRadius: ROUNDNESS.md,
   },
   categoryRibbon: {
     marginBottom: SPACING.sm,
@@ -550,21 +557,6 @@ const styles = StyleSheet.create({
   categoryScrollContent: {
     paddingHorizontal: SPACING.base,
     gap: 8,
-  },
-  categoryButton: {
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  activeCategoryButton: {
-    borderColor: COLORS.secondary,
-  },
-  categoryBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginHorizontal: 8,
-    marginVertical: 4,
   },
   productList: {
     paddingHorizontal: SPACING.sm,
@@ -574,10 +566,6 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: SPACING.xs,
     padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     justifyContent: 'space-between',
     minHeight: 130,
   },
@@ -599,17 +587,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.primary,
     marginTop: 4,
-  },
-  addBtn: {
-    backgroundColor: COLORS.secondaryContainer,
-    borderRadius: ROUNDNESS.sm,
-    paddingVertical: 6,
-    alignItems: 'center',
-  },
-  addBtnText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.secondaryDark,
   },
   stepperRow: {
     flexDirection: 'row',
@@ -681,43 +658,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: SPACING.sm,
   },
-  clearBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  clearText: {
-    color: COLORS.error,
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
-  continueBtn: {
-    flex: 1,
-    borderRadius: ROUNDNESS.md,
-  },
-  disabledBtn: {
-    opacity: 0.6,
-  },
-  continueBtnContent: {
-    paddingVertical: 8,
-  },
   modalContent: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
-  modalInput: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
+    fontSize: 18,
   },
   modalSubmit: {
     marginTop: SPACING.sm,
-    borderRadius: ROUNDNESS.md,
   },
   customerOption: {
     paddingVertical: 10,
@@ -744,21 +694,4 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: SPACING.md,
   },
-  discTypeBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: ROUNDNESS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  activeDiscType: {
-    borderColor: COLORS.secondary,
-    backgroundColor: '#E6F8FA',
-  },
-  discTypeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
 });
-

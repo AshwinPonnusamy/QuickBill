@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
-import { Text, Surface, Button } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, Text } from 'react-native';
+import { Button, Card, Divider } from '../../components/heroui';
 import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -58,12 +58,11 @@ export default function ReportsScreen() {
           return (
             <Button
               key={p.id}
-              mode={isSelected ? 'contained' : 'outlined'}
-              buttonColor={isSelected ? COLORS.secondary : undefined}
-              textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-              style={[styles.periodButton, isSelected && styles.activePeriodButton]}
-              labelStyle={styles.periodBtnLabel}
-              compact
+              variant={isSelected ? 'solid' : 'bordered'}
+              color={isSelected ? 'secondary' : 'default'}
+              size="sm"
+              radius="md"
+              style={{ flex: 1 }}
               onPress={() => setPeriod(p.id as any)}
             >
               {p.label}
@@ -102,15 +101,15 @@ export default function ReportsScreen() {
         </View>
 
         {/* Weekly Trend Bar Chart */}
-        <Surface style={styles.chartCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.chartCard}>
           <Text style={styles.chartTitle}>Sales Trend (Daily in ₹)</Text>
           <View style={styles.chartWrapper}>
             <SalesBarChart data={report.chartData} height={160} />
           </View>
-        </Surface>
+        </Card>
 
         {/* Payment Methods Breakdown */}
-        <Surface style={styles.breakdownCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.breakdownCard}>
           <Text style={styles.cardHeader}>{t.paymentMethodsBreakdown}</Text>
 
           <View style={styles.methodBar}>
@@ -154,10 +153,10 @@ export default function ReportsScreen() {
               </Text>
             </View>
           </View>
-        </Surface>
+        </Card>
 
         {/* Top Selling Products */}
-        <Surface style={styles.topProdCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.topProdCard}>
           <Text style={styles.cardHeader}>{t.topProducts}</Text>
           {report.topProducts.length === 0 ? (
             <Text style={styles.noData}>No products recorded yet.</Text>
@@ -175,7 +174,7 @@ export default function ReportsScreen() {
               </View>
             ))
           )}
-        </Surface>
+        </Card>
       </ScrollView>
     </View>
   );
@@ -194,22 +193,6 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: 8,
   },
-  periodButton: {
-    flex: 1,
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  activePeriodButton: {
-    borderColor: COLORS.secondary,
-  },
-  periodBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginHorizontal: 4,
-    marginVertical: 4,
-  },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
@@ -224,10 +207,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CBD5E1',
   },
-  disclaimerIcon: {
-    fontSize: 16,
-    marginRight: 8,
-  },
   disclaimerText: {
     fontSize: 12,
     color: COLORS.textSecondary,
@@ -239,12 +218,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   chartCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   chartTitle: {
     fontSize: 14,
@@ -257,12 +232,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   breakdownCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   cardHeader: {
     fontSize: 14,
@@ -297,11 +268,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   topProdCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   topProdRow: {
     flexDirection: 'row',
@@ -348,4 +315,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-

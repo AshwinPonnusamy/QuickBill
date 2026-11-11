@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, Surface, Switch, Button, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Divider } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -27,7 +27,7 @@ import {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { language, setLanguage, logout } = useAuthStore();
+  const { language, logout } = useAuthStore();
   const { business, subscription, updateBusiness } = useBusinessStore();
   const t = TRANSLATIONS[language];
 
@@ -115,7 +115,7 @@ export default function SettingsScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Business Profile Overview Card */}
-        <Surface style={styles.profileCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.profileCard}>
           <View style={styles.shopAvatar}>
             <Store size={26} color={COLORS.primary} />
           </View>
@@ -126,14 +126,20 @@ export default function SettingsScreen() {
               {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
             </Text>
           </View>
-          <TouchableOpacity onPress={() => setShopEditModal(true)} style={styles.editShopBtn}>
-            <Text style={styles.editShopText}>Edit</Text>
-          </TouchableOpacity>
-        </Surface>
+          <Button
+            variant="flat"
+            color="primary"
+            size="sm"
+            radius="md"
+            onPress={() => setShopEditModal(true)}
+          >
+            Edit
+          </Button>
+        </Card>
 
         {/* SECTION 1: Shop & Hardware Settings */}
         <Text style={styles.sectionTitle}>Shop & Device</Text>
-        <Surface style={styles.menuCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/(auth)/language' as any)}
@@ -148,7 +154,7 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={() => setShopEditModal(true)}>
             <View style={styles.menuIconBox}>
@@ -161,7 +167,7 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -181,11 +187,11 @@ export default function SettingsScreen() {
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
-        </Surface>
+        </Card>
 
         {/* SECTION 2: Cloud Sync & Subscription */}
         <Text style={styles.sectionTitle}>Cloud & Subscription</Text>
-        <Surface style={styles.menuCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() => router.push('/subscription' as any)}
@@ -202,7 +208,7 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={handleManualSync} disabled={syncing}>
             <View style={styles.menuIconBox}>
@@ -217,7 +223,7 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -237,11 +243,11 @@ export default function SettingsScreen() {
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
-        </Surface>
+        </Card>
 
         {/* SECTION 3: Legal & Support */}
         <Text style={styles.sectionTitle}>Support & Policies</Text>
-        <Surface style={styles.menuCard} elevation={1}>
+        <Card radius="xl" shadow="sm" style={styles.menuCard}>
           <TouchableOpacity
             style={styles.menuItem}
             onPress={() =>
@@ -260,7 +266,7 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity
             style={styles.menuItem}
@@ -279,10 +285,10 @@ export default function SettingsScreen() {
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
-        </Surface>
+        </Card>
 
         {/* SECTION 4: Account Actions */}
-        <Surface style={[styles.menuCard, { marginTop: SPACING.lg }]} elevation={1}>
+        <Card radius="xl" shadow="sm" style={[styles.menuCard, { marginTop: SPACING.lg }]}>
           <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
             <View style={styles.menuIconBox}>
               <LogOut size={18} color={COLORS.error} />
@@ -292,7 +298,7 @@ export default function SettingsScreen() {
             </View>
           </TouchableOpacity>
 
-          <View style={styles.menuDivider} />
+          <Divider style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
             <View style={styles.menuIconBox}>
@@ -302,71 +308,65 @@ export default function SettingsScreen() {
               <Text style={[styles.menuTitle, { color: COLORS.error }]}>{t.accountDeletion}</Text>
             </View>
           </TouchableOpacity>
-        </Surface>
+        </Card>
       </ScrollView>
 
       {/* Edit Shop Details Modal */}
-      <Portal>
-        <Modal
-          visible={shopEditModal}
-          onDismiss={() => setShopEditModal(false)}
-          contentContainerStyle={styles.modalBox}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={shopEditModal}
+        onDismiss={() => setShopEditModal(false)}
+        contentContainerStyle={styles.modalBox}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             {t.editShopDetails}
           </Text>
-
-          <TextInput
+        </ModalHeader>
+        <ModalBody>
+          <Input
             label={t.businessName}
             value={editName}
             onChangeText={setEditName}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label={t.phone}
             value={editPhone}
             onChangeText={setEditPhone}
             keyboardType="phone-pad"
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label={t.shopAddress}
             value={editAddress}
             onChangeText={setEditAddress}
             multiline
             numberOfLines={2}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label={t.gstin}
             value={editGstin}
             onChangeText={(txt) => setEditGstin(txt.toUpperCase())}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
           <View style={styles.switchRow}>
             <Text style={styles.switchLabel}>Prices Include GST</Text>
-            <Switch value={taxInclusive} onValueChange={setTaxInclusive} color={COLORS.secondary} />
+            <Switch isSelected={taxInclusive} onValueChange={setTaxInclusive} color="secondary" />
           </View>
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.saveBtn}
             onPress={handleSaveShopDetails}
           >
             {t.save} Changes
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
     </View>
   );
 }
@@ -383,11 +383,7 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
     padding: SPACING.md,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: SPACING.lg,
   },
   shopAvatar: {
@@ -418,17 +414,6 @@ const styles = StyleSheet.create({
     color: COLORS.secondary,
     marginTop: 2,
   },
-  editShopBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.md,
-    backgroundColor: COLORS.surfaceVariant,
-  },
-  editShopText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '800',
@@ -440,10 +425,6 @@ const styles = StyleSheet.create({
     marginTop: SPACING.sm,
   },
   menuCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: SPACING.md,
   },
   menuItem: {
@@ -473,30 +454,16 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     marginTop: 2,
   },
-  arrow: {
-    fontSize: 20,
-    color: COLORS.textMuted,
-    fontWeight: '300',
-  },
   menuDivider: {
-    height: 1,
-    backgroundColor: COLORS.border,
     marginLeft: 50,
   },
   modalBox: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
-  modalInput: {
-    marginBottom: SPACING.sm,
-    backgroundColor: COLORS.surface,
+    fontSize: 18,
   },
   switchRow: {
     flexDirection: 'row',
@@ -511,7 +478,5 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     marginTop: SPACING.md,
-    borderRadius: ROUNDNESS.md,
   },
 });
-

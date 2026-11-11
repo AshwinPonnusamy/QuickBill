@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, Surface, TextInput, Button, Modal, Portal } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, Badge, Divider } from '../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -55,30 +55,34 @@ export default function InventoryScreen() {
 
       {/* Tabs */}
       <View style={styles.tabBar}>
-        <TouchableOpacity
+        <Button
+          variant={activeTab === 'current' ? 'solid' : 'bordered'}
+          color={activeTab === 'current' ? 'secondary' : 'default'}
+          size="md"
+          radius="md"
+          style={{ flex: 1 }}
           onPress={() => setActiveTab('current')}
-          style={[styles.tabBtn, activeTab === 'current' && styles.activeTabBtn]}
         >
-          <Text style={[styles.tabText, activeTab === 'current' && styles.activeTabText]}>
-            Stock Levels ({products.length})
-          </Text>
-        </TouchableOpacity>
+          {`Stock Levels (${products.length})`}
+        </Button>
 
-        <TouchableOpacity
+        <Button
+          variant={activeTab === 'history' ? 'solid' : 'bordered'}
+          color={activeTab === 'history' ? 'secondary' : 'default'}
+          size="md"
+          radius="md"
+          style={{ flex: 1 }}
           onPress={() => setActiveTab('history')}
-          style={[styles.tabBtn, activeTab === 'history' && styles.activeTabBtn]}
         >
-          <Text style={[styles.tabText, activeTab === 'history' && styles.activeTabText]}>
-            Low Stock Alerts ({lowStockProducts.length})
-          </Text>
-        </TouchableOpacity>
+          {`Low Stock Alerts (${lowStockProducts.length})`}
+        </Button>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {(activeTab === 'current' ? products : lowStockProducts).map((p) => {
           const isLow = p.stockQuantity <= p.lowStockThreshold;
           return (
-            <Surface key={p.id} style={styles.card} elevation={1}>
+            <Card key={p.id} radius="lg" shadow="sm" style={styles.card}>
               <View style={styles.cardMain}>
                 <View style={styles.infoCol}>
                   <Text style={styles.prodName}>{p.name}</Text>
@@ -91,89 +95,99 @@ export default function InventoryScreen() {
                   <Text style={[styles.qtyNum, isLow && styles.lowQtyNum]}>
                     {p.stockQuantity} {p.unit}
                   </Text>
-                  <View style={[styles.badge, isLow ? styles.lowBadge : styles.okBadge]}>
-                    <Text style={[styles.badgeText, isLow ? styles.lowBadgeText : styles.okBadgeText]}>
-                      {isLow ? 'LOW STOCK' : 'IN STOCK'}
-                    </Text>
-                  </View>
+                  <Badge
+                    color={isLow ? 'danger' : 'success'}
+                    variant="flat"
+                    size="sm"
+                    style={{ marginTop: 2 }}
+                  >
+                    {isLow ? 'LOW STOCK' : 'IN STOCK'}
+                  </Badge>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <Divider style={{ marginVertical: SPACING.sm }} />
 
               <View style={styles.btnRow}>
-                <TouchableOpacity
+                <Button
+                  variant="flat"
+                  color="success"
+                  size="sm"
+                  radius="sm"
+                  style={{ flex: 1 }}
+                  startContent={<Plus size={14} color="#17C964" />}
                   onPress={() => {
                     setSelectedProduct(p);
                     setActionType('purchase');
                     setModalVisible(true);
                   }}
-                  style={[styles.actionBtn, styles.stockInBtn]}
                 >
-                  <Plus size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
-                  <Text style={styles.stockInText}>Stock In (Purchase)</Text>
-                </TouchableOpacity>
+                  Stock In
+                </Button>
 
-                <TouchableOpacity
+                <Button
+                  variant="flat"
+                  color="danger"
+                  size="sm"
+                  radius="sm"
+                  style={{ flex: 1 }}
+                  startContent={<Minus size={14} color="#F31260" />}
                   onPress={() => {
                     setSelectedProduct(p);
                     setActionType('return');
                     setModalVisible(true);
                   }}
-                  style={[styles.actionBtn, styles.stockOutBtn]}
                 >
-                  <Minus size={14} color={COLORS.error} style={{ marginRight: 4 }} />
-                  <Text style={styles.stockOutText}>Stock Out (Damage/Return)</Text>
-                </TouchableOpacity>
+                  Stock Out
+                </Button>
               </View>
-            </Surface>
+            </Card>
           );
         })}
       </ScrollView>
 
       {/* Stock Movement Modal */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modalBox}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        contentContainerStyle={styles.modalBox}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             {actionType === 'purchase' ? 'Stock In (Purchase)' : 'Stock Out (Return/Waste)'}
           </Text>
+        </ModalHeader>
+        <ModalBody>
           <Text style={styles.modalSub}>{selectedProduct?.name}</Text>
 
-          <TextInput
+          <Input
             label="Quantity to adjust"
             placeholder="e.g. 25"
             value={qtyDelta}
             onChangeText={setQtyDelta}
             keyboardType="numeric"
-            mode="outlined"
-            style={styles.modalInput}
-            right={<TextInput.Affix text={selectedProduct?.unit || ''} />}
+            endContent={<Text style={{ color: COLORS.textSecondary }}>{selectedProduct?.unit || ''}</Text>}
           />
 
-          <TextInput
+          <Input
             label="Reason / Invoice Number / Notes"
             placeholder="e.g. Delivery from Metro Cash & Carry"
             value={reason}
             onChangeText={setReason}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
           <Button
-            mode="contained"
-            buttonColor={actionType === 'purchase' ? COLORS.success : COLORS.error}
-            textColor={COLORS.white}
+            color={actionType === 'purchase' ? 'success' : 'danger'}
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.submitBtn}
             onPress={handleApplyMovement}
           >
             Record Movement
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
     </View>
   );
 }
@@ -191,36 +205,13 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: 8,
   },
-  tabBtn: {
-    flex: 1,
-    paddingVertical: 8,
-    borderRadius: ROUNDNESS.md,
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  activeTabBtn: {
-    backgroundColor: COLORS.primaryContainer,
-  },
-  tabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeTabText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
-  },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
   },
   card: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   cardMain: {
     flexDirection: 'row',
@@ -251,87 +242,25 @@ const styles = StyleSheet.create({
   lowQtyNum: {
     color: COLORS.error,
   },
-  badge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 2,
-  },
-  okBadge: {
-    backgroundColor: COLORS.successLight,
-  },
-  lowBadge: {
-    backgroundColor: COLORS.errorLight,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  okBadgeText: {
-    color: COLORS.success,
-  },
-  lowBadgeText: {
-    color: COLORS.error,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: SPACING.sm,
-  },
   btnRow: {
     flexDirection: 'row',
     gap: 8,
   },
-  actionBtn: {
-    flex: 1,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  stockInBtn: {
-    backgroundColor: COLORS.successLight,
-    borderWidth: 1,
-    borderColor: COLORS.successBorder,
-  },
-  stockInText: {
-    color: COLORS.success,
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  stockOutBtn: {
-    backgroundColor: COLORS.errorLight,
-    borderWidth: 1,
-    borderColor: COLORS.errorBorder,
-  },
-  stockOutText: {
-    color: COLORS.error,
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
   modalBox: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
+    fontSize: 18,
   },
   modalSub: {
     fontSize: 13,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
-  },
-  modalInput: {
+    color: COLORS.secondary,
+    fontWeight: '700',
     marginBottom: SPACING.sm,
-    backgroundColor: COLORS.surface,
   },
   submitBtn: {
-    marginTop: SPACING.md,
-    borderRadius: ROUNDNESS.md,
+    marginTop: SPACING.sm,
   },
 });
-

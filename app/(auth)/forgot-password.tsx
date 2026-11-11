@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, TextInput, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
+import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
-import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
+import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
@@ -47,42 +47,37 @@ export default function ForgotPasswordScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerArea}>
-          <Text variant="headlineMedium" style={styles.title}>
+          <Text style={styles.title}>
             {t.forgotPassword}
           </Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
+          <Text style={styles.subtitle}>
             Enter your registered email address and we'll send you instructions to reset your password.
           </Text>
         </View>
 
-        <Surface style={styles.formCard} elevation={2}>
-          <TextInput
+        <Card radius="xl" shadow="md" style={styles.formCard}>
+          <Input
             label="Email Address"
             placeholder="shop@example.com"
             value={email}
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={styles.input}
-            left={<TextInput.Icon icon={() => <Mail size={18} color={COLORS.textSecondary} />} />}
+            startContent={<Mail size={18} color="#71717A" />}
           />
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.primary}
-            textColor={COLORS.white}
-            loading={isLoading}
-            disabled={isLoading}
+            color="primary"
+            size="lg"
+            radius="md"
+            fullWidth
+            isLoading={isLoading}
             style={styles.submitBtn}
-            contentStyle={styles.btnContent}
             onPress={handleReset}
           >
             Send Recovery Email
           </Button>
-        </Surface>
+        </Card>
 
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back to Login</Text>
@@ -108,6 +103,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
+    fontSize: 24,
     color: COLORS.primary,
   },
   subtitle: {
@@ -115,24 +111,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 4,
     paddingHorizontal: SPACING.base,
+    fontSize: 14,
   },
   formCard: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
   },
   submitBtn: {
     marginTop: SPACING.sm,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 6,
   },
   backBtn: {
     alignItems: 'center',
@@ -144,4 +129,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
 });
+
 

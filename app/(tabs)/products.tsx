@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, TextInput, Button, Surface, Modal, Portal, Switch } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Badge, Divider } from '../../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
 import { useAuthStore } from '../../store/auth.store';
@@ -155,23 +155,20 @@ export default function ProductsScreen() {
 
       {/* Top Search & Add Product Action */}
       <View style={styles.searchRow}>
-        <TextInput
+        <Input
           placeholder={t.search}
           value={search}
           onChangeText={setSearch}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.secondary}
+          startContent={<Search size={18} color={COLORS.textSecondary} />}
           style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
         />
         <Button
-          mode="contained"
-          buttonColor={COLORS.primary}
-          textColor={COLORS.white}
-          style={styles.addBtn}
-          icon={() => <Plus size={16} color={COLORS.white} />}
+          color="primary"
+          size="md"
+          radius="md"
+          startContent={<Plus size={16} color={COLORS.white} />}
           onPress={openAddModal}
+          style={styles.addBtn}
         >
           Add
         </Button>
@@ -181,12 +178,10 @@ export default function ProductsScreen() {
       <View style={styles.catRibbon}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScrollContent}>
           <Button
-            mode={selectedCat === null ? 'contained' : 'outlined'}
-            buttonColor={selectedCat === null ? COLORS.secondary : undefined}
-            textColor={selectedCat === null ? COLORS.white : COLORS.textPrimary}
-            style={[styles.catButton, selectedCat === null && styles.activeCatButton]}
-            labelStyle={styles.catBtnLabel}
-            compact
+            variant={selectedCat === null ? 'solid' : 'bordered'}
+            color={selectedCat === null ? 'secondary' : 'default'}
+            size="sm"
+            radius="md"
             onPress={() => setSelectedCat(null)}
           >
             {`${t.all} (${products.length})`}
@@ -196,12 +191,10 @@ export default function ProductsScreen() {
             return (
               <Button
                 key={c.id}
-                mode={isSelected ? 'contained' : 'outlined'}
-                buttonColor={isSelected ? COLORS.secondary : undefined}
-                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-                style={[styles.catButton, isSelected && styles.activeCatButton]}
-                labelStyle={styles.catBtnLabel}
-                compact
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
                 onPress={() => setSelectedCat(c.id)}
               >
                 {c.name}
@@ -216,7 +209,7 @@ export default function ProductsScreen() {
         {filteredProducts.map((p) => {
           const isLow = p.stockQuantity <= p.lowStockThreshold;
           return (
-            <Surface key={p.id} style={styles.prodCard} elevation={1}>
+            <Card key={p.id} radius="lg" shadow="sm" style={styles.prodCard}>
               <View style={styles.prodMain}>
                 <View style={styles.prodInfo}>
                   <Text style={styles.prodName}>{p.name}</Text>
@@ -232,101 +225,109 @@ export default function ProductsScreen() {
                       setStockProduct(p);
                       setStockModalVisible(true);
                     }}
-                    style={[styles.stockBadge, isLow && styles.lowStockBadge]}
                   >
-                    <Text style={[styles.stockText, isLow && styles.lowStockText]}>
+                    <Badge
+                      color={isLow ? 'danger' : 'default'}
+                      variant="flat"
+                      size="sm"
+                      style={{ marginTop: 4 }}
+                    >
                       {p.stockQuantity} {p.unit}
-                    </Text>
+                    </Badge>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <Divider style={{ marginVertical: SPACING.sm }} />
 
               <View style={styles.actionRow}>
-                <TouchableOpacity
+                <Button
+                  variant="flat"
+                  color="secondary"
+                  size="sm"
+                  radius="sm"
+                  startContent={<Boxes size={14} color={COLORS.secondary} />}
                   onPress={() => {
                     setStockProduct(p);
                     setStockModalVisible(true);
                   }}
-                  style={styles.stockAdjBtn}
                 >
-                  <Boxes size={14} color={COLORS.secondary} style={{ marginRight: 4 }} />
-                  <Text style={styles.stockAdjText}>Adjust Stock</Text>
-                </TouchableOpacity>
+                  Adjust Stock
+                </Button>
 
-                <TouchableOpacity onPress={() => openEditModal(p)} style={styles.editBtn}>
-                  <Pencil size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
-                  <Text style={styles.editText}>Edit</Text>
-                </TouchableOpacity>
+                <Button
+                  variant="flat"
+                  color="primary"
+                  size="sm"
+                  radius="sm"
+                  startContent={<Pencil size={14} color={COLORS.primary} />}
+                  onPress={() => openEditModal(p)}
+                >
+                  Edit
+                </Button>
               </View>
-            </Surface>
+            </Card>
           );
         })}
       </ScrollView>
 
       {/* MODAL 1: Add / Edit Product */}
-      <Portal>
-        <Modal
-          visible={modalVisible}
-          onDismiss={() => setModalVisible(false)}
-          contentContainerStyle={styles.modalScrollBox}
-        >
-          <ScrollView>
-            <Text variant="titleLarge" style={styles.modalTitle}>
-              {isEditing ? 'Edit Product' : 'Add New Product'}
-            </Text>
-
-            <TextInput
+      <Modal
+        visible={modalVisible}
+        onDismiss={() => setModalVisible(false)}
+        contentContainerStyle={styles.modalScrollBox}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
+            {isEditing ? 'Edit Product' : 'Add New Product'}
+          </Text>
+        </ModalHeader>
+        <ModalBody>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Input
               label={t.productName + ' *'}
               placeholder="e.g. Basmati Rice"
               value={name}
               onChangeText={setName}
-              mode="outlined"
-              style={styles.modalInput}
             />
 
             <View style={styles.twoCol}>
-              <TextInput
+              <Input
                 label={t.sellingPrice + ' *'}
                 placeholder="100"
                 value={sellingPrice}
                 onChangeText={setSellingPrice}
                 keyboardType="numeric"
-                mode="outlined"
-                style={[styles.modalInput, { flex: 1 }]}
+                style={{ flex: 1 }}
               />
 
-              <TextInput
+              <Input
                 label={t.purchasePrice}
                 placeholder="80"
                 value={purchasePrice}
                 onChangeText={setPurchasePrice}
                 keyboardType="numeric"
-                mode="outlined"
-                style={[styles.modalInput, { flex: 1 }]}
+                style={{ flex: 1 }}
               />
             </View>
 
             <View style={styles.twoCol}>
-              <TextInput
+              <Input
                 label={t.taxRate}
                 placeholder="5"
                 value={taxRate}
                 onChangeText={setTaxRate}
                 keyboardType="numeric"
-                mode="outlined"
-                style={[styles.modalInput, { flex: 1 }]}
+                style={{ flex: 1 }}
               />
 
-              <TextInput
+              <Input
                 label={t.stockQty}
                 placeholder="10"
                 value={stockQuantity}
                 onChangeText={setStockQuantity}
                 keyboardType="numeric"
-                mode="outlined"
-                style={[styles.modalInput, { flex: 1 }]}
+                style={{ flex: 1 }}
               />
             </View>
 
@@ -338,12 +339,10 @@ export default function ProductsScreen() {
                 return (
                   <Button
                     key={u}
-                    mode={isSelected ? 'contained' : 'outlined'}
-                    buttonColor={isSelected ? COLORS.secondary : undefined}
-                    textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-                    style={[styles.unitButton, isSelected && styles.activeUnitButton]}
-                    labelStyle={styles.unitBtnLabel}
-                    compact
+                    variant={isSelected ? 'solid' : 'bordered'}
+                    color={isSelected ? 'secondary' : 'default'}
+                    size="sm"
+                    radius="sm"
                     onPress={() => setUnit(u)}
                   >
                     {u}
@@ -354,32 +353,35 @@ export default function ProductsScreen() {
 
             <View style={styles.switchRow}>
               <Text style={styles.switchLabel}>Mark as Favourite (Fast Access)</Text>
-              <Switch value={isFavourite} onValueChange={setIsFavourite} color={COLORS.secondary} />
+              <Switch isSelected={isFavourite} onValueChange={setIsFavourite} color="secondary" />
             </View>
 
             <Button
-              mode="contained"
-              buttonColor={COLORS.primary}
-              textColor={COLORS.white}
+              color="primary"
+              size="lg"
+              radius="md"
+              fullWidth
               style={styles.submitBtn}
               onPress={handleSaveProduct}
             >
               {isEditing ? 'Update Product' : 'Save Product to Catalog'}
             </Button>
           </ScrollView>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
 
       {/* MODAL 2: Stock Adjustment */}
-      <Portal>
-        <Modal
-          visible={stockModalVisible}
-          onDismiss={() => setStockModalVisible(false)}
-          contentContainerStyle={styles.modalBox}
-        >
-          <Text variant="titleMedium" style={styles.modalTitle}>
+      <Modal
+        visible={stockModalVisible}
+        onDismiss={() => setStockModalVisible(false)}
+        contentContainerStyle={styles.modalBox}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Adjust Stock: {stockProduct?.name}
           </Text>
+        </ModalHeader>
+        <ModalBody>
           <Text style={styles.currentStockText}>
             Current Stock: <Text style={{ fontWeight: 'bold' }}>{stockProduct?.stockQuantity} {stockProduct?.unit}</Text>
           </Text>
@@ -394,12 +396,11 @@ export default function ProductsScreen() {
               return (
                 <Button
                   key={m.id}
-                  mode={isSelected ? 'contained' : 'outlined'}
-                  buttonColor={isSelected ? COLORS.secondary : undefined}
-                  textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-                  style={[styles.moveButton, isSelected && styles.activeMoveButton]}
-                  labelStyle={styles.moveBtnLabel}
-                  compact
+                  variant={isSelected ? 'solid' : 'bordered'}
+                  color={isSelected ? 'secondary' : 'default'}
+                  size="sm"
+                  radius="md"
+                  style={{ flex: 1 }}
                   onPress={() => setMovementType(m.id as any)}
                 >
                   {m.label}
@@ -408,36 +409,33 @@ export default function ProductsScreen() {
             })}
           </View>
 
-          <TextInput
+          <Input
             label="Quantity"
             placeholder="e.g. 10"
             value={stockDelta}
             onChangeText={setStockDelta}
             keyboardType="numeric"
-            mode="outlined"
-            style={styles.modalInput}
           />
 
-          <TextInput
+          <Input
             label="Reason / Supplier Notes"
             placeholder="e.g. New wholesale delivery"
             value={stockReason}
             onChangeText={setStockReason}
-            mode="outlined"
-            style={styles.modalInput}
           />
 
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
             style={styles.submitBtn}
             onPress={handleStockAdjustment}
           >
             Apply Stock Update
           </Button>
-        </Modal>
-      </Portal>
+        </ModalBody>
+      </Modal>
     </View>
   );
 }
@@ -456,13 +454,9 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    height: 44,
-    backgroundColor: COLORS.surface,
   },
   addBtn: {
     height: 44,
-    justifyContent: 'center',
-    borderRadius: ROUNDNESS.md,
   },
   catRibbon: {
     paddingVertical: SPACING.xs,
@@ -471,32 +465,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.base,
     gap: 8,
   },
-  catButton: {
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  activeCatButton: {
-    borderColor: COLORS.secondary,
-  },
-  catBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginHorizontal: 8,
-    marginVertical: 4,
-  },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
   },
   prodCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   prodMain: {
     flexDirection: 'row',
@@ -524,81 +499,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: COLORS.primary,
   },
-  stockBadge: {
-    backgroundColor: COLORS.surfaceVariant,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: ROUNDNESS.sm,
-    marginTop: 4,
-  },
-  lowStockBadge: {
-    backgroundColor: COLORS.errorLight,
-  },
-  stockText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: COLORS.textSecondary,
-  },
-  lowStockText: {
-    color: COLORS.error,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: SPACING.sm,
-  },
   actionRow: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     gap: SPACING.sm,
   },
-  stockAdjBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: ROUNDNESS.sm,
-    backgroundColor: COLORS.primaryContainer,
-  },
-  stockAdjText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: COLORS.primary,
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: ROUNDNESS.sm,
-    backgroundColor: COLORS.surfaceVariant,
-  },
-  editText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
   modalScrollBox: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
     maxHeight: '90%',
   },
   modalBox: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: SPACING.md,
-  },
-  modalInput: {
-    marginBottom: SPACING.sm,
-    backgroundColor: COLORS.surface,
+    fontSize: 18,
   },
   twoCol: {
     flexDirection: 'row',
@@ -615,21 +530,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: SPACING.md,
   },
-  unitButton: {
-    borderRadius: ROUNDNESS.sm,
-    borderColor: COLORS.border,
-    minHeight: 32,
-    justifyContent: 'center',
-  },
-  activeUnitButton: {
-    borderColor: COLORS.secondary,
-  },
-  unitBtnLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginHorizontal: 4,
-    marginVertical: 2,
-  },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -643,7 +543,6 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: SPACING.md,
-    borderRadius: ROUNDNESS.md,
   },
   currentStockText: {
     fontSize: 13,
@@ -655,21 +554,4 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: SPACING.md,
   },
-  moveButton: {
-    flex: 1,
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  activeMoveButton: {
-    borderColor: COLORS.secondary,
-  },
-  moveBtnLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    marginHorizontal: 4,
-    marginVertical: 4,
-  },
 });
-

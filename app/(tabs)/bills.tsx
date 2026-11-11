@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
-import { Text, TextInput, Surface, Modal, Portal, Button } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Text } from 'react-native';
+import { Button, Card, Input, Modal, ModalHeader, ModalBody, ModalFooter, Badge, Divider } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -92,20 +92,19 @@ export default function BillHistoryScreen() {
 
       {/* Search Input */}
       <View style={styles.searchBar}>
-        <TextInput
+        <Input
           placeholder={t.searchBills}
           value={search}
           onChangeText={setSearch}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.secondary}
-          style={styles.input}
-          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
-          right={
+          startContent={<Search size={18} color={COLORS.textSecondary} />}
+          endContent={
             search ? (
-              <TextInput.Icon icon={() => <X size={18} color={COLORS.textSecondary} />} onPress={() => setSearch('')} />
-            ) : null
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <X size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            ) : undefined
           }
+          style={styles.input}
         />
       </View>
 
@@ -123,12 +122,10 @@ export default function BillHistoryScreen() {
             return (
               <Button
                 key={tab.id}
-                mode={isSelected ? 'contained' : 'outlined'}
-                buttonColor={isSelected ? COLORS.secondary : undefined}
-                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
-                style={[styles.filterButton, isSelected && styles.activeFilterButton]}
-                labelStyle={styles.filterBtnLabel}
-                compact
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
                 onPress={() => setStatusFilter(tab.id as any)}
               >
                 {tab.label}
@@ -144,13 +141,13 @@ export default function BillHistoryScreen() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={loadInvoices} />}
       >
         {filteredInvoices.length === 0 ? (
-          <Surface style={styles.emptyCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <FolderOpen size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No matching bills found</Text>
-          </Surface>
+          </Card>
         ) : (
           filteredInvoices.map((inv) => (
-            <Surface key={inv.id} style={[styles.invoiceCard, inv.isVoid && styles.voidCard]} elevation={1}>
+            <Card key={inv.id} radius="lg" shadow="sm" style={[styles.invoiceCard, inv.isVoid && styles.voidCard]}>
               <View style={styles.cardTopRow}>
                 <View>
                   <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
@@ -169,33 +166,18 @@ export default function BillHistoryScreen() {
                   <Text style={[styles.invTotal, inv.isVoid && styles.voidText]}>
                     {formatRupees(inv.grandTotalPaise)}
                   </Text>
-                  <View
-                    style={[
-                      styles.statusPill,
-                      inv.isVoid
-                        ? styles.voidPill
-                        : inv.paymentStatus === 'paid'
-                          ? styles.paidPill
-                          : styles.unpaidPill,
-                    ]}
+                  <Badge
+                    color={inv.isVoid ? 'danger' : inv.paymentStatus === 'paid' ? 'success' : 'warning'}
+                    variant="flat"
+                    size="sm"
+                    style={{ marginTop: 4 }}
                   >
-                    <Text
-                      style={[
-                        styles.statusPillText,
-                        inv.isVoid
-                          ? styles.voidPillText
-                          : inv.paymentStatus === 'paid'
-                            ? styles.paidPillText
-                            : styles.unpaidPillText,
-                      ]}
-                    >
-                      {inv.isVoid ? 'VOIDED' : inv.paymentStatus.toUpperCase()}
-                    </Text>
-                  </View>
+                    {inv.isVoid ? 'VOIDED' : inv.paymentStatus.toUpperCase()}
+                  </Badge>
                 </View>
               </View>
 
-              <View style={styles.divider} />
+              <Divider style={{ marginVertical: SPACING.sm }} />
 
               <View style={styles.cardMidRow}>
                 <View style={styles.custRow}>
@@ -222,60 +204,63 @@ export default function BillHistoryScreen() {
                   </TouchableOpacity>
 
                   {!inv.isVoid ? (
-                    <TouchableOpacity
+                    <Button
+                      variant="bordered"
+                      color="danger"
+                      size="sm"
+                      radius="sm"
                       onPress={() => {
                         setSelectedInvoice(inv);
                         setVoidModalVisible(true);
                       }}
-                      style={styles.voidBtn}
                     >
-                      <Text style={styles.voidBtnText}>Void</Text>
-                    </TouchableOpacity>
+                      Void
+                    </Button>
                   ) : null}
                 </View>
               </View>
-            </Surface>
+            </Card>
           ))
         )}
       </ScrollView>
 
       {/* Void Reason Confirmation Modal */}
-      <Portal>
-        <Modal
-          visible={voidModalVisible}
-          onDismiss={() => setVoidModalVisible(false)}
-          contentContainerStyle={styles.modalContent}
-        >
-          <Text variant="titleLarge" style={styles.modalTitle}>
+      <Modal
+        visible={voidModalVisible}
+        onDismiss={() => setVoidModalVisible(false)}
+        contentContainerStyle={styles.modalContent}
+      >
+        <ModalHeader>
+          <Text style={styles.modalTitle}>
             Cancel Bill {selectedInvoice?.invoiceNumber}
           </Text>
+        </ModalHeader>
+        <ModalBody>
           <Text style={styles.modalWarning}>
             Voiding an invoice marks it cancelled, restores stock quantities, and removes pending balance from customer ledger.
           </Text>
-          <TextInput
+          <Input
             label={t.voidReason}
             placeholder="e.g. Customer returned items / Wrong entry"
             value={voidReason}
             onChangeText={setVoidReason}
-            mode="outlined"
-            style={styles.modalInput}
           />
-          <View style={styles.modalButtons}>
-            <Button mode="outlined" onPress={() => setVoidModalVisible(false)} style={{ flex: 1 }}>
-              {t.cancel}
-            </Button>
-            <Button
-              mode="contained"
-              buttonColor={COLORS.error}
-              textColor={COLORS.white}
-              onPress={handleConfirmVoid}
-              style={{ flex: 1 }}
-            >
-              Confirm Void
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="bordered" color="default" size="md" radius="md" onPress={() => setVoidModalVisible(false)} style={{ flex: 1 }}>
+            {t.cancel}
+          </Button>
+          <Button
+            color="danger"
+            size="md"
+            radius="md"
+            onPress={handleConfirmVoid}
+            style={{ flex: 1 }}
+          >
+            Confirm Void
+          </Button>
+        </ModalFooter>
+      </Modal>
     </View>
   );
 }
@@ -290,8 +275,7 @@ const styles = StyleSheet.create({
     paddingTop: SPACING.sm,
   },
   input: {
-    height: 44,
-    backgroundColor: COLORS.surface,
+    marginBottom: 0,
   },
   filterBar: {
     paddingVertical: SPACING.xs,
@@ -300,45 +284,36 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.base,
     gap: 8,
   },
-  filterButton: {
-    borderRadius: ROUNDNESS.md,
-    borderColor: COLORS.border,
-    minHeight: 36,
-    justifyContent: 'center',
-  },
-  activeFilterButton: {
-    borderColor: COLORS.secondary,
-  },
-  filterBtnLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    marginHorizontal: 8,
-    marginVertical: 4,
-  },
   scrollContent: {
     padding: SPACING.base,
     paddingBottom: 40,
   },
+  emptyCard: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    marginVertical: SPACING.xl,
+  },
+  emptyTitle: {
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    fontSize: 14,
+  },
   invoiceCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    marginBottom: SPACING.sm,
   },
   voidCard: {
     opacity: 0.7,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FEF2F2',
   },
   cardTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   invNumber: {
-    fontSize: 15,
     fontWeight: '800',
+    fontSize: 15,
     color: COLORS.primary,
   },
   invDate: {
@@ -347,46 +322,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   invTotal: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '900',
     color: COLORS.textPrimary,
   },
   voidText: {
     textDecorationLine: 'line-through',
     color: COLORS.error,
-  },
-  statusPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: ROUNDNESS.full,
-    marginTop: 2,
-  },
-  paidPill: {
-    backgroundColor: COLORS.successLight,
-  },
-  unpaidPill: {
-    backgroundColor: COLORS.warningLight,
-  },
-  voidPill: {
-    backgroundColor: COLORS.errorLight,
-  },
-  statusPillText: {
-    fontSize: 10,
-    fontWeight: '800',
-  },
-  paidPillText: {
-    color: COLORS.success,
-  },
-  unpaidPillText: {
-    color: COLORS.warning,
-  },
-  voidPillText: {
-    color: COLORS.error,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginVertical: SPACING.sm,
   },
   cardMidRow: {
     flexDirection: 'row',
@@ -401,8 +343,7 @@ const styles = StyleSheet.create({
   },
   custText: {
     fontSize: 12,
-    color: COLORS.textPrimary,
-    fontWeight: '600',
+    color: COLORS.textSecondary,
   },
   methodText: {
     fontSize: 11,
@@ -416,70 +357,25 @@ const styles = StyleSheet.create({
   actionBtns: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: SPACING.sm,
   },
   iconActionBtn: {
     padding: 6,
     borderRadius: ROUNDNESS.sm,
     backgroundColor: COLORS.surfaceVariant,
   },
-  actionIcon: {
-    fontSize: 16,
-  },
-  voidBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: ROUNDNESS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.errorBorder,
-    backgroundColor: COLORS.errorLight,
-  },
-  voidBtnText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: COLORS.error,
-  },
-  emptyCard: {
-    padding: SPACING.xl,
-    borderRadius: ROUNDNESS.lg,
-    backgroundColor: COLORS.surface,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emptyIcon: {
-    fontSize: 40,
-    marginBottom: SPACING.sm,
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.textSecondary,
-  },
   modalContent: {
-    backgroundColor: COLORS.white,
-    padding: SPACING.xl,
-    margin: SPACING.lg,
-    borderRadius: ROUNDNESS.xl,
+    paddingBottom: SPACING.md,
   },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
-    marginBottom: SPACING.xs,
+    fontSize: 18,
   },
   modalWarning: {
     fontSize: 12,
     color: COLORS.textSecondary,
-    marginBottom: SPACING.md,
     lineHeight: 18,
-  },
-  modalInput: {
     marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
   },
 });
-

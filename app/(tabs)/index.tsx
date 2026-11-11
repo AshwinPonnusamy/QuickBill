@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { Text, Button, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
+import { Card, Button, Badge } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -97,13 +97,13 @@ export default function HomeDashboard() {
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={loadDashboardData} />}
       >
         {/* Welcome & Main Action Hero */}
-        <Surface style={styles.heroCard} elevation={2}>
+        <Card radius="xl" shadow="md" style={styles.heroCard}>
           <View style={styles.heroRow}>
             <View>
-              <Text variant="headlineMedium" style={styles.heroGreeting}>
+              <Text style={styles.heroGreeting}>
                 Welcome, {business?.ownerName || 'Merchant'}
               </Text>
-              <Text variant="bodySmall" style={styles.heroSub}>
+              <Text style={styles.heroSub}>
                 {business?.name} • {business?.isGstRegistered ? 'GSTIN Active' : 'Regular Billing'}
               </Text>
             </View>
@@ -111,17 +111,16 @@ export default function HomeDashboard() {
 
           {/* Prominent NEW BILL Action */}
           <Button
-            mode="contained"
-            buttonColor={COLORS.secondary}
-            textColor={COLORS.white}
-            style={styles.heroBillBtn}
-            contentStyle={styles.heroBillContent}
-            icon={() => <Zap size={20} color={COLORS.white} />}
+            color="secondary"
+            size="lg"
+            radius="md"
+            fullWidth
+            startContent={<Zap size={20} color={COLORS.white} />}
             onPress={() => router.push('/(tabs)/new-bill' as any)}
           >
             {t.newBill} (3-TAP BILLING)
           </Button>
-        </Surface>
+        </Card>
 
         {/* Financial Stat Cards Grid */}
         <View style={styles.statsGrid}>
@@ -161,7 +160,7 @@ export default function HomeDashboard() {
 
         {/* Low Stock Alerts */}
         {lowStockProducts.length > 0 ? (
-          <Surface style={styles.alertCard} elevation={1}>
+          <Card radius="lg" shadow="sm" style={styles.alertCard}>
             <View style={styles.alertHeader}>
               <AlertTriangle size={18} color={COLORS.warning} style={{ marginRight: 6 }} />
               <Text style={styles.alertTitle}>
@@ -181,14 +180,17 @@ export default function HomeDashboard() {
                 </View>
               ))}
             </ScrollView>
-          </Surface>
+          </Card>
         ) : null}
 
         {/* Quick Actions Bar */}
         <View style={styles.quickActionsContainer}>
           <Text style={styles.sectionTitle}>{t.quickActions}</Text>
           <View style={styles.quickGrid}>
-            <TouchableOpacity
+            <Card
+              isPressable
+              radius="lg"
+              shadow="sm"
               onPress={() => router.push('/(tabs)/products' as any)}
               style={styles.quickTile}
             >
@@ -196,9 +198,12 @@ export default function HomeDashboard() {
                 <PackagePlus size={22} color={COLORS.primary} />
               </View>
               <Text style={styles.quickLabel}>{t.addProduct}</Text>
-            </TouchableOpacity>
+            </Card>
 
-            <TouchableOpacity
+            <Card
+              isPressable
+              radius="lg"
+              shadow="sm"
               onPress={() => router.push('/customers' as any)}
               style={styles.quickTile}
             >
@@ -206,9 +211,12 @@ export default function HomeDashboard() {
                 <Users size={22} color={COLORS.primary} />
               </View>
               <Text style={styles.quickLabel}>{t.addCustomer}</Text>
-            </TouchableOpacity>
+            </Card>
 
-            <TouchableOpacity
+            <Card
+              isPressable
+              radius="lg"
+              shadow="sm"
               onPress={() => router.push('/inventory' as any)}
               style={styles.quickTile}
             >
@@ -216,9 +224,12 @@ export default function HomeDashboard() {
                 <ArrowUpDown size={22} color={COLORS.primary} />
               </View>
               <Text style={styles.quickLabel}>Stock In / Out</Text>
-            </TouchableOpacity>
+            </Card>
 
-            <TouchableOpacity
+            <Card
+              isPressable
+              radius="lg"
+              shadow="sm"
               onPress={() => router.push('/(tabs)/reports' as any)}
               style={styles.quickTile}
             >
@@ -226,7 +237,7 @@ export default function HomeDashboard() {
                 <TrendingUp size={22} color={COLORS.primary} />
               </View>
               <Text style={styles.quickLabel}>{t.viewReports}</Text>
-            </TouchableOpacity>
+            </Card>
           </View>
         </View>
 
@@ -241,14 +252,21 @@ export default function HomeDashboard() {
           </View>
 
           {recentInvoices.length === 0 ? (
-            <Surface style={styles.emptyCard} elevation={1}>
+            <Card radius="lg" shadow="sm" style={styles.emptyCard}>
               <Receipt size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
               <Text style={styles.emptyTitle}>No bills created yet</Text>
               <Text style={styles.emptySubtitle}>Tap NEW BILL above to generate your first invoice.</Text>
-            </Surface>
+            </Card>
           ) : (
             recentInvoices.map((inv) => (
-              <Surface key={inv.id} style={styles.invoiceRow} elevation={1}>
+              <Card
+                key={inv.id}
+                isPressable
+                onPress={() => router.push('/(tabs)/bills' as any)}
+                radius="md"
+                shadow="sm"
+                style={styles.invoiceRow}
+              >
                 <View style={styles.invLeft}>
                   <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
                   <Text style={styles.invCust}>
@@ -258,11 +276,16 @@ export default function HomeDashboard() {
                 </View>
                 <View style={styles.invRight}>
                   <Text style={styles.invAmount}>{formatRupees(inv.grandTotalPaise)}</Text>
-                  <View style={[styles.methodBadge, inv.paymentMethod === 'credit' && styles.creditBadge]}>
-                    <Text style={styles.methodText}>{inv.paymentMethod.toUpperCase()}</Text>
-                  </View>
+                  <Badge
+                    color={inv.paymentMethod === 'credit' ? 'danger' : 'default'}
+                    variant="flat"
+                    size="sm"
+                    style={{ marginTop: 4 }}
+                  >
+                    {inv.paymentMethod.toUpperCase()}
+                  </Badge>
                 </View>
-              </Surface>
+              </Card>
             ))
           )}
         </View>
@@ -282,7 +305,6 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     backgroundColor: COLORS.primary,
-    borderRadius: ROUNDNESS.xl,
     padding: SPACING.lg,
     marginBottom: SPACING.md,
   },
@@ -297,12 +319,7 @@ const styles = StyleSheet.create({
   heroSub: {
     color: '#94A3B8',
     marginTop: 2,
-  },
-  heroBillBtn: {
-    borderRadius: ROUNDNESS.md,
-  },
-  heroBillContent: {
-    paddingVertical: 8,
+    fontSize: 12,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -311,7 +328,6 @@ const styles = StyleSheet.create({
   },
   alertCard: {
     backgroundColor: '#FFFBEB',
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: '#FCD34D',
@@ -321,10 +337,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.sm,
-  },
-  alertIcon: {
-    fontSize: 16,
-    marginRight: 6,
   },
   alertTitle: {
     flex: 1,
@@ -377,12 +389,9 @@ const styles = StyleSheet.create({
   },
   quickTile: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: ROUNDNESS.lg,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    justifyContent: 'center',
   },
   quickIconWrapper: {
     width: 40,
@@ -421,12 +430,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: ROUNDNESS.md,
     marginBottom: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   invLeft: {
     flex: 1,
@@ -449,32 +454,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.textPrimary,
   },
-  methodBadge: {
-    backgroundColor: COLORS.surfaceVariant,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    marginTop: 4,
-  },
-  creditBadge: {
-    backgroundColor: COLORS.errorLight,
-  },
-  methodText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: COLORS.textSecondary,
-  },
   emptyCard: {
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.lg,
     padding: SPACING.xl,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: SPACING.sm,
   },
   emptyTitle: {
     fontWeight: '700',

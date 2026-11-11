@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
-import { Text, TextInput, Button, Switch, Surface } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Text } from 'react-native';
+import { Button, Card, Input, Switch } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
@@ -133,16 +133,16 @@ export default function BusinessSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
-        <Text variant="headlineSmall" style={styles.title}>
+        <Text style={styles.title}>
           {t.businessSetupTitle}
         </Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
+        <Text style={styles.subtitle}>
           {t.businessSetupSubtitle}
         </Text>
       </View>
 
       {/* Logo Picker */}
-      <View style={styles.logoRow}>
+      <Card radius="lg" shadow="sm" style={styles.logoRow}>
         <TouchableOpacity onPress={handlePickLogo} style={styles.logoPicker}>
           {logoUri ? (
             <Image source={{ uri: logoUri }} style={styles.logoImage} />
@@ -157,69 +157,49 @@ export default function BusinessSetupScreen() {
           <Text style={styles.logoTitle}>Shop Logo / Stamp</Text>
           <Text style={styles.logoDesc}>Appears on printed receipts and WhatsApp PDFs.</Text>
         </View>
-      </View>
+      </Card>
 
       {/* Business Details Surface */}
-      <Surface style={styles.card} elevation={1}>
-        <TextInput
+      <Card radius="xl" shadow="sm" style={styles.card}>
+        <Input
           label={t.businessName + ' *'}
           placeholder="e.g. Sri Lakshmi Kirana & General Store"
           value={businessName}
           onChangeText={setBusinessName}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.input}
         />
 
-        <TextInput
+        <Input
           label={t.ownerName + ' *'}
           placeholder="e.g. S. Ramanathan"
           value={ownerName}
           onChangeText={setOwnerName}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.input}
         />
 
-        <TextInput
+        <Input
           label={t.phone + ' *'}
           placeholder="10-digit shop phone"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.input}
         />
 
-        <TextInput
+        <Input
           label={t.email}
           placeholder="shop@gmail.com"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.input}
         />
 
-        <TextInput
+        <Input
           label={t.shopAddress + ' *'}
           placeholder="Building No, Street, City, Pincode"
           value={address}
           onChangeText={setAddress}
           multiline
           numberOfLines={3}
-          mode="outlined"
-          outlineColor={COLORS.border}
-          activeOutlineColor={COLORS.primary}
-          style={styles.input}
         />
-      </Surface>
+      </Card>
 
       {/* Business Type Grid */}
       <Text style={styles.sectionHeader}>{t.businessType}</Text>
@@ -228,8 +208,11 @@ export default function BusinessSetupScreen() {
           const isSelected = businessType === item.type;
           const IconComp = item.Icon;
           return (
-            <TouchableOpacity
+            <Card
               key={item.type}
+              isPressable
+              radius="md"
+              shadow="sm"
               onPress={() => setBusinessType(item.type)}
               style={[styles.typeTile, isSelected && styles.selectedTypeTile]}
             >
@@ -242,37 +225,33 @@ export default function BusinessSetupScreen() {
               >
                 {item.label}
               </Text>
-            </TouchableOpacity>
+            </Card>
           );
         })}
       </View>
 
       {/* GST & Tax Configuration Surface */}
       <Text style={styles.sectionHeader}>Tax & Invoicing Setup</Text>
-      <Surface style={styles.card} elevation={1}>
+      <Card radius="xl" shadow="sm" style={styles.card}>
         <View style={styles.switchRow}>
           <View style={styles.switchTextContainer}>
             <Text style={styles.switchTitle}>{t.gstRegistered}</Text>
             <Text style={styles.switchSubtitle}>Enable if you possess an official GSTIN.</Text>
           </View>
           <Switch
-            value={isGstRegistered}
+            isSelected={isGstRegistered}
             onValueChange={setIsGstRegistered}
-            color={COLORS.secondary}
+            color="secondary"
           />
         </View>
 
         {isGstRegistered ? (
-          <TextInput
+          <Input
             label={t.gstin}
             placeholder="33AAAAA0000A1Z5"
             value={gstin}
             onChangeText={(txt) => setGstin(txt.toUpperCase())}
             maxLength={15}
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.secondary}
-            style={styles.input}
           />
         ) : null}
 
@@ -282,48 +261,41 @@ export default function BusinessSetupScreen() {
             <Text style={styles.switchSubtitle}>Prices on shelf already include GST.</Text>
           </View>
           <Switch
-            value={taxInclusive}
+            isSelected={taxInclusive}
             onValueChange={setTaxInclusive}
-            color={COLORS.secondary}
+            color="secondary"
           />
         </View>
 
         <View style={styles.twoCol}>
-          <TextInput
+          <Input
             label={t.defaultTaxRate}
             placeholder="5"
             value={defaultTaxRate}
             onChangeText={setDefaultTaxRate}
             keyboardType="numeric"
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={[styles.input, styles.halfInput]}
+            style={styles.halfInput}
           />
 
-          <TextInput
+          <Input
             label={t.invoicePrefix}
             placeholder="QB"
             value={invoicePrefix}
             onChangeText={(txt) => setInvoicePrefix(txt.toUpperCase())}
             maxLength={6}
-            mode="outlined"
-            outlineColor={COLORS.border}
-            activeOutlineColor={COLORS.primary}
-            style={[styles.input, styles.halfInput]}
+            style={styles.halfInput}
           />
         </View>
-      </Surface>
+      </Card>
 
       {/* Submit Button */}
       <Button
-        mode="contained"
-        buttonColor={COLORS.primary}
-        textColor={COLORS.white}
-        loading={isLoading}
-        disabled={isLoading}
+        color="primary"
+        size="lg"
+        radius="md"
+        fullWidth
+        isLoading={isLoading}
         style={styles.submitBtn}
-        contentStyle={styles.btnContent}
         onPress={handleCompleteSetup}
       >
         {t.completeSetup}
@@ -347,21 +319,19 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '800',
+    fontSize: 22,
     color: COLORS.primary,
   },
   subtitle: {
     color: COLORS.textSecondary,
     marginTop: 4,
+    fontSize: 14,
   },
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: SPACING.lg,
-    backgroundColor: COLORS.surface,
     padding: SPACING.md,
-    borderRadius: ROUNDNESS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
   },
   logoPicker: {
     width: 68,
@@ -381,9 +351,6 @@ const styles = StyleSheet.create({
   },
   placeholderLogo: {
     alignItems: 'center',
-  },
-  logoCameraIcon: {
-    fontSize: 20,
   },
   logoUploadText: {
     fontSize: 9,
@@ -406,16 +373,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   card: {
-    backgroundColor: COLORS.surface,
     padding: SPACING.base,
-    borderRadius: ROUNDNESS.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: SPACING.lg,
-  },
-  input: {
-    marginBottom: SPACING.md,
-    backgroundColor: COLORS.surface,
   },
   sectionHeader: {
     fontSize: 14,
@@ -436,10 +395,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: SPACING.md,
-    backgroundColor: COLORS.surface,
-    borderRadius: ROUNDNESS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     gap: SPACING.sm,
   },
   selectedTypeTile: {
@@ -471,6 +426,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: SPACING.md,
   },
   switchTextContainer: {
     flex: 1,
@@ -496,10 +452,5 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: SPACING.md,
-    borderRadius: ROUNDNESS.md,
-  },
-  btnContent: {
-    paddingVertical: 8,
   },
 });
-

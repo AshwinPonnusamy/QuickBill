@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
-import { Text, Surface } from 'react-native-paper';
+import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Settings } from './Icons';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -27,7 +26,7 @@ export const Header: React.FC<HeaderProps> = ({
   const t = TRANSLATIONS[language];
 
   return (
-    <Surface style={styles.header} elevation={2}>
+    <View style={styles.header}>
       <View style={styles.row}>
         {showBack ? (
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -36,11 +35,11 @@ export const Header: React.FC<HeaderProps> = ({
         ) : null}
 
         <View style={styles.titleContainer}>
-          <Text variant="titleMedium" style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={1}>
             {title || business?.name || t.appName}
           </Text>
           {subtitle || business?.businessType ? (
-            <Text variant="bodySmall" style={styles.subtitle} numberOfLines={1}>
+            <Text style={styles.subtitle} numberOfLines={1}>
               {subtitle || business?.ownerName || t.tagline}
             </Text>
           ) : null}
@@ -54,7 +53,7 @@ export const Header: React.FC<HeaderProps> = ({
           ) : null}
         </View>
       </View>
-    </Surface>
+    </View>
   );
 };
 
