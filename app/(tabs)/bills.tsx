@@ -26,6 +26,7 @@ import {
   Clock,
   ChevronDown,
   Filter,
+  Check,
 } from '../../components/common/Icons';
 
 type StatusFilter = 'all' | 'paid' | 'partial' | 'unpaid' | 'void';
@@ -44,6 +45,12 @@ export default function BillHistoryScreen() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Filter Modal state
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const [tempStatus, setTempStatus] = useState<StatusFilter>('all');
+  const [tempMode, setTempMode] = useState<ModeFilter>('all');
+  const [tempDate, setTempDate] = useState<DateFilter>('all');
 
   // Void Modal state
   const [voidModalVisible, setVoidModalVisible] = useState(false);
@@ -64,6 +71,26 @@ export default function BillHistoryScreen() {
   useEffect(() => {
     loadInvoices();
   }, [business]);
+
+  const openFilterModal = () => {
+    setTempStatus(statusFilter);
+    setTempMode(modeFilter);
+    setTempDate(dateFilter);
+    setFilterModalVisible(true);
+  };
+
+  const applyModalFilters = () => {
+    setStatusFilter(tempStatus);
+    setModeFilter(tempMode);
+    setDateFilter(tempDate);
+    setFilterModalVisible(false);
+  };
+
+  const resetModalFilters = () => {
+    setTempStatus('all');
+    setTempMode('all');
+    setTempDate('all');
+  };
 
   const now = new Date();
   const filteredInvoices = invoices.filter((inv) => {
@@ -145,13 +172,18 @@ export default function BillHistoryScreen() {
     setSearch('');
   };
 
-  const hasActiveFilters = statusFilter !== 'all' || modeFilter !== 'all' || dateFilter !== 'all' || search !== '';
+  const activeFilterCount =
+    (statusFilter !== 'all' ? 1 : 0) +
+    (modeFilter !== 'all' ? 1 : 0) +
+    (dateFilter !== 'all' ? 1 : 0);
+
+  const hasActiveFilters = activeFilterCount > 0 || search !== '';
 
   return (
     <View style={styles.container}>
       <Header title={t.billHistoryTitle} showBack={false} />
 
-      {/* Search Input Bar */}
+      {/* Search Input Bar with Filter Button */}
       <View style={styles.searchBar}>
         <Input
           placeholder={t.searchBills}
@@ -167,15 +199,28 @@ export default function BillHistoryScreen() {
           }
           style={styles.searchInput}
         />
+
+        {/* Clickable Filter Trigger Button */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={openFilterModal}
+          style={[styles.filterActionBtn, activeFilterCount > 0 && styles.filterActionBtnActive]}
+        >
+          <Filter size={18} color={activeFilterCount > 0 ? COLORS.white : COLORS.primary} />
+          <Text style={[styles.filterBtnText, activeFilterCount > 0 && styles.filterBtnTextActive]}>
+            Filter
+          </Text>
+          {activeFilterCount > 0 ? (
+            <View style={styles.filterCountBadge}>
+              <Text style={styles.filterCountText}>{activeFilterCount}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
       </View>
 
-      {/* Date & Mode Filters Bar */}
+      {/* Horizontal Active Filter Quick Chips */}
       <View style={styles.filterSection}>
-        {/* Date Filter Row with Filter Icon */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
-          <View style={styles.filterIconBadge}>
-            <Filter size={15} color={hasActiveFilters ? COLORS.secondary : COLORS.textSecondary} />
-          </View>
           {[
             { id: 'all', label: 'All Dates' },
             { id: 'today', label: 'Today' },
@@ -196,15 +241,13 @@ export default function BillHistoryScreen() {
               </Button>
             );
           })}
-        </ScrollView>
 
-        {/* Payment Status & Mode Filter Row */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterRow, { marginTop: 6 }]}>
+          <View style={styles.verticalDivider} />
+
           {[
             { id: 'all', label: 'All Status' },
             { id: 'paid', label: 'Paid' },
-            { id: 'unpaid', label: 'Unpaid / Udhar' },
-            { id: 'partial', label: 'Partial' },
+            { id: 'unpaid', label: 'Udhar' },
             { id: 'void', label: 'Cancelled' },
           ].map((tab) => {
             const isSelected = statusFilter === tab.id;
@@ -218,30 +261,6 @@ export default function BillHistoryScreen() {
                 onPress={() => setStatusFilter(tab.id as StatusFilter)}
               >
                 {tab.label}
-              </Button>
-            );
-          })}
-
-          <View style={styles.verticalDivider} />
-
-          {/* Mode Pill Badges */}
-          {[
-            { id: 'cash', label: 'Cash' },
-            { id: 'upi', label: 'UPI' },
-            { id: 'card', label: 'Card' },
-            { id: 'credit', label: 'Udhar' },
-          ].map((m) => {
-            const isSelected = modeFilter === m.id;
-            return (
-              <Button
-                key={m.id}
-                variant={isSelected ? 'solid' : 'bordered'}
-                color={isSelected ? 'secondary' : 'default'}
-                size="sm"
-                radius="md"
-                onPress={() => setModeFilter(modeFilter === m.id ? 'all' : (m.id as ModeFilter))}
-              >
-                {m.label}
               </Button>
             );
           })}
@@ -383,6 +402,101 @@ export default function BillHistoryScreen() {
         )}
       </ScrollView>
 
+      {/* Dedicated Filter Selection Modal */}
+      <Modal isOpen={filterModalVisible} onClose={() => setFilterModalVisible(false)}>
+        <ModalHeader>
+          <View style={styles.modalHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Filter size={18} color={COLORS.primary} />
+              <Text style={styles.modalHeaderTitle}>Filter Bills</Text>
+            </View>
+            <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
+              <X size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
+        </ModalHeader>
+        <ModalBody>
+          {/* 1. Date Range Option */}
+          <Text style={styles.modalSectionLabel}>Date Range</Text>
+          <View style={styles.modalButtonGrid}>
+            {[
+              { id: 'all', label: 'All Time' },
+              { id: 'today', label: 'Today' },
+              { id: 'week', label: 'Last 7 Days' },
+              { id: 'month', label: 'Last 30 Days' },
+            ].map((d) => (
+              <Button
+                key={d.id}
+                variant={tempDate === d.id ? 'solid' : 'bordered'}
+                color={tempDate === d.id ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1, minWidth: '45%' }}
+                onPress={() => setTempDate(d.id as DateFilter)}
+              >
+                {d.label}
+              </Button>
+            ))}
+          </View>
+
+          {/* 2. Payment Status Option */}
+          <Text style={[styles.modalSectionLabel, { marginTop: SPACING.md }]}>Payment Status</Text>
+          <View style={styles.modalButtonGrid}>
+            {[
+              { id: 'all', label: 'All Status' },
+              { id: 'paid', label: 'Paid' },
+              { id: 'unpaid', label: 'Unpaid / Udhar' },
+              { id: 'partial', label: 'Partial' },
+              { id: 'void', label: 'Cancelled' },
+            ].map((s) => (
+              <Button
+                key={s.id}
+                variant={tempStatus === s.id ? 'solid' : 'bordered'}
+                color={tempStatus === s.id ? (s.id === 'void' ? 'danger' : 'primary') : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1, minWidth: '45%' }}
+                onPress={() => setTempStatus(s.id as StatusFilter)}
+              >
+                {s.label}
+              </Button>
+            ))}
+          </View>
+
+          {/* 3. Payment Mode Option */}
+          <Text style={[styles.modalSectionLabel, { marginTop: SPACING.md }]}>Payment Method</Text>
+          <View style={styles.modalButtonGrid}>
+            {[
+              { id: 'all', label: 'All Modes' },
+              { id: 'cash', label: 'Cash' },
+              { id: 'upi', label: 'UPI' },
+              { id: 'card', label: 'Card' },
+              { id: 'credit', label: 'Udhar' },
+            ].map((m) => (
+              <Button
+                key={m.id}
+                variant={tempMode === m.id ? 'solid' : 'bordered'}
+                color={tempMode === m.id ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1, minWidth: '45%' }}
+                onPress={() => setTempMode(m.id as ModeFilter)}
+              >
+                {m.label}
+              </Button>
+            ))}
+          </View>
+        </ModalBody>
+        <ModalFooter>
+          <Button variant="light" color="danger" onPress={resetModalFilters}>
+            Reset
+          </Button>
+          <Button color="secondary" onPress={applyModalFilters}>
+            Apply Filters
+          </Button>
+        </ModalFooter>
+      </Modal>
+
       {/* Void Invoice Confirmation Modal */}
       <Modal isOpen={voidModalVisible} onClose={() => setVoidModalVisible(false)}>
         <ModalHeader>
@@ -426,13 +540,53 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.base,
     paddingTop: SPACING.sm,
-    paddingBottom: 2,
+    paddingBottom: SPACING.xs,
+    gap: SPACING.sm,
   },
   searchInput: {
+    flex: 1,
     marginBottom: 0,
+  },
+  filterActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 44,
+    paddingHorizontal: 12,
+    borderRadius: ROUNDNESS.md,
+    backgroundColor: '#EEF4F9',
+    borderWidth: 1,
+    borderColor: '#D0E0EC',
+    gap: 6,
+  },
+  filterActionBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  filterBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  filterBtnTextActive: {
+    color: COLORS.white,
+  },
+  filterCountBadge: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterCountText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: COLORS.white,
   },
   filterSection: {
     backgroundColor: COLORS.white,
@@ -444,14 +598,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.base,
     gap: 6,
     alignItems: 'center',
-  },
-  filterIconBadge: {
-    padding: 6,
-    borderRadius: ROUNDNESS.sm,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 2,
   },
   verticalDivider: {
     width: 1,
@@ -589,5 +735,31 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     lineHeight: 18,
     marginBottom: SPACING.md,
+  },
+
+  // Modal styles
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: COLORS.primary,
+  },
+  modalSectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalButtonGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
   },
 });
