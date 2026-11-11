@@ -12,7 +12,7 @@ import { billingService } from '../../services/billing.service';
 import { formatRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Customer, Product, ProductUnit } from '../../types';
-import { User, Search, X, Tag, ChevronDown } from 'lucide-react-native';
+import { User, Search, X, Tag, ChevronDown } from '../../components/common/Icons';
 
 export default function CreateBillScreen() {
   const router = useRouter();
@@ -173,34 +173,36 @@ export default function CreateBillScreen() {
 
       {/* Categories Horizontal Ribbon */}
       <View style={styles.categoryRibbon}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoryScrollContent}>
+          <Button
+            mode={selectedCat === null ? 'contained' : 'outlined'}
+            buttonColor={selectedCat === null ? COLORS.secondary : undefined}
+            textColor={selectedCat === null ? COLORS.white : COLORS.textPrimary}
+            style={[styles.categoryButton, selectedCat === null && styles.activeCategoryButton]}
+            labelStyle={styles.categoryBtnLabel}
+            compact
             onPress={() => setSelectedCat(null)}
-            style={[styles.categoryChip, selectedCat === null && styles.activeCategoryChip]}
           >
-            <Text
-              style={[styles.categoryChipText, selectedCat === null && styles.activeCategoryChipText]}
-            >
-              {t.all}
-            </Text>
-          </TouchableOpacity>
+            {t.all}
+          </Button>
 
-          {categories.map((cat) => (
-            <TouchableOpacity
-              key={cat.id}
-              onPress={() => setSelectedCat(cat.id)}
-              style={[styles.categoryChip, selectedCat === cat.id && styles.activeCategoryChip]}
-            >
-              <Text
-                style={[
-                  styles.categoryChipText,
-                  selectedCat === cat.id && styles.activeCategoryChipText,
-                ]}
+          {categories.map((cat) => {
+            const isSelected = selectedCat === cat.id;
+            return (
+              <Button
+                key={cat.id}
+                mode={isSelected ? 'contained' : 'outlined'}
+                buttonColor={isSelected ? COLORS.secondary : undefined}
+                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+                style={[styles.categoryButton, isSelected && styles.activeCategoryButton]}
+                labelStyle={styles.categoryBtnLabel}
+                compact
+                onPress={() => setSelectedCat(cat.id)}
               >
                 {cat.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              </Button>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -543,29 +545,26 @@ const styles = StyleSheet.create({
     borderRadius: ROUNDNESS.md,
   },
   categoryRibbon: {
-    paddingHorizontal: SPACING.base,
     marginBottom: SPACING.sm,
   },
-  categoryChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+  categoryScrollContent: {
+    paddingHorizontal: SPACING.base,
+    gap: 8,
+  },
+  categoryButton: {
+    borderRadius: ROUNDNESS.md,
     borderColor: COLORS.border,
-    marginRight: 6,
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  activeCategoryChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+  activeCategoryButton: {
+    borderColor: COLORS.secondary,
   },
-  categoryChipText: {
+  categoryBtnLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeCategoryChipText: {
-    color: COLORS.white,
+    fontWeight: '700',
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
   productList: {
     paddingHorizontal: SPACING.sm,

@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
 import { SupportedLanguage } from '../../types';
-import { User, Phone, Lock, KeyRound } from 'lucide-react-native';
+import { User, Phone, Lock, KeyRound } from '../../components/common/Icons';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -192,33 +192,6 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontWeight: '600',
     marginBottom: SPACING.xs,
-  },
-  langRow: {
-    flexDirection: 'row',
-    gap: SPACING.sm,
-    marginBottom: SPACING.lg,
-  },
-  langChip: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: ROUNDNESS.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
-  },
-  activeChip: {
-    borderColor: COLORS.secondary,
-    backgroundColor: '#E6F8FA',
-  },
-  langChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeChipText: {
-    color: COLORS.secondary,
-    fontWeight: 'bold',
   },
   submitBtn: {
     marginTop: SPACING.sm,

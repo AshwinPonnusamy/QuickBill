@@ -19,7 +19,7 @@ import {
   ShoppingBag,
   Building2,
   Camera,
-} from 'lucide-react-native';
+} from '../components/common/Icons';
 
 const BUSINESS_TYPES: { type: BusinessType; label: string; Icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
   { type: 'restaurant', label: 'Restaurant / Cafe', Icon: Utensils },

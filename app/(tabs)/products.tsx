@@ -10,7 +10,7 @@ import { productService } from '../../services/product.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Product, ProductUnit } from '../../types';
-import { Search, Plus, Boxes, Pencil } from 'lucide-react-native';
+import { Search, Plus, Boxes, Pencil } from '../../components/common/Icons';
 
 const UNITS: ProductUnit[] = ['item', 'kg', 'g', 'liter', 'ml', 'meter', 'packet', 'box', 'plate', 'cup'];
 
@@ -179,26 +179,35 @@ export default function ProductsScreen() {
 
       {/* Categories ribbon */}
       <View style={styles.catRibbon}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <TouchableOpacity
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScrollContent}>
+          <Button
+            mode={selectedCat === null ? 'contained' : 'outlined'}
+            buttonColor={selectedCat === null ? COLORS.secondary : undefined}
+            textColor={selectedCat === null ? COLORS.white : COLORS.textPrimary}
+            style={[styles.catButton, selectedCat === null && styles.activeCatButton]}
+            labelStyle={styles.catBtnLabel}
+            compact
             onPress={() => setSelectedCat(null)}
-            style={[styles.catChip, selectedCat === null && styles.activeCatChip]}
           >
-            <Text style={[styles.catChipText, selectedCat === null && styles.activeCatChipText]}>
-              {t.all} ({products.length})
-            </Text>
-          </TouchableOpacity>
-          {categories.map((c) => (
-            <TouchableOpacity
-              key={c.id}
-              onPress={() => setSelectedCat(c.id)}
-              style={[styles.catChip, selectedCat === c.id && styles.activeCatChip]}
-            >
-              <Text style={[styles.catChipText, selectedCat === c.id && styles.activeCatChipText]}>
+            {`${t.all} (${products.length})`}
+          </Button>
+          {categories.map((c) => {
+            const isSelected = selectedCat === c.id;
+            return (
+              <Button
+                key={c.id}
+                mode={isSelected ? 'contained' : 'outlined'}
+                buttonColor={isSelected ? COLORS.secondary : undefined}
+                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+                style={[styles.catButton, isSelected && styles.activeCatButton]}
+                labelStyle={styles.catBtnLabel}
+                compact
+                onPress={() => setSelectedCat(c.id)}
+              >
                 {c.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              </Button>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -323,16 +332,24 @@ export default function ProductsScreen() {
 
             {/* Units Selection */}
             <Text style={styles.unitLabel}>Unit of Measure:</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitRow}>
-              {UNITS.map((u) => (
-                <TouchableOpacity
-                  key={u}
-                  onPress={() => setUnit(u)}
-                  style={[styles.unitChip, unit === u && styles.activeUnitChip]}
-                >
-                  <Text style={[styles.unitText, unit === u && styles.activeUnitText]}>{u}</Text>
-                </TouchableOpacity>
-              ))}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.unitRow} contentContainerStyle={{ gap: 6 }}>
+              {UNITS.map((u) => {
+                const isSelected = unit === u;
+                return (
+                  <Button
+                    key={u}
+                    mode={isSelected ? 'contained' : 'outlined'}
+                    buttonColor={isSelected ? COLORS.secondary : undefined}
+                    textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+                    style={[styles.unitButton, isSelected && styles.activeUnitButton]}
+                    labelStyle={styles.unitBtnLabel}
+                    compact
+                    onPress={() => setUnit(u)}
+                  >
+                    {u}
+                  </Button>
+                );
+              })}
             </ScrollView>
 
             <View style={styles.switchRow}>
@@ -372,17 +389,23 @@ export default function ProductsScreen() {
               { id: 'purchase', label: '+ Stock In' },
               { id: 'return', label: '- Stock Out' },
               { id: 'adjustment', label: 'Correction' },
-            ].map((m) => (
-              <TouchableOpacity
-                key={m.id}
-                onPress={() => setMovementType(m.id as any)}
-                style={[styles.moveChip, movementType === m.id && styles.activeMoveChip]}
-              >
-                <Text style={[styles.moveText, movementType === m.id && styles.activeMoveText]}>
+            ].map((m) => {
+              const isSelected = movementType === m.id;
+              return (
+                <Button
+                  key={m.id}
+                  mode={isSelected ? 'contained' : 'outlined'}
+                  buttonColor={isSelected ? COLORS.secondary : undefined}
+                  textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+                  style={[styles.moveButton, isSelected && styles.activeMoveButton]}
+                  labelStyle={styles.moveBtnLabel}
+                  compact
+                  onPress={() => setMovementType(m.id as any)}
+                >
                   {m.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                </Button>
+              );
+            })}
           </View>
 
           <TextInput
@@ -442,29 +465,26 @@ const styles = StyleSheet.create({
     borderRadius: ROUNDNESS.md,
   },
   catRibbon: {
+    paddingVertical: SPACING.xs,
+  },
+  catScrollContent: {
     paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.sm,
+    gap: 8,
   },
-  catChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+  catButton: {
+    borderRadius: ROUNDNESS.md,
     borderColor: COLORS.border,
-    marginRight: 6,
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  activeCatChip: {
-    backgroundColor: COLORS.secondary,
+  activeCatButton: {
     borderColor: COLORS.secondary,
   },
-  catChipText: {
+  catBtnLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeCatChipText: {
-    color: COLORS.white,
+    fontWeight: '700',
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
   scrollContent: {
     padding: SPACING.base,
@@ -595,25 +615,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: SPACING.md,
   },
-  unitChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  unitButton: {
     borderRadius: ROUNDNESS.sm,
-    borderWidth: 1,
     borderColor: COLORS.border,
-    marginRight: 6,
+    minHeight: 32,
+    justifyContent: 'center',
   },
-  activeUnitChip: {
-    backgroundColor: COLORS.secondary,
+  activeUnitButton: {
     borderColor: COLORS.secondary,
   },
-  unitText: {
+  unitBtnLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: COLORS.textSecondary,
-  },
-  activeUnitText: {
-    color: COLORS.white,
+    fontWeight: '700',
+    marginHorizontal: 4,
+    marginVertical: 2,
   },
   switchRow: {
     flexDirection: 'row',
@@ -640,25 +655,21 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: SPACING.md,
   },
-  moveChip: {
+  moveButton: {
     flex: 1,
-    paddingVertical: 8,
     borderRadius: ROUNDNESS.md,
-    borderWidth: 1,
     borderColor: COLORS.border,
-    alignItems: 'center',
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  activeMoveChip: {
-    backgroundColor: COLORS.primaryContainer,
-    borderColor: COLORS.primary,
+  activeMoveButton: {
+    borderColor: COLORS.secondary,
   },
-  moveText: {
+  moveBtnLabel: {
     fontSize: 11,
-    fontWeight: 'bold',
-    color: COLORS.textSecondary,
-  },
-  activeMoveText: {
-    color: COLORS.primary,
+    fontWeight: '700',
+    marginHorizontal: 4,
+    marginVertical: 4,
   },
 });
 

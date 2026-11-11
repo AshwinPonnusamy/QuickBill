@@ -1,7 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Text, Platform } from 'react-native';
-import { Home, Receipt, Plus, Package, BarChart3 } from 'lucide-react-native';
+import { Home, Receipt, Plus, Package, BarChart3 } from '../../components/common/Icons';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';

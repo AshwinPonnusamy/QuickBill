@@ -10,7 +10,7 @@ import { pdfService } from '../services/pdf.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { Invoice } from '../types';
-import { Receipt, FileText, Share2, Printer, Download, Plus } from 'lucide-react-native';
+import { Receipt, FileText, Share2, Printer, Download, Plus } from '../components/common/Icons';
 
 export default function ReceiptPreviewScreen() {
   const router = useRouter();

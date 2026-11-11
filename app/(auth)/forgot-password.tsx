@@ -6,7 +6,7 @@ import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
-import { Mail } from 'lucide-react-native';
+import { Mail } from '../../components/common/Icons';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();

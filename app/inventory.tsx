@@ -9,7 +9,7 @@ import { useProductStore } from '../store/product.store';
 import { productService } from '../services/product.service';
 import { TRANSLATIONS } from '../constants/translations';
 import { Product } from '../types';
-import { Plus, Minus } from 'lucide-react-native';
+import { Plus, Minus } from '../components/common/Icons';
 
 export default function InventoryScreen() {
   const { language } = useAuthStore();

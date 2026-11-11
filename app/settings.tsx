@@ -23,7 +23,7 @@ import {
   LogOut,
   Trash2,
   ChevronRight,
-} from 'lucide-react-native';
+} from '../components/common/Icons';
 
 export default function SettingsScreen() {
   const router = useRouter();

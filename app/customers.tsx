@@ -9,7 +9,7 @@ import { billingService } from '../services/billing.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { Customer } from '../types';
-import { Search, Plus, Users, Phone, MapPin } from 'lucide-react-native';
+import { Search, Plus, Users, Phone, MapPin } from '../components/common/Icons';
 
 export default function CustomersScreen() {
   const { language } = useAuthStore();

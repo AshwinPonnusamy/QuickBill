@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@supabase/supabase-js": "^2.119.0",
     "expo": "~58.0.23",
@@ -15,7 +16,6 @@
     "expo-sharing": "^58.0.22",
     "expo-sqlite": "^58.0.15",
     "expo-status-bar": "~58.0.4",
-    "lucide-react-native": "^1.71.0",
     "react": "19.3.0",
     "react-native": "0.88.1",
     "react-native-paper": "^5.15.4",

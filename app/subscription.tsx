@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
-import { Check, Sparkles, CheckCircle2 } from 'lucide-react-native';
+import { Check, Sparkles, CheckCircle2 } from '../components/common/Icons';
 
 export default function SubscriptionScreen() {
   const router = useRouter();

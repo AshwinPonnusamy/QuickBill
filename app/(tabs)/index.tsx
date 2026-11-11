@@ -27,7 +27,7 @@ import {
   ArrowUpDown,
   TrendingUp,
   ArrowRight,
-} from 'lucide-react-native';
+} from '../../components/common/Icons';
 
 // Pre-seeded retail inventory for zero-setup instant demo
 const DEFAULT_SAMPLE_PRODUCTS = [
@@ -173,9 +173,9 @@ export default function HomeDashboard() {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.alertScroll}>
               {lowStockProducts.map((p) => (
-                <View key={p.id} style={styles.stockChip}>
-                  <Text style={styles.stockChipName}>{p.name}</Text>
-                  <Text style={styles.stockChipCount}>
+                <View key={p.id} style={styles.stockAlertCard}>
+                  <Text style={styles.stockCardName}>{p.name}</Text>
+                  <Text style={styles.stockCardCount}>
                     Only {p.stockQuantity} {p.unit} left
                   </Text>
                 </View>
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   alertScroll: {
     flexDirection: 'row',
   },
-  stockChip: {
+  stockAlertCard: {
     backgroundColor: COLORS.white,
     borderRadius: ROUNDNESS.sm,
     paddingHorizontal: 10,
@@ -349,12 +349,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FDE68A',
   },
-  stockChipName: {
+  stockCardName: {
     fontWeight: '600',
     fontSize: 12,
     color: COLORS.textPrimary,
   },
-  stockChipCount: {
+  stockCardCount: {
     color: COLORS.error,
     fontSize: 10,
     fontWeight: 'bold',

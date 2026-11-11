@@ -12,7 +12,7 @@ import { pdfService } from '../../services/pdf.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
-import { Search, X, FolderOpen, User, Share2, Printer } from 'lucide-react-native';
+import { Search, X, FolderOpen, User, Share2, Printer } from '../../components/common/Icons';
 
 export default function BillHistoryScreen() {
   const router = useRouter();
@@ -111,29 +111,30 @@ export default function BillHistoryScreen() {
 
       {/* Filter Tabs */}
       <View style={styles.filterBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
           {[
             { id: 'all', label: t.filterAll },
             { id: 'paid', label: t.filterPaid },
             { id: 'partial', label: t.filterPartial },
             { id: 'unpaid', label: t.filterUnpaid },
             { id: 'void', label: t.filterVoid },
-          ].map((tab) => (
-            <TouchableOpacity
-              key={tab.id}
-              onPress={() => setStatusFilter(tab.id as any)}
-              style={[styles.filterChip, statusFilter === tab.id && styles.activeFilterChip]}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  statusFilter === tab.id && styles.activeFilterChipText,
-                ]}
+          ].map((tab) => {
+            const isSelected = statusFilter === tab.id;
+            return (
+              <Button
+                key={tab.id}
+                mode={isSelected ? 'contained' : 'outlined'}
+                buttonColor={isSelected ? COLORS.secondary : undefined}
+                textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+                style={[styles.filterButton, isSelected && styles.activeFilterButton]}
+                labelStyle={styles.filterBtnLabel}
+                compact
+                onPress={() => setStatusFilter(tab.id as any)}
               >
                 {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+              </Button>
+            );
+          })}
         </ScrollView>
       </View>
 
@@ -293,29 +294,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   filterBar: {
+    paddingVertical: SPACING.xs,
+  },
+  filterScrollContent: {
     paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.sm,
+    gap: 8,
   },
-  filterChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.full,
-    backgroundColor: COLORS.surface,
-    borderWidth: 1,
+  filterButton: {
+    borderRadius: ROUNDNESS.md,
     borderColor: COLORS.border,
-    marginRight: 6,
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  activeFilterChip: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+  activeFilterButton: {
+    borderColor: COLORS.secondary,
   },
-  filterChipText: {
+  filterBtnLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activeFilterChipText: {
-    color: COLORS.white,
+    fontWeight: '700',
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
   scrollContent: {
     padding: SPACING.base,

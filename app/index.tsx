@@ -6,7 +6,7 @@ import { COLORS, SPACING } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { TRANSLATIONS } from '../constants/translations';
-import { Receipt } from 'lucide-react-native';
+import { Receipt } from '../components/common/Icons';
 
 export default function SplashScreen() {
   const router = useRouter();

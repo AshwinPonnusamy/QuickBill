@@ -4,7 +4,7 @@ import { Text, Surface, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
-import { Globe, CheckCircle2 } from 'lucide-react-native';
+import { Globe, CheckCircle2 } from '../../components/common/Icons';
 
 export default function LanguageScreen() {
   const router = useRouter();

@@ -11,7 +11,7 @@ import { billingService } from '../services/billing.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { PaymentMethod } from '../types';
-import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle } from 'lucide-react-native';
+import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle } from '../components/common/Icons';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -168,19 +168,21 @@ export default function PaymentScreen() {
               left={<TextInput.Affix text="₹ " />}
             />
 
-            {/* Quick cash denomination chips */}
+            {/* Quick cash denomination buttons */}
             <Text style={styles.quickCashLabel}>Quick Cash Tender:</Text>
-            <View style={styles.chipsRow}>
+            <View style={styles.tenderButtonsRow}>
               {[grandTotalRupees, 100, 200, 500, 2000].map((amt, idx) => (
-                <TouchableOpacity
+                <Button
                   key={idx}
+                  mode="outlined"
+                  textColor={COLORS.primary}
+                  style={styles.tenderButton}
+                  labelStyle={styles.tenderBtnLabel}
+                  compact
                   onPress={() => handleQuickCash(amt)}
-                  style={styles.cashChip}
                 >
-                  <Text style={styles.cashChipText}>
-                    {amt === grandTotalRupees ? 'Exact' : `₹${amt}`}
-                  </Text>
-                </TouchableOpacity>
+                  {amt === grandTotalRupees ? 'Exact' : `₹${amt}`}
+                </Button>
               ))}
             </View>
 
@@ -371,24 +373,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 6,
   },
-  chipsRow: {
+  tenderButtonsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
     marginBottom: SPACING.md,
   },
-  cashChip: {
-    backgroundColor: COLORS.surfaceVariant,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: ROUNDNESS.sm,
-    borderWidth: 1,
+  tenderButton: {
+    borderRadius: ROUNDNESS.md,
     borderColor: COLORS.border,
+    minHeight: 36,
+    justifyContent: 'center',
+    backgroundColor: COLORS.surfaceVariant,
   },
-  cashChipText: {
+  tenderBtnLabel: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: COLORS.primary,
+    fontWeight: '700',
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
   changeBanner: {
     flexDirection: 'row',

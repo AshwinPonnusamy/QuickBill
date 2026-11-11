@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Dimensions } from 'react-native';
-import { Text, Surface } from 'react-native-paper';
+import { Text, Surface, Button } from 'react-native-paper';
 import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -12,7 +12,7 @@ import { reportService, SalesReportMetrics } from '../../services/report.service
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
-import { IndianRupee, Receipt, Banknote, QrCode, CreditCard, BookOpen } from 'lucide-react-native';
+import { IndianRupee, Receipt, Banknote, QrCode, CreditCard, BookOpen, AlertCircle } from '../../components/common/Icons';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -53,17 +53,23 @@ export default function ReportsScreen() {
           { id: 'weekly', label: t.weekly },
           { id: 'monthly', label: t.monthly },
           { id: 'all', label: t.all },
-        ].map((p) => (
-          <TouchableOpacity
-            key={p.id}
-            onPress={() => setPeriod(p.id as any)}
-            style={[styles.periodChip, period === p.id && styles.activePeriodChip]}
-          >
-            <Text style={[styles.periodText, period === p.id && styles.activePeriodText]}>
+        ].map((p) => {
+          const isSelected = period === p.id;
+          return (
+            <Button
+              key={p.id}
+              mode={isSelected ? 'contained' : 'outlined'}
+              buttonColor={isSelected ? COLORS.secondary : undefined}
+              textColor={isSelected ? COLORS.white : COLORS.textPrimary}
+              style={[styles.periodButton, isSelected && styles.activePeriodButton]}
+              labelStyle={styles.periodBtnLabel}
+              compact
+              onPress={() => setPeriod(p.id as any)}
+            >
               {p.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+            </Button>
+          );
+        })}
       </View>
 
       <ScrollView
@@ -72,7 +78,7 @@ export default function ReportsScreen() {
       >
         {/* Revenue Disclaimer Callout (Do not represent revenue as profit) */}
         <View style={styles.disclaimerBox}>
-          <Text style={styles.disclaimerIcon}>ℹ️</Text>
+          <AlertCircle size={16} color={COLORS.secondary} style={{ marginRight: 8, marginTop: 2 }} />
           <Text style={styles.disclaimerText}>{t.profitDisclaimer}</Text>
         </View>
 
@@ -188,24 +194,21 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
     gap: 8,
   },
-  periodChip: {
+  periodButton: {
     flex: 1,
-    paddingVertical: 8,
     borderRadius: ROUNDNESS.md,
-    alignItems: 'center',
-    backgroundColor: COLORS.background,
+    borderColor: COLORS.border,
+    minHeight: 36,
+    justifyContent: 'center',
   },
-  activePeriodChip: {
-    backgroundColor: COLORS.primaryContainer,
+  activePeriodButton: {
+    borderColor: COLORS.secondary,
   },
-  periodText: {
+  periodBtnLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.textSecondary,
-  },
-  activePeriodText: {
-    color: COLORS.primary,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    marginHorizontal: 4,
+    marginVertical: 4,
   },
   scrollContent: {
     padding: SPACING.base,

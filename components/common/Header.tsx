@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Settings } from 'lucide-react-native';
+import { ArrowLeft, Settings } from './Icons';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';

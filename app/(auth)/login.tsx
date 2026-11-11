@@ -8,7 +8,7 @@ import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
 import { businessService } from '../../services/business.service';
 import { TRANSLATIONS } from '../../constants/translations';
-import { Receipt, Phone, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Receipt, Phone, Lock, Eye, EyeOff } from '../../components/common/Icons';
 
 export default function LoginScreen() {
   const router = useRouter();

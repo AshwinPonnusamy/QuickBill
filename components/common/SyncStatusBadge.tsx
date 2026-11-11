@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { CheckCircle2, Clock, AlertTriangle } from 'lucide-react-native';
+import { CheckCircle2, Clock, AlertTriangle } from './Icons';
 import { SyncStatus } from '../../types';
 import { COLORS, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
