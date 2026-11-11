@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Divider } from '../components/heroui';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -23,6 +23,16 @@ export default function ReceiptPreviewScreen() {
   const [template, setTemplate] = useState<'thermal' | 'a4'>('thermal');
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Auto-send WhatsApp receipt if requested by checkout
+  useEffect(() => {
+    if (params.autoShare === '1' && invoice && business) {
+      const timer = setTimeout(() => {
+        handleWhatsAppShare();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [params.autoShare]);
+
   if (!invoice || !business) {
     return (
       <View style={styles.container}>
@@ -43,6 +53,17 @@ export default function ReceiptPreviewScreen() {
       await pdfService.shareReceipt(invoice, business, template);
     } catch (e: any) {
       Alert.alert(t.error, e.message || 'Share failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleWhatsAppShare = async () => {
+    setIsProcessing(true);
+    try {
+      await pdfService.sendWhatsAppReceipt(invoice, business, template);
+    } catch (e: any) {
+      Alert.alert(t.error, e.message || 'WhatsApp share failed');
     } finally {
       setIsProcessing(false);
     }

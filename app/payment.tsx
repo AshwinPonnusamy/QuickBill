@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
-import { Button, Card, Input } from '../components/heroui';
+import { Button, Card, Input, Switch } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -11,7 +11,7 @@ import { billingService } from '../services/billing.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { PaymentMethod } from '../types';
-import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle } from '../components/common/Icons';
+import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle, MessageSquare } from '../components/common/Icons';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function PaymentScreen() {
   const [paymentReference, setPaymentReference] = useState('');
   const [splitCash, setSplitCash] = useState(String(Math.floor(grandTotalRupees / 2)));
   const [splitUpi, setSplitUpi] = useState(String(grandTotalRupees - Math.floor(grandTotalRupees / 2)));
+  const [autoSendWhatsApp, setAutoSendWhatsApp] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cash change calculation
@@ -96,7 +97,10 @@ export default function PaymentScreen() {
         clearBill();
         router.replace({
           pathname: '/receipt-preview',
-          params: { invoiceData: JSON.stringify(res.invoice) },
+          params: {
+            invoiceData: JSON.stringify(res.invoice),
+            autoShare: autoSendWhatsApp ? '1' : '0',
+          },
         } as any);
       }
     } catch (err: any) {
@@ -254,6 +258,29 @@ export default function PaymentScreen() {
             />
           </Card>
         ) : null}
+
+        {/* WhatsApp Auto-share toggle card */}
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setAutoSendWhatsApp((prev) => !prev)}
+        >
+          <Card radius="lg" shadow="sm" style={styles.whatsappCard}>
+            <View style={styles.whatsappLeft}>
+              <View style={styles.whatsappIconCircle}>
+                <MessageSquare size={18} color="#16A34A" />
+              </View>
+              <View style={styles.whatsappInfo}>
+                <Text style={styles.whatsappTitle}>{t.autoSendWhatsApp}</Text>
+                <Text style={styles.whatsappDesc}>{t.autoSendWhatsAppSub}</Text>
+              </View>
+            </View>
+            <Switch
+              color="success"
+              value={autoSendWhatsApp}
+              onValueChange={setAutoSendWhatsApp}
+            />
+          </Card>
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Settle Action Button */}
@@ -426,6 +453,45 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
     marginBottom: SPACING.md,
+  },
+  whatsappCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: SPACING.md,
+    marginTop: SPACING.md,
+    backgroundColor: '#F0FDF4',
+    borderColor: '#BBF7D0',
+    borderWidth: 1,
+  },
+  whatsappLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: SPACING.sm,
+  },
+  whatsappIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  whatsappInfo: {
+    flex: 1,
+  },
+  whatsappTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#166534',
+  },
+  whatsappDesc: {
+    fontSize: 11,
+    color: '#15803D',
+    marginTop: 2,
+    lineHeight: 15,
   },
   bottomBar: {
     position: 'absolute',

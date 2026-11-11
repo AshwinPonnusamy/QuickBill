@@ -1,7 +1,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
-import { Share, Platform } from 'react-native';
+import { Share, Platform, Linking } from 'react-native';
 import { Invoice, Business } from '../types';
 import { formatRupees, paiseToRupees } from '../utils/billingCalculator';
 
@@ -284,6 +284,38 @@ export const pdfService = {
     await Print.printAsync({
       html,
     });
+  },
+
+  /**
+   * Directly opens WhatsApp chat or falls back to system sharing
+   */
+  async sendWhatsAppReceipt(
+    invoice: Invoice,
+    business: Business,
+    templateType: 'thermal' | 'a4' = 'thermal'
+  ): Promise<void> {
+    const phone = invoice.customerPhone ? invoice.customerPhone.replace(/[^0-9]/g, '') : '';
+    const totalPaise = invoice.grandTotalPaise ?? invoice.subtotalPaise ?? 0;
+    const summary = `🧾 *${business.name}*\nBill #${invoice.invoiceNumber}\nDate: ${new Date(
+      invoice.createdAt
+    ).toLocaleDateString('en-IN')}\nTotal: ${formatRupees(totalPaise)}\n\nThank you for shopping with us!`;
+
+    if (phone && (phone.length === 10 || phone.length === 12)) {
+      const fullPhone = phone.length === 10 ? `91${phone}` : phone;
+      const waUrl = `whatsapp://send?phone=${fullPhone}&text=${encodeURIComponent(summary)}`;
+      try {
+        const canOpen = await Linking.canOpenURL(waUrl);
+        if (canOpen) {
+          await Linking.openURL(waUrl);
+          return;
+        }
+      } catch (err) {
+        console.warn('Could not open direct WhatsApp URL, falling back to shareReceipt:', err);
+      }
+    }
+
+    // Fallback: share PDF / standard share sheet
+    await this.shareReceipt(invoice, business, templateType);
   },
 };
 

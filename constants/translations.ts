@@ -167,6 +167,10 @@ export const TRANSLATIONS = {
 
     // Receipt
     receiptTitle: 'Receipt Preview',
+    // WhatsApp & Sharing
+    autoSendWhatsApp: 'Auto-share Bill on WhatsApp',
+    autoSendWhatsAppSub: 'Automatically opens WhatsApp to share the bill once payment is completed',
+    sendingWhatsApp: 'Opening WhatsApp...',
     downloadPdf: 'Download PDF',
     sharePdf: 'Share on WhatsApp',
     printReceipt: 'Print Receipt',
