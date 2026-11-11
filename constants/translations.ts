@@ -180,7 +180,7 @@ export const TRANSLATIONS = {
     thankYou: 'Thank you for your visit!',
     authorizedSign: 'Authorized Signatory',
 
-    // Bill History
+    // Bill History & Filters
     billHistoryTitle: 'Bill History',
     searchBills: 'Search by Invoice # or Customer',
     filterAll: 'All Statuses',
@@ -188,6 +188,12 @@ export const TRANSLATIONS = {
     filterPartial: 'Partial',
     filterUnpaid: 'Unpaid / Credit',
     filterVoid: 'Cancelled',
+    filterCash: 'Cash Only',
+    filterUpi: 'UPI Only',
+    filterCard: 'Card Only',
+    filterToday: 'Today',
+    filterThisWeek: 'This Week',
+    filterThisMonth: 'This Month',
     voidBill: 'Cancel / Void Bill',
     voidReason: 'Reason for cancellation',
 

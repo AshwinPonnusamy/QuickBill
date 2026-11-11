@@ -12,7 +12,24 @@ import { pdfService } from '../../services/pdf.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
-import { Search, X, FolderOpen, User, Share2, Printer } from '../../components/common/Icons';
+import {
+  Search,
+  X,
+  FolderOpen,
+  User,
+  Share2,
+  Printer,
+  Banknote,
+  QrCode,
+  CreditCard,
+  BookOpen,
+  Clock,
+  ChevronDown,
+} from '../../components/common/Icons';
+
+type StatusFilter = 'all' | 'paid' | 'partial' | 'unpaid' | 'void';
+type ModeFilter = 'all' | 'cash' | 'upi' | 'card' | 'credit';
+type DateFilter = 'all' | 'today' | 'week' | 'month';
 
 export default function BillHistoryScreen() {
   const router = useRouter();
@@ -22,7 +39,9 @@ export default function BillHistoryScreen() {
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'partial' | 'unpaid' | 'void'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Void Modal state
@@ -45,20 +64,52 @@ export default function BillHistoryScreen() {
     loadInvoices();
   }, [business]);
 
+  const now = new Date();
   const filteredInvoices = invoices.filter((inv) => {
-    const matchesStatus = statusFilter === 'all' 
-      ? true 
-      : statusFilter === 'void' 
-        ? inv.isVoid 
+    // 1. Status Filter
+    const matchesStatus =
+      statusFilter === 'all'
+        ? true
+        : statusFilter === 'void'
+        ? inv.isVoid
         : inv.paymentStatus === statusFilter && !inv.isVoid;
 
-    const matchesSearch = search.trim() === '' ||
+    // 2. Payment Mode Filter
+    const matchesMode =
+      modeFilter === 'all'
+        ? true
+        : inv.paymentMethod === modeFilter;
+
+    // 3. Date Filter
+    const invDate = new Date(inv.createdAt);
+    let matchesDate = true;
+    if (dateFilter === 'today') {
+      matchesDate =
+        invDate.getDate() === now.getDate() &&
+        invDate.getMonth() === now.getMonth() &&
+        invDate.getFullYear() === now.getFullYear();
+    } else if (dateFilter === 'week') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      matchesDate = invDate >= weekAgo;
+    } else if (dateFilter === 'month') {
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      matchesDate = invDate >= monthAgo;
+    }
+
+    // 4. Search Filter
+    const matchesSearch =
+      search.trim() === '' ||
       inv.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
       (inv.customerName && inv.customerName.toLowerCase().includes(search.toLowerCase())) ||
       (inv.customerPhone && inv.customerPhone.includes(search));
 
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesMode && matchesDate && matchesSearch;
   });
+
+  // Calculate filtered totals
+  const totalFilteredAmount = filteredInvoices
+    .filter((i) => !i.isVoid)
+    .reduce((sum, i) => sum + i.grandTotalPaise, 0);
 
   const handlePrint = async (inv: Invoice) => {
     if (!business) return;
@@ -86,11 +137,20 @@ export default function BillHistoryScreen() {
     }
   };
 
+  const clearAllFilters = () => {
+    setStatusFilter('all');
+    setModeFilter('all');
+    setDateFilter('all');
+    setSearch('');
+  };
+
+  const hasActiveFilters = statusFilter !== 'all' || modeFilter !== 'all' || dateFilter !== 'all' || search !== '';
+
   return (
     <View style={styles.container}>
       <Header title={t.billHistoryTitle} showBack={false} />
 
-      {/* Search Input */}
+      {/* Search Input Bar */}
       <View style={styles.searchBar}>
         <Input
           placeholder={t.searchBills}
@@ -104,35 +164,106 @@ export default function BillHistoryScreen() {
               </TouchableOpacity>
             ) : undefined
           }
-          style={styles.input}
+          style={styles.searchInput}
         />
       </View>
 
-      {/* Filter Tabs */}
-      <View style={styles.filterBar}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScrollContent}>
+      {/* Date & Mode Filters Bar */}
+      <View style={styles.filterSection}>
+        {/* Date Filter Row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {[
-            { id: 'all', label: t.filterAll },
-            { id: 'paid', label: t.filterPaid },
-            { id: 'partial', label: t.filterPartial },
-            { id: 'unpaid', label: t.filterUnpaid },
-            { id: 'void', label: t.filterVoid },
+            { id: 'all', label: 'All Dates' },
+            { id: 'today', label: 'Today' },
+            { id: 'week', label: 'Last 7 Days' },
+            { id: 'month', label: 'Last 30 Days' },
+          ].map((item) => {
+            const isSelected = dateFilter === item.id;
+            return (
+              <Button
+                key={item.id}
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                onPress={() => setDateFilter(item.id as DateFilter)}
+              >
+                {item.label}
+              </Button>
+            );
+          })}
+        </ScrollView>
+
+        {/* Payment Status & Mode Filter Row */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.filterRow, { marginTop: 6 }]}>
+          {[
+            { id: 'all', label: 'All Status' },
+            { id: 'paid', label: 'Paid' },
+            { id: 'unpaid', label: 'Unpaid / Udhar' },
+            { id: 'partial', label: 'Partial' },
+            { id: 'void', label: 'Cancelled' },
           ].map((tab) => {
             const isSelected = statusFilter === tab.id;
             return (
               <Button
                 key={tab.id}
                 variant={isSelected ? 'solid' : 'bordered'}
-                color={isSelected ? 'secondary' : 'default'}
+                color={isSelected ? (tab.id === 'void' ? 'danger' : 'primary') : 'default'}
                 size="sm"
                 radius="md"
-                onPress={() => setStatusFilter(tab.id as any)}
+                onPress={() => setStatusFilter(tab.id as StatusFilter)}
               >
                 {tab.label}
               </Button>
             );
           })}
+
+          <View style={styles.verticalDivider} />
+
+          {/* Mode Pill Badges */}
+          {[
+            { id: 'cash', label: 'Cash' },
+            { id: 'upi', label: 'UPI' },
+            { id: 'card', label: 'Card' },
+            { id: 'credit', label: 'Udhar' },
+          ].map((m) => {
+            const isSelected = modeFilter === m.id;
+            return (
+              <Button
+                key={m.id}
+                variant={isSelected ? 'solid' : 'bordered'}
+                color={isSelected ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                onPress={() => setModeFilter(modeFilter === m.id ? 'all' : (m.id as ModeFilter))}
+              >
+                {m.label}
+              </Button>
+            );
+          })}
+
+          {hasActiveFilters ? (
+            <Button
+              variant="flat"
+              color="danger"
+              size="sm"
+              radius="md"
+              onPress={clearAllFilters}
+            >
+              Reset
+            </Button>
+          ) : null}
         </ScrollView>
+      </View>
+
+      {/* Filter Summary Banner */}
+      <View style={styles.summaryBanner}>
+        <Text style={styles.summaryCount}>
+          Showing <Text style={{ fontWeight: '800', color: COLORS.primary }}>{filteredInvoices.length}</Text> bills
+        </Text>
+        <Text style={styles.summaryTotal}>
+          Total: <Text style={{ fontWeight: '900', color: COLORS.secondary }}>{formatRupees(totalFilteredAmount)}</Text>
+        </Text>
       </View>
 
       {/* Bills List */}
@@ -144,13 +275,27 @@ export default function BillHistoryScreen() {
           <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <FolderOpen size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No matching bills found</Text>
+            <Text style={styles.emptySubtitle}>Try adjusting your search query or active filter chips.</Text>
+            {hasActiveFilters ? (
+              <Button color="secondary" size="sm" radius="md" style={{ marginTop: 12 }} onPress={clearAllFilters}>
+                Clear All Filters
+              </Button>
+            ) : null}
           </Card>
         ) : (
           filteredInvoices.map((inv) => (
-            <Card key={inv.id} radius="lg" shadow="sm" style={[styles.invoiceCard, inv.isVoid && styles.voidCard]}>
+            <Card
+              key={inv.id}
+              radius="lg"
+              shadow="sm"
+              style={[styles.invoiceCard, inv.isVoid && styles.voidCard]}
+            >
               <View style={styles.cardTopRow}>
-                <View>
-                  <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
+                    <SyncStatusBadge status={inv.syncStatus} />
+                  </View>
                   <Text style={styles.invDate}>
                     {new Date(inv.createdAt).toLocaleDateString('en-IN', {
                       day: '2-digit',
@@ -182,17 +327,28 @@ export default function BillHistoryScreen() {
               <View style={styles.cardMidRow}>
                 <View style={styles.custRow}>
                   <User size={14} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={styles.custText}>
+                  <Text style={styles.custText} numberOfLines={1}>
                     {inv.customerName || 'Walk-in Customer'} {inv.customerPhone ? `(${inv.customerPhone})` : ''}
                   </Text>
                 </View>
-                <Text style={styles.methodText}>
-                  Mode: <Text style={{ fontWeight: 'bold' }}>{inv.paymentMethod.toUpperCase()}</Text>
-                </Text>
+                <View style={styles.modeBadgeBox}>
+                  <Text style={styles.methodText}>
+                    {inv.paymentMethod.toUpperCase()}
+                  </Text>
+                </View>
               </View>
 
               <View style={styles.cardBottomRow}>
-                <SyncStatusBadge status={inv.syncStatus} />
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: '/receipt-preview',
+                      params: { invoiceData: JSON.stringify(inv) },
+                    } as any)
+                  }
+                >
+                  <Text style={styles.viewReceiptLink}>View Bill Receipt →</Text>
+                </TouchableOpacity>
 
                 <View style={styles.actionBtns}>
                   <TouchableOpacity onPress={() => handleShare(inv)} style={styles.iconActionBtn}>
@@ -205,10 +361,9 @@ export default function BillHistoryScreen() {
 
                   {!inv.isVoid ? (
                     <Button
-                      variant="bordered"
+                      variant="light"
                       color="danger"
                       size="sm"
-                      radius="sm"
                       onPress={() => {
                         setSelectedInvoice(inv);
                         setVoidModalVisible(true);
@@ -224,40 +379,36 @@ export default function BillHistoryScreen() {
         )}
       </ScrollView>
 
-      {/* Void Reason Confirmation Modal */}
-      <Modal
-        visible={voidModalVisible}
-        onDismiss={() => setVoidModalVisible(false)}
-        contentContainerStyle={styles.modalContent}
-      >
+      {/* Void Invoice Confirmation Modal */}
+      <Modal isOpen={voidModalVisible} onClose={() => setVoidModalVisible(false)}>
         <ModalHeader>
-          <Text style={styles.modalTitle}>
-            Cancel Bill {selectedInvoice?.invoiceNumber}
-          </Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.primary }}>{t.voidBill}</Text>
+            <TouchableOpacity onPress={() => setVoidModalVisible(false)}>
+              <X size={18} color={COLORS.textSecondary} />
+            </TouchableOpacity>
+          </View>
         </ModalHeader>
         <ModalBody>
-          <Text style={styles.modalWarning}>
-            Voiding an invoice marks it cancelled, restores stock quantities, and removes pending balance from customer ledger.
+          <Text style={styles.modalNotice}>
+            Cancelling this bill will mark it as VOID and reverse any stock adjustments or udhar balances.
           </Text>
+
           <Input
             label={t.voidReason}
-            placeholder="e.g. Customer returned items / Wrong entry"
+            placeholder="e.g. Customer returned items / wrong entry"
             value={voidReason}
             onChangeText={setVoidReason}
+            multiline
+            numberOfLines={3}
           />
         </ModalBody>
         <ModalFooter>
-          <Button variant="bordered" color="default" size="md" radius="md" onPress={() => setVoidModalVisible(false)} style={{ flex: 1 }}>
+          <Button variant="bordered" color="default" onPress={() => setVoidModalVisible(false)}>
             {t.cancel}
           </Button>
-          <Button
-            color="danger"
-            size="md"
-            radius="md"
-            onPress={handleConfirmVoid}
-            style={{ flex: 1 }}
-          >
-            Confirm Void
+          <Button color="danger" onPress={handleConfirmVoid}>
+            Confirm Cancel
           </Button>
         </ModalFooter>
       </Modal>
@@ -271,18 +422,48 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   searchBar: {
+    backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.base,
     paddingTop: SPACING.sm,
+    paddingBottom: 2,
   },
-  input: {
+  searchInput: {
     marginBottom: 0,
   },
-  filterBar: {
-    paddingVertical: SPACING.xs,
+  filterSection: {
+    backgroundColor: COLORS.white,
+    paddingBottom: SPACING.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
-  filterScrollContent: {
+  filterRow: {
     paddingHorizontal: SPACING.base,
-    gap: 8,
+    gap: 6,
+  },
+  verticalDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 4,
+    alignSelf: 'center',
+  },
+  summaryBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.base,
+    paddingVertical: 8,
+    backgroundColor: '#F1F5F9',
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  summaryCount: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  summaryTotal: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
   },
   scrollContent: {
     padding: SPACING.base,
@@ -294,17 +475,26 @@ const styles = StyleSheet.create({
     marginVertical: SPACING.xl,
   },
   emptyTitle: {
+    fontSize: 16,
     fontWeight: '700',
+    color: COLORS.textPrimary,
+  },
+  emptySubtitle: {
+    fontSize: 12,
     color: COLORS.textSecondary,
-    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
   },
   invoiceCard: {
     padding: SPACING.md,
     marginBottom: SPACING.sm,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   voidCard: {
-    opacity: 0.7,
     backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -312,8 +502,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   invNumber: {
-    fontWeight: '800',
     fontSize: 15,
+    fontWeight: '800',
     color: COLORS.primary,
   },
   invDate: {
@@ -334,7 +524,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: SPACING.sm,
   },
   custRow: {
     flexDirection: 'row',
@@ -343,37 +532,47 @@ const styles = StyleSheet.create({
   },
   custText: {
     fontSize: 12,
-    color: COLORS.textSecondary,
+    fontWeight: '600',
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  modeBadgeBox: {
+    backgroundColor: '#EEF4F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: ROUNDNESS.sm,
   },
   methodText: {
-    fontSize: 11,
-    color: COLORS.textSecondary,
+    fontSize: 10,
+    fontWeight: '800',
+    color: COLORS.primary,
   },
   cardBottomRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: SPACING.md,
+    paddingTop: SPACING.xs,
+    borderTopWidth: 0.5,
+    borderTopColor: '#F1F5F9',
+  },
+  viewReceiptLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.secondary,
   },
   actionBtns: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACING.sm,
+    gap: 8,
   },
   iconActionBtn: {
     padding: 6,
     borderRadius: ROUNDNESS.sm,
-    backgroundColor: COLORS.surfaceVariant,
+    backgroundColor: COLORS.background,
   },
-  modalContent: {
-    paddingBottom: SPACING.md,
-  },
-  modalTitle: {
-    fontWeight: '800',
-    color: COLORS.primary,
-    fontSize: 18,
-  },
-  modalWarning: {
-    fontSize: 12,
+  modalNotice: {
+    fontSize: 13,
     color: COLORS.textSecondary,
     lineHeight: 18,
     marginBottom: SPACING.md,
