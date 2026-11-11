@@ -220,21 +220,20 @@ export default function ProductsScreen() {
 
                 <View style={styles.priceStockBlock}>
                   <Text style={styles.prodPrice}>{formatRupees(p.sellingPricePaise)}</Text>
-                  <TouchableOpacity
+                  <Button
+                    variant="flat"
+                    color={isLow ? 'danger' : 'default'}
+                    size="sm"
+                    radius="full"
+                    style={styles.stockBadgeBtn}
+                    textStyle={styles.stockBadgeBtnText}
                     onPress={() => {
                       setStockProduct(p);
                       setStockModalVisible(true);
                     }}
                   >
-                    <Badge
-                      color={isLow ? 'danger' : 'default'}
-                      variant="flat"
-                      size="sm"
-                      style={{ marginTop: 4 }}
-                    >
-                      {p.stockQuantity} {p.unit}
-                    </Badge>
-                  </TouchableOpacity>
+                    {p.stockQuantity} {p.unit}
+                  </Button>
                 </View>
               </View>
 
@@ -495,6 +494,15 @@ const styles = StyleSheet.create({
   },
   priceStockBlock: {
     alignItems: 'flex-end',
+  },
+  stockBadgeBtn: {
+    height: 26,
+    paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  stockBadgeBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   prodPrice: {
     fontSize: 16,
