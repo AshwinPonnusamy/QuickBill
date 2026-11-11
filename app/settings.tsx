@@ -270,18 +270,14 @@ export default function SettingsScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() =>
-              Alert.alert(
-                t.helpSupport,
-                'QuickBill Support:\nEmail: support@quickbill.in\nWhatsApp: +91 98400 00000\nHelpline hours: 9 AM - 9 PM IST'
-              )
-            }
+            onPress={() => router.push('/help-support' as any)}
           >
             <View style={styles.menuIconBox}>
               <MessageSquare size={18} color={COLORS.secondary} />
             </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.helpSupport}</Text>
+              <Text style={styles.menuSub}>WhatsApp, Call, FAQ & Support Tickets</Text>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
