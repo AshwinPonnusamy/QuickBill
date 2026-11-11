@@ -547,6 +547,7 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
+    marginBottom: 0,
   },
   customBtn: {
     height: 44,

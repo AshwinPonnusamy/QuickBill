@@ -450,10 +450,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.base,
     paddingTop: SPACING.sm,
+    paddingBottom: SPACING.xs,
     gap: SPACING.sm,
   },
   searchInput: {
     flex: 1,
+    marginBottom: 0,
   },
   addBtn: {
     height: 44,
