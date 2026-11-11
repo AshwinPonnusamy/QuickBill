@@ -25,6 +25,7 @@ import {
   BookOpen,
   Clock,
   ChevronDown,
+  Filter,
 } from '../../components/common/Icons';
 
 type StatusFilter = 'all' | 'paid' | 'partial' | 'unpaid' | 'void';
@@ -170,8 +171,11 @@ export default function BillHistoryScreen() {
 
       {/* Date & Mode Filters Bar */}
       <View style={styles.filterSection}>
-        {/* Date Filter Row */}
+        {/* Date Filter Row with Filter Icon */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+          <View style={styles.filterIconBadge}>
+            <Filter size={15} color={hasActiveFilters ? COLORS.secondary : COLORS.textSecondary} />
+          </View>
           {[
             { id: 'all', label: 'All Dates' },
             { id: 'today', label: 'Today' },
@@ -439,6 +443,15 @@ const styles = StyleSheet.create({
   filterRow: {
     paddingHorizontal: SPACING.base,
     gap: 6,
+    alignItems: 'center',
+  },
+  filterIconBadge: {
+    padding: 6,
+    borderRadius: ROUNDNESS.sm,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 2,
   },
   verticalDivider: {
     width: 1,
