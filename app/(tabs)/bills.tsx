@@ -218,36 +218,14 @@ export default function BillHistoryScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Horizontal Active Filter Quick Chips */}
+      {/* Payment Status Tabs (Outer Bar) */}
       <View style={styles.filterSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {[
-            { id: 'all', label: 'All Dates' },
-            { id: 'today', label: 'Today' },
-            { id: 'week', label: 'Last 7 Days' },
-            { id: 'month', label: 'Last 30 Days' },
-          ].map((item) => {
-            const isSelected = dateFilter === item.id;
-            return (
-              <Button
-                key={item.id}
-                variant={isSelected ? 'solid' : 'bordered'}
-                color={isSelected ? 'secondary' : 'default'}
-                size="sm"
-                radius="md"
-                onPress={() => setDateFilter(item.id as DateFilter)}
-              >
-                {item.label}
-              </Button>
-            );
-          })}
-
-          <View style={styles.verticalDivider} />
-
-          {[
             { id: 'all', label: 'All Status' },
             { id: 'paid', label: 'Paid' },
-            { id: 'unpaid', label: 'Udhar' },
+            { id: 'unpaid', label: 'Unpaid / Udhar' },
+            { id: 'partial', label: 'Partial' },
             { id: 'void', label: 'Cancelled' },
           ].map((tab) => {
             const isSelected = statusFilter === tab.id;
