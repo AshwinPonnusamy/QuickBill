@@ -245,7 +245,7 @@ export const TRANSLATIONS = {
     proFeatureStaff: 'Unlimited Staff Accounts & Permissions',
     proFeatureReports: 'Advanced Profit & Stock Analytics',
     proFeatureTemplates: 'Custom Thermal & A4 Invoice Branding',
-    proFeatureSupport: 'Priority 24/7 Phone & WhatsApp Support',
+    proFeatureSupport: 'Priority 24/7 Phone & Email Helpline',
 
     // Settings
     settingsTitle: 'Settings',

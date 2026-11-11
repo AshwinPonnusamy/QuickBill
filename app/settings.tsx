@@ -277,7 +277,7 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.helpSupport}</Text>
-              <Text style={styles.menuSub}>WhatsApp, Call, FAQ & Support Tickets</Text>
+              <Text style={styles.menuSub}>Phone Helpline, Email & Support Tickets</Text>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
