@@ -9,6 +9,7 @@ import { billingService } from '../services/billing.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { Customer } from '../types';
+import { Search, Plus, Users, Phone, MapPin } from 'lucide-react-native';
 
 export default function CustomersScreen() {
   const { language } = useAuthStore();
@@ -80,25 +81,26 @@ export default function CustomersScreen() {
           outlineColor={COLORS.border}
           activeOutlineColor={COLORS.secondary}
           style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Text>🔍</Text>} />}
+          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
         />
         <Button
           mode="contained"
           buttonColor={COLORS.primary}
           textColor={COLORS.white}
           style={styles.addBtn}
+          icon={() => <Plus size={16} color={COLORS.white} />}
           onPress={() => setModalVisible(true)}
         >
-          + Add
+          Add
         </Button>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {filteredCustomers.length === 0 ? (
           <Surface style={styles.emptyCard} elevation={1}>
-            <Text style={styles.emptyIcon}>👥</Text>
+            <Users size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No customers registered yet</Text>
-            <Text style={styles.emptySub}>Tap '+ Add' to register a customer account with Udhar tracking.</Text>
+            <Text style={styles.emptySub}>Tap 'Add' to register a customer account with Udhar tracking.</Text>
           </Surface>
         ) : (
           filteredCustomers.map((c) => (
@@ -106,8 +108,16 @@ export default function CustomersScreen() {
               <View style={styles.custTop}>
                 <View>
                   <Text style={styles.custName}>{c.name}</Text>
-                  <Text style={styles.custPhone}>📱 {c.phone || 'No phone recorded'}</Text>
-                  {c.address ? <Text style={styles.custAddress}>📍 {c.address}</Text> : null}
+                  <View style={styles.custDetailRow}>
+                    <Phone size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                    <Text style={styles.custPhone}>{c.phone || 'No phone recorded'}</Text>
+                  </View>
+                  {c.address ? (
+                    <View style={styles.custDetailRow}>
+                      <MapPin size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+                      <Text style={styles.custAddress}>{c.address}</Text>
+                    </View>
+                  ) : null}
                 </View>
 
                 <View style={styles.balanceBlock}>
@@ -277,6 +287,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '800',
     color: COLORS.primary,
+  },
+  custDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
   },
   custPhone: {
     fontSize: 12,

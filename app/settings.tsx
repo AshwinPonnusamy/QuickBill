@@ -10,6 +10,20 @@ import { authService } from '../services/auth.service';
 import { businessService } from '../services/business.service';
 import { syncService } from '../services/sync.service';
 import { TRANSLATIONS } from '../constants/translations';
+import {
+  Store,
+  Globe,
+  Tag,
+  Printer,
+  Sparkles,
+  RefreshCw,
+  Users,
+  ShieldCheck,
+  MessageSquare,
+  LogOut,
+  Trash2,
+  ChevronRight,
+} from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -103,13 +117,13 @@ export default function SettingsScreen() {
         {/* Business Profile Overview Card */}
         <Surface style={styles.profileCard} elevation={1}>
           <View style={styles.shopAvatar}>
-            <Text style={styles.shopAvatarIcon}>🏪</Text>
+            <Store size={26} color={COLORS.primary} />
           </View>
           <View style={styles.shopInfo}>
             <Text style={styles.shopName}>{business?.name || 'QuickBill Store'}</Text>
             <Text style={styles.shopOwner}>{business?.ownerName} • {business?.phone}</Text>
             <Text style={styles.shopBadge}>
-              {subscription?.plan === 'pro' ? '⭐ Pro Plan' : 'Free Plan'}
+              {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
             </Text>
           </View>
           <TouchableOpacity onPress={() => setShopEditModal(true)} style={styles.editShopBtn}>
@@ -124,23 +138,27 @@ export default function SettingsScreen() {
             style={styles.menuItem}
             onPress={() => router.push('/(auth)/language' as any)}
           >
-            <Text style={styles.menuIcon}>🌐</Text>
+            <View style={styles.menuIconBox}>
+              <Globe size={18} color={COLORS.secondary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.languageSettings}</Text>
               <Text style={styles.menuSub}>Current: English</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={() => setShopEditModal(true)}>
-            <Text style={styles.menuIcon}>🏷️</Text>
+            <View style={styles.menuIconBox}>
+              <Tag size={18} color={COLORS.primary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.taxSettings}</Text>
               <Text style={styles.menuSub}>Default Rate: {business?.defaultTaxRate || 5}% • Inclusive: {business?.taxInclusive ? 'Yes' : 'No'}</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -154,12 +172,14 @@ export default function SettingsScreen() {
               )
             }
           >
-            <Text style={styles.menuIcon}>🖨️</Text>
+            <View style={styles.menuIconBox}>
+              <Printer size={18} color={COLORS.secondary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.printerSettings}</Text>
               <Text style={styles.menuSub}>ESC/POS 58mm / 80mm wireless printing</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         </Surface>
 
@@ -170,27 +190,31 @@ export default function SettingsScreen() {
             style={styles.menuItem}
             onPress={() => router.push('/subscription' as any)}
           >
-            <Text style={styles.menuIcon}>⭐</Text>
+            <View style={styles.menuIconBox}>
+              <Sparkles size={18} color={COLORS.warning} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.subscriptionManagement}</Text>
               <Text style={styles.menuSub}>
                 Plan: {subscription?.plan === 'pro' ? 'Pro Business (Active)' : 'Free Tier'}
               </Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={handleManualSync} disabled={syncing}>
-            <Text style={styles.menuIcon}>🔄</Text>
+            <View style={styles.menuIconBox}>
+              <RefreshCw size={18} color={COLORS.secondary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.backupSync}</Text>
               <Text style={styles.menuSub}>
                 {syncing ? 'Synchronizing with Supabase...' : 'Trigger manual cloud sync'}
               </Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -204,12 +228,14 @@ export default function SettingsScreen() {
               )
             }
           >
-            <Text style={styles.menuIcon}>👥</Text>
+            <View style={styles.menuIconBox}>
+              <Users size={18} color={COLORS.primary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.staffManagement}</Text>
               <Text style={styles.menuSub}>Roles: Owner, Admin, Cashier</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         </Surface>
 
@@ -225,11 +251,13 @@ export default function SettingsScreen() {
               )
             }
           >
-            <Text style={styles.menuIcon}>🛡️</Text>
+            <View style={styles.menuIconBox}>
+              <ShieldCheck size={18} color={COLORS.success} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.privacyPolicy}</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
           <View style={styles.menuDivider} />
@@ -243,18 +271,22 @@ export default function SettingsScreen() {
               )
             }
           >
-            <Text style={styles.menuIcon}>💬</Text>
+            <View style={styles.menuIconBox}>
+              <MessageSquare size={18} color={COLORS.secondary} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.helpSupport}</Text>
             </View>
-            <Text style={styles.arrow}>›</Text>
+            <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
         </Surface>
 
         {/* SECTION 4: Account Actions */}
         <Surface style={[styles.menuCard, { marginTop: SPACING.lg }]} elevation={1}>
           <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
-            <Text style={styles.menuIcon}>🚪</Text>
+            <View style={styles.menuIconBox}>
+              <LogOut size={18} color={COLORS.error} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={[styles.menuTitle, { color: COLORS.error }]}>{t.logout}</Text>
             </View>
@@ -263,7 +295,9 @@ export default function SettingsScreen() {
           <View style={styles.menuDivider} />
 
           <TouchableOpacity style={styles.menuItem} onPress={handleDeleteAccount}>
-            <Text style={styles.menuIcon}>🗑️</Text>
+            <View style={styles.menuIconBox}>
+              <Trash2 size={18} color={COLORS.error} />
+            </View>
             <View style={styles.menuTextContainer}>
               <Text style={[styles.menuTitle, { color: COLORS.error }]}>{t.accountDeletion}</Text>
             </View>
@@ -360,13 +394,10 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.primaryContainer,
+    backgroundColor: '#EEF4F9',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
-  },
-  shopAvatarIcon: {
-    fontSize: 22,
   },
   shopInfo: {
     flex: 1,
@@ -420,8 +451,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: SPACING.md,
   },
-  menuIcon: {
-    fontSize: 20,
+  menuIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F4F7FA',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: SPACING.md,
   },
   menuTextContainer: {

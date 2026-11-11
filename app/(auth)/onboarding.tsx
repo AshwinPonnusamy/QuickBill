@@ -5,27 +5,28 @@ import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';
+import { Zap, WifiOff, Printer, BookOpen } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 const SLIDES = [
   {
-    icon: '⚡',
+    Icon: Zap,
     title: 'Lightning Fast Billing',
     desc: 'Generate retail bills in 3 quick taps. Easy barcode and quick product lookup.',
   },
   {
-    icon: '📶',
+    Icon: WifiOff,
     title: '100% Offline-First',
     desc: 'Never stop billing even with zero internet. Bills automatically sync to the cloud later.',
   },
   {
-    icon: '🖨️',
+    Icon: Printer,
     title: 'Thermal & WhatsApp PDF',
     desc: 'Instant Bluetooth thermal receipt printing and one-tap WhatsApp PDF sharing.',
   },
   {
-    icon: '📒',
+    Icon: BookOpen,
     title: 'Udhar & Customer Ledger',
     desc: 'Track customer credit, pending payments, and send automatic payment reminders.',
   },
@@ -49,7 +50,9 @@ export default function OnboardingScreen() {
       {/* Main Slide Card */}
       <View style={styles.slideContainer}>
         <Surface style={styles.slideCard} elevation={2}>
-          <Text style={styles.slideIcon}>{slide.icon}</Text>
+          <View style={styles.slideIconWrapper}>
+            <slide.Icon size={44} color={COLORS.secondary} />
+          </View>
           <Text variant="headlineSmall" style={styles.slideTitle}>
             {slide.title}
           </Text>
@@ -140,8 +143,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  slideIcon: {
-    fontSize: 64,
+  slideIconWrapper: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E6F8FA',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.lg,
   },
   slideTitle: {

@@ -6,6 +6,7 @@ import { COLORS, SPACING } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { TRANSLATIONS } from '../constants/translations';
+import { Receipt } from 'lucide-react-native';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.logoBadge}>
-        <Text style={styles.logoIcon}>🧾</Text>
+        <Receipt size={44} color={COLORS.secondary} />
       </View>
       <Text variant="headlineLarge" style={styles.title}>
         {t.appName}

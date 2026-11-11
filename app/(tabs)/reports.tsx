@@ -12,6 +12,7 @@ import { reportService, SalesReportMetrics } from '../../services/report.service
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
+import { IndianRupee, Receipt, Banknote, QrCode, CreditCard, BookOpen } from 'lucide-react-native';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -80,7 +81,7 @@ export default function ReportsScreen() {
           <StatCard
             label={t.revenue}
             value={formatRupees(report.totalRevenuePaise)}
-            icon="💵"
+            icon={<IndianRupee size={18} color={COLORS.primary} />}
             color={COLORS.primary}
             bgColor="#EEF4F9"
           />
@@ -88,7 +89,7 @@ export default function ReportsScreen() {
             label={t.totalBills}
             value={String(report.totalBills)}
             subValue={`Avg: ${formatRupees(report.averageBillValuePaise)}`}
-            icon="🧾"
+            icon={<Receipt size={18} color={COLORS.secondary} />}
             color={COLORS.secondary}
             bgColor="#E6F8FA"
           />
@@ -108,28 +109,40 @@ export default function ReportsScreen() {
 
           <View style={styles.methodBar}>
             <View style={styles.methodInfo}>
-              <Text style={styles.methodName}>💵 {t.cash}</Text>
+              <View style={styles.methodNameRow}>
+                <Banknote size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.methodName}>{t.cash}</Text>
+              </View>
               <Text style={styles.methodVal}>{formatRupees(report.cashPaymentsPaise)}</Text>
             </View>
           </View>
 
           <View style={styles.methodBar}>
             <View style={styles.methodInfo}>
-              <Text style={styles.methodName}>📱 {t.upi}</Text>
+              <View style={styles.methodNameRow}>
+                <QrCode size={16} color={COLORS.secondary} style={{ marginRight: 6 }} />
+                <Text style={styles.methodName}>{t.upi}</Text>
+              </View>
               <Text style={styles.methodVal}>{formatRupees(report.upiPaymentsPaise)}</Text>
             </View>
           </View>
 
           <View style={styles.methodBar}>
             <View style={styles.methodInfo}>
-              <Text style={styles.methodName}>💳 {t.card}</Text>
+              <View style={styles.methodNameRow}>
+                <CreditCard size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                <Text style={styles.methodName}>{t.card}</Text>
+              </View>
               <Text style={styles.methodVal}>{formatRupees(report.cardPaymentsPaise)}</Text>
             </View>
           </View>
 
           <View style={[styles.methodBar, { borderBottomWidth: 0 }]}>
             <View style={styles.methodInfo}>
-              <Text style={[styles.methodName, { color: COLORS.error }]}>📒 {t.pendingPayments}</Text>
+              <View style={styles.methodNameRow}>
+                <BookOpen size={16} color={COLORS.error} style={{ marginRight: 6 }} />
+                <Text style={[styles.methodName, { color: COLORS.error }]}>{t.pendingPayments}</Text>
+              </View>
               <Text style={[styles.methodVal, { color: COLORS.error }]}>
                 {formatRupees(report.pendingUdharPaise)}
               </Text>
@@ -264,6 +277,10 @@ const styles = StyleSheet.create({
   methodInfo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  methodNameRow: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
   methodName: {

@@ -10,6 +10,7 @@ import { pdfService } from '../services/pdf.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { Invoice } from '../types';
+import { Receipt, FileText, Share2, Printer, Download, Plus } from 'lucide-react-native';
 
 export default function ReceiptPreviewScreen() {
   const router = useRouter();
@@ -80,16 +81,18 @@ export default function ReceiptPreviewScreen() {
           onPress={() => setTemplate('thermal')}
           style={[styles.templateBtn, template === 'thermal' && styles.activeTemplateBtn]}
         >
+          <Receipt size={16} color={template === 'thermal' ? COLORS.white : COLORS.textPrimary} style={{ marginRight: 6 }} />
           <Text style={[styles.templateText, template === 'thermal' && styles.activeTemplateText]}>
-            🧾 {t.printThermal}
+            {t.printThermal}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => setTemplate('a4')}
           style={[styles.templateBtn, template === 'a4' && styles.activeTemplateBtn]}
         >
+          <FileText size={16} color={template === 'a4' ? COLORS.white : COLORS.textPrimary} style={{ marginRight: 6 }} />
           <Text style={[styles.templateText, template === 'a4' && styles.activeTemplateText]}>
-            📄 {t.printA4}
+            {t.printA4}
           </Text>
         </TouchableOpacity>
       </View>
@@ -228,7 +231,9 @@ export default function ReceiptPreviewScreen() {
             onPress={handleShare}
             disabled={isProcessing}
           >
-            <Text style={styles.actionIcon}>📲</Text>
+            <View style={styles.actionIconWrapper}>
+              <Share2 size={22} color={COLORS.secondary} />
+            </View>
             <Text style={styles.actionText}>{t.sharePdf}</Text>
           </TouchableOpacity>
 
@@ -237,7 +242,9 @@ export default function ReceiptPreviewScreen() {
             onPress={handlePrint}
             disabled={isProcessing}
           >
-            <Text style={styles.actionIcon}>🖨️</Text>
+            <View style={styles.actionIconWrapper}>
+              <Printer size={22} color={COLORS.primary} />
+            </View>
             <Text style={styles.actionText}>{t.printReceipt}</Text>
           </TouchableOpacity>
 
@@ -246,7 +253,9 @@ export default function ReceiptPreviewScreen() {
             onPress={handleDownload}
             disabled={isProcessing}
           >
-            <Text style={styles.actionIcon}>💾</Text>
+            <View style={styles.actionIconWrapper}>
+              <Download size={22} color={COLORS.secondary} />
+            </View>
             <Text style={styles.actionText}>{t.downloadPdf}</Text>
           </TouchableOpacity>
         </View>
@@ -258,9 +267,10 @@ export default function ReceiptPreviewScreen() {
           textColor={COLORS.white}
           style={styles.nextBillBtn}
           contentStyle={styles.btnContent}
+          icon={() => <Plus size={18} color={COLORS.white} />}
           onPress={() => router.replace('/(tabs)/new-bill' as any)}
         >
-          ➕ {t.createNewBill}
+          {t.createNewBill}
         </Button>
       </ScrollView>
     </View>
@@ -284,7 +294,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: ROUNDNESS.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: COLORS.background,
   },
   activeTemplateBtn: {
@@ -469,9 +481,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  actionIcon: {
-    fontSize: 24,
-    marginBottom: 4,
+  actionIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF4F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   actionText: {
     fontSize: 11,

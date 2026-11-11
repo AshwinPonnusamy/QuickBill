@@ -9,6 +9,7 @@ import { useProductStore } from '../store/product.store';
 import { productService } from '../services/product.service';
 import { TRANSLATIONS } from '../constants/translations';
 import { Product } from '../types';
+import { Plus, Minus } from 'lucide-react-native';
 
 export default function InventoryScreen() {
   const { language } = useAuthStore();
@@ -109,7 +110,8 @@ export default function InventoryScreen() {
                   }}
                   style={[styles.actionBtn, styles.stockInBtn]}
                 >
-                  <Text style={styles.stockInText}>+ Stock In (Purchase)</Text>
+                  <Plus size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.stockInText}>Stock In (Purchase)</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -120,7 +122,8 @@ export default function InventoryScreen() {
                   }}
                   style={[styles.actionBtn, styles.stockOutBtn]}
                 >
-                  <Text style={styles.stockOutText}>- Stock Out (Damage/Return)</Text>
+                  <Minus size={14} color={COLORS.error} style={{ marginRight: 4 }} />
+                  <Text style={styles.stockOutText}>Stock Out (Damage/Return)</Text>
                 </TouchableOpacity>
               </View>
             </Surface>
@@ -232,10 +235,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: COLORS.textPrimary,
   },
-  prodTamil: {
-    fontSize: 12,
-    color: COLORS.textMuted,
-  },
   thresholdText: {
     fontSize: 11,
     color: COLORS.textSecondary,
@@ -287,7 +286,9 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 6,
     borderRadius: ROUNDNESS.sm,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   stockInBtn: {
     backgroundColor: COLORS.successLight,

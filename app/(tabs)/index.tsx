@@ -15,6 +15,19 @@ import { reportService } from '../../services/report.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
+import {
+  Zap,
+  IndianRupee,
+  Receipt,
+  CheckCircle2,
+  AlertCircle,
+  AlertTriangle,
+  PackagePlus,
+  Users,
+  ArrowUpDown,
+  TrendingUp,
+  ArrowRight,
+} from 'lucide-react-native';
 
 // Pre-seeded retail inventory for zero-setup instant demo
 const DEFAULT_SAMPLE_PRODUCTS = [
@@ -88,7 +101,7 @@ export default function HomeDashboard() {
           <View style={styles.heroRow}>
             <View>
               <Text variant="headlineMedium" style={styles.heroGreeting}>
-                Welcome, {business?.ownerName || 'Merchant'} 👋
+                Welcome, {business?.ownerName || 'Merchant'}
               </Text>
               <Text variant="bodySmall" style={styles.heroSub}>
                 {business?.name} • {business?.isGstRegistered ? 'GSTIN Active' : 'Regular Billing'}
@@ -103,7 +116,7 @@ export default function HomeDashboard() {
             textColor={COLORS.white}
             style={styles.heroBillBtn}
             contentStyle={styles.heroBillContent}
-            icon={() => <Text style={{ fontSize: 20 }}>⚡</Text>}
+            icon={() => <Zap size={20} color={COLORS.white} />}
             onPress={() => router.push('/(tabs)/new-bill' as any)}
           >
             {t.newBill} (3-TAP BILLING)
@@ -115,7 +128,7 @@ export default function HomeDashboard() {
           <StatCard
             label={t.todaySales}
             value={formatRupees(report.totalRevenuePaise)}
-            icon="💰"
+            icon={<IndianRupee size={18} color={COLORS.primary} />}
             color={COLORS.primary}
             bgColor="#EEF4F9"
           />
@@ -123,7 +136,7 @@ export default function HomeDashboard() {
             label={t.totalBills}
             value={String(report.totalBills)}
             subValue={`Avg: ${formatRupees(report.averageBillValuePaise)}`}
-            icon="🧾"
+            icon={<Receipt size={18} color={COLORS.secondary} />}
             color={COLORS.secondary}
             bgColor="#E6F8FA"
           />
@@ -133,14 +146,14 @@ export default function HomeDashboard() {
           <StatCard
             label={t.paidAmount}
             value={formatRupees(report.cashPaymentsPaise + report.upiPaymentsPaise + report.cardPaymentsPaise)}
-            icon="✅"
+            icon={<CheckCircle2 size={18} color={COLORS.success} />}
             color={COLORS.success}
             bgColor={COLORS.successLight}
           />
           <StatCard
             label={t.pendingPayments}
             value={formatRupees(report.pendingUdharPaise)}
-            icon="⚠️"
+            icon={<AlertCircle size={18} color={COLORS.error} />}
             color={COLORS.error}
             bgColor={COLORS.errorLight}
           />
@@ -150,7 +163,7 @@ export default function HomeDashboard() {
         {lowStockProducts.length > 0 ? (
           <Surface style={styles.alertCard} elevation={1}>
             <View style={styles.alertHeader}>
-              <Text style={styles.alertIcon}>⚠️</Text>
+              <AlertTriangle size={18} color={COLORS.warning} style={{ marginRight: 6 }} />
               <Text style={styles.alertTitle}>
                 {t.lowStockAlerts} ({lowStockProducts.length})
               </Text>
@@ -179,7 +192,9 @@ export default function HomeDashboard() {
               onPress={() => router.push('/(tabs)/products' as any)}
               style={styles.quickTile}
             >
-              <Text style={styles.quickIcon}>📦</Text>
+              <View style={styles.quickIconWrapper}>
+                <PackagePlus size={22} color={COLORS.primary} />
+              </View>
               <Text style={styles.quickLabel}>{t.addProduct}</Text>
             </TouchableOpacity>
 
@@ -187,7 +202,9 @@ export default function HomeDashboard() {
               onPress={() => router.push('/customers' as any)}
               style={styles.quickTile}
             >
-              <Text style={styles.quickIcon}>👥</Text>
+              <View style={styles.quickIconWrapper}>
+                <Users size={22} color={COLORS.primary} />
+              </View>
               <Text style={styles.quickLabel}>{t.addCustomer}</Text>
             </TouchableOpacity>
 
@@ -195,7 +212,9 @@ export default function HomeDashboard() {
               onPress={() => router.push('/inventory' as any)}
               style={styles.quickTile}
             >
-              <Text style={styles.quickIcon}>📊</Text>
+              <View style={styles.quickIconWrapper}>
+                <ArrowUpDown size={22} color={COLORS.primary} />
+              </View>
               <Text style={styles.quickLabel}>Stock In / Out</Text>
             </TouchableOpacity>
 
@@ -203,7 +222,9 @@ export default function HomeDashboard() {
               onPress={() => router.push('/(tabs)/reports' as any)}
               style={styles.quickTile}
             >
-              <Text style={styles.quickIcon}>📈</Text>
+              <View style={styles.quickIconWrapper}>
+                <TrendingUp size={22} color={COLORS.primary} />
+              </View>
               <Text style={styles.quickLabel}>{t.viewReports}</Text>
             </TouchableOpacity>
           </View>
@@ -213,14 +234,15 @@ export default function HomeDashboard() {
         <View style={styles.recentSection}>
           <View style={styles.recentHeader}>
             <Text style={styles.sectionTitle}>{t.recentTransactions}</Text>
-            <TouchableOpacity onPress={() => router.push('/(tabs)/bills' as any)}>
-              <Text style={styles.viewAllText}>{t.viewAll} →</Text>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/bills' as any)} style={styles.viewAllRow}>
+              <Text style={styles.viewAllText}>{t.viewAll}</Text>
+              <ArrowRight size={14} color={COLORS.secondary} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
           </View>
 
           {recentInvoices.length === 0 ? (
             <Surface style={styles.emptyCard} elevation={1}>
-              <Text style={styles.emptyIcon}>🧾</Text>
+              <Receipt size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
               <Text style={styles.emptyTitle}>No bills created yet</Text>
               <Text style={styles.emptySubtitle}>Tap NEW BILL above to generate your first invoice.</Text>
             </Surface>
@@ -362,9 +384,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  quickIcon: {
-    fontSize: 22,
-    marginBottom: 4,
+  quickIconWrapper: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#EEF4F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
   quickLabel: {
     fontSize: 11,
@@ -380,6 +407,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+  },
+  viewAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   viewAllText: {
     color: COLORS.secondary,

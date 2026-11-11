@@ -12,6 +12,7 @@ import { pdfService } from '../../services/pdf.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Invoice } from '../../types';
+import { Search, X, FolderOpen, User, Share2, Printer } from 'lucide-react-native';
 
 export default function BillHistoryScreen() {
   const router = useRouter();
@@ -99,10 +100,10 @@ export default function BillHistoryScreen() {
           outlineColor={COLORS.border}
           activeOutlineColor={COLORS.secondary}
           style={styles.input}
-          left={<TextInput.Icon icon={() => <Text>🔍</Text>} />}
+          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
           right={
             search ? (
-              <TextInput.Icon icon={() => <Text>✕</Text>} onPress={() => setSearch('')} />
+              <TextInput.Icon icon={() => <X size={18} color={COLORS.textSecondary} />} onPress={() => setSearch('')} />
             ) : null
           }
         />
@@ -143,7 +144,7 @@ export default function BillHistoryScreen() {
       >
         {filteredInvoices.length === 0 ? (
           <Surface style={styles.emptyCard} elevation={1}>
-            <Text style={styles.emptyIcon}>📂</Text>
+            <FolderOpen size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No matching bills found</Text>
           </Surface>
         ) : (
@@ -196,9 +197,12 @@ export default function BillHistoryScreen() {
               <View style={styles.divider} />
 
               <View style={styles.cardMidRow}>
-                <Text style={styles.custText}>
-                  👤 {inv.customerName || 'Walk-in Customer'} {inv.customerPhone ? `(${inv.customerPhone})` : ''}
-                </Text>
+                <View style={styles.custRow}>
+                  <User size={14} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
+                  <Text style={styles.custText}>
+                    {inv.customerName || 'Walk-in Customer'} {inv.customerPhone ? `(${inv.customerPhone})` : ''}
+                  </Text>
+                </View>
                 <Text style={styles.methodText}>
                   Mode: <Text style={{ fontWeight: 'bold' }}>{inv.paymentMethod.toUpperCase()}</Text>
                 </Text>
@@ -209,11 +213,11 @@ export default function BillHistoryScreen() {
 
                 <View style={styles.actionBtns}>
                   <TouchableOpacity onPress={() => handleShare(inv)} style={styles.iconActionBtn}>
-                    <Text style={styles.actionIcon}>📲</Text>
+                    <Share2 size={18} color={COLORS.secondary} />
                   </TouchableOpacity>
 
                   <TouchableOpacity onPress={() => handlePrint(inv)} style={styles.iconActionBtn}>
-                    <Text style={styles.actionIcon}>🖨️</Text>
+                    <Printer size={18} color={COLORS.primary} />
                   </TouchableOpacity>
 
                   {!inv.isVoid ? (
@@ -391,6 +395,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.sm,
+  },
+  custRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   custText: {
     fontSize: 12,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
+import { CheckCircle2, Clock, AlertTriangle } from 'lucide-react-native';
 import { SyncStatus } from '../../types';
 import { COLORS, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
@@ -15,26 +16,27 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({ status }) => {
   const t = TRANSLATIONS[language];
 
   let bg = COLORS.successLight;
-  let text = COLORS.success;
+  let textColor = COLORS.success;
   let label = t.synced;
-  let icon = '✓';
+  let IconComponent = CheckCircle2;
 
   if (status === 'pending') {
     bg = COLORS.warningLight;
-    text = COLORS.warning;
+    textColor = COLORS.warning;
     label = t.pendingSync;
-    icon = '⏳';
+    IconComponent = Clock;
   } else if (status === 'failed') {
     bg = COLORS.errorLight;
-    text = COLORS.error;
+    textColor = COLORS.error;
     label = t.syncFailed;
-    icon = '⚠️';
+    IconComponent = AlertTriangle;
   }
 
   return (
     <View style={[styles.badge, { backgroundColor: bg }]}>
-      <Text style={[styles.text, { color: text }]}>
-        {icon} {label}
+      <IconComponent size={12} color={textColor} style={styles.icon} />
+      <Text style={[styles.text, { color: textColor }]}>
+        {label}
       </Text>
     </View>
   );
@@ -42,10 +44,15 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({ status }) => {
 
 const styles = StyleSheet.create({
   badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: ROUNDNESS.full,
     alignSelf: 'flex-start',
+  },
+  icon: {
+    marginRight: 4,
   },
   text: {
     fontSize: 11,

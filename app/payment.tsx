@@ -11,6 +11,7 @@ import { billingService } from '../services/billing.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { PaymentMethod } from '../types';
+import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle } from 'lucide-react-native';
 
 export default function PaymentScreen() {
   const router = useRouter();
@@ -125,24 +126,33 @@ export default function PaymentScreen() {
         <Text style={styles.sectionTitle}>{t.selectPaymentMethod}</Text>
         <View style={styles.methodRow}>
           {[
-            { id: 'cash', label: '💵 ' + t.cash },
-            { id: 'upi', label: '📱 ' + t.upi },
-            { id: 'card', label: '💳 ' + t.card },
-            { id: 'credit', label: '📒 ' + t.credit },
-            { id: 'split', label: '⚖️ ' + t.split },
-          ].map((m) => (
-            <TouchableOpacity
-              key={m.id}
-              onPress={() => setPaymentMethod(m.id as PaymentMethod)}
-              style={[styles.methodTab, paymentMethod === m.id && styles.activeMethodTab]}
-            >
-              <Text
-                style={[styles.methodTabText, paymentMethod === m.id && styles.activeMethodTabText]}
+            { id: 'cash', label: t.cash, Icon: Banknote },
+            { id: 'upi', label: t.upi, Icon: QrCode },
+            { id: 'card', label: t.card, Icon: CreditCard },
+            { id: 'credit', label: t.credit, Icon: BookOpen },
+            { id: 'split', label: t.split, Icon: Split },
+          ].map((m) => {
+            const isSelected = paymentMethod === m.id;
+            const IconComponent = m.Icon;
+            return (
+              <TouchableOpacity
+                key={m.id}
+                onPress={() => setPaymentMethod(m.id as PaymentMethod)}
+                style={[styles.methodTab, isSelected && styles.activeMethodTab]}
               >
-                {m.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <IconComponent
+                  size={15}
+                  color={isSelected ? COLORS.white : COLORS.textSecondary}
+                  style={{ marginRight: 4 }}
+                />
+                <Text
+                  style={[styles.methodTabText, isSelected && styles.activeMethodTabText]}
+                >
+                  {m.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Dynamic Payment Method View */}
@@ -185,7 +195,9 @@ export default function PaymentScreen() {
         {paymentMethod === 'upi' ? (
           <Surface style={styles.methodCard} elevation={1}>
             <View style={styles.upiQrBox}>
-              <Text style={styles.upiQrIcon}>📱</Text>
+              <View style={styles.upiQrWrapper}>
+                <QrCode size={48} color={COLORS.secondary} />
+              </View>
               <Text style={styles.upiTitle}>Scan & Pay via any UPI App</Text>
               <Text style={styles.upiSub}>GPay • PhonePe • Paytm • BHIM</Text>
               <Text style={styles.upiAmount}>{formatRupees(grandTotalPaise)}</Text>
@@ -219,7 +231,10 @@ export default function PaymentScreen() {
 
         {paymentMethod === 'credit' ? (
           <Surface style={[styles.methodCard, styles.creditCardSurface]} elevation={1}>
-            <Text style={styles.creditHeader}>⚠️ Udhar / Unpaid Credit Sale</Text>
+            <View style={styles.creditHeaderRow}>
+              <AlertTriangle size={18} color={COLORS.error} style={{ marginRight: 6 }} />
+              <Text style={styles.creditHeader}>Udhar / Unpaid Credit Sale</Text>
+            </View>
             <Text style={styles.creditNotice}>
               This invoice will be marked as UNPAID. The outstanding balance of {formatRupees(grandTotalPaise)} will be automatically added to {customer?.name || 'the customer'}'s ledger.
             </Text>
@@ -321,13 +336,15 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderRadius: ROUNDNESS.md,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: COLORS.border,
   },
   activeMethodTab: {
     borderColor: COLORS.secondary,
-    backgroundColor: '#E6F8FA',
+    backgroundColor: COLORS.secondary,
   },
   methodTabText: {
     fontSize: 13,
@@ -335,7 +352,7 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
   },
   activeMethodTabText: {
-    color: COLORS.secondary,
+    color: COLORS.white,
   },
   methodCard: {
     backgroundColor: COLORS.surface,
@@ -403,8 +420,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
     marginBottom: SPACING.md,
   },
-  upiQrIcon: {
-    fontSize: 36,
+  upiQrWrapper: {
+    padding: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: ROUNDNESS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: 4,
+  },
+  creditHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   upiTitle: {
     fontSize: 14,

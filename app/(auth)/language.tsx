@@ -4,6 +4,7 @@ import { Text, Surface, Button } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
+import { Globe, CheckCircle2 } from 'lucide-react-native';
 
 export default function LanguageScreen() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function LanguageScreen() {
       <View style={styles.optionsContainer}>
         <Surface style={[styles.card, styles.selectedCard]} elevation={2}>
           <View style={styles.flagIcon}>
-            <Text style={styles.flagEmoji}>🇮🇳</Text>
+            <Globe size={22} color={COLORS.secondary} />
           </View>
           <View style={styles.textContainer}>
             <Text variant="titleMedium" style={styles.cardTitle}>
@@ -31,7 +32,7 @@ export default function LanguageScreen() {
               Standard retail business language
             </Text>
           </View>
-          <Text style={styles.checkIcon}>✅</Text>
+          <CheckCircle2 size={20} color={COLORS.success} />
         </Surface>
 
         <Button

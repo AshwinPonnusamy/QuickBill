@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
 import { SupportedLanguage } from '../../types';
+import { User, Phone, Lock, KeyRound } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function RegisterScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>👤</Text>} />}
+            left={<TextInput.Icon icon={() => <User size={18} color={COLORS.textSecondary} />} />}
           />
 
           <TextInput
@@ -96,7 +97,7 @@ export default function RegisterScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>📱</Text>} />}
+            left={<TextInput.Icon icon={() => <Phone size={18} color={COLORS.textSecondary} />} />}
           />
 
           <TextInput
@@ -109,7 +110,7 @@ export default function RegisterScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>🔒</Text>} />}
+            left={<TextInput.Icon icon={() => <Lock size={18} color={COLORS.textSecondary} />} />}
           />
 
           <TextInput
@@ -122,7 +123,7 @@ export default function RegisterScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>🔐</Text>} />}
+            left={<TextInput.Icon icon={() => <KeyRound size={18} color={COLORS.textSecondary} />} />}
           />
 
           <Button

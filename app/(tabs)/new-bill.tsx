@@ -12,6 +12,7 @@ import { billingService } from '../../services/billing.service';
 import { formatRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Customer, Product, ProductUnit } from '../../types';
+import { User, Search, X, Tag, ChevronDown } from 'lucide-react-native';
 
 export default function CreateBillScreen() {
   const router = useRouter();
@@ -120,19 +121,24 @@ export default function CreateBillScreen() {
           style={styles.customerSelector}
           onPress={() => setCustomerModalVisible(true)}
         >
-          <Text style={styles.customerIcon}>👤</Text>
+          <View style={styles.customerIconWrapper}>
+            <User size={18} color={COLORS.secondary} />
+          </View>
           <View style={styles.customerInfo}>
             <Text style={styles.customerLabel}>Customer:</Text>
             <Text style={styles.customerValue} numberOfLines={1}>
               {customer ? `${customer.name} (${customer.phone || 'No phone'})` : t.walkInCustomer}
             </Text>
           </View>
-          <Text style={styles.changeText}>Change ▾</Text>
+          <View style={styles.changeRow}>
+            <Text style={styles.changeText}>Change</Text>
+            <ChevronDown size={14} color={COLORS.secondary} style={{ marginLeft: 2 }} />
+          </View>
         </TouchableOpacity>
 
         {customer ? (
           <TouchableOpacity onPress={() => setCustomer(null)} style={styles.clearCustBtn}>
-            <Text style={styles.clearCustText}>✕</Text>
+            <X size={16} color={COLORS.error} />
           </TouchableOpacity>
         ) : null}
       </Surface>
@@ -147,10 +153,10 @@ export default function CreateBillScreen() {
           outlineColor={COLORS.border}
           activeOutlineColor={COLORS.secondary}
           style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Text>🔍</Text>} />}
+          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
           right={
             search ? (
-              <TextInput.Icon icon={() => <Text>✕</Text>} onPress={() => setSearch('')} />
+              <TextInput.Icon icon={() => <X size={18} color={COLORS.textSecondary} />} onPress={() => setSearch('')} />
             ) : null
           }
         />
@@ -255,9 +261,12 @@ export default function CreateBillScreen() {
             style={styles.discountTrigger}
             onPress={() => setDiscountModalVisible(true)}
           >
-            <Text style={styles.discountText}>
-              🏷️ {calculation.discountPaise > 0 ? `-${formatRupees(calculation.discountPaise)}` : 'Add Discount'}
-            </Text>
+            <View style={styles.discountRow}>
+              <Tag size={14} color={COLORS.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.discountText}>
+                {calculation.discountPaise > 0 ? `-${formatRupees(calculation.discountPaise)}` : 'Add Discount'}
+              </Text>
+            </View>
           </TouchableOpacity>
 
           <View style={styles.totalBlock}>
@@ -473,9 +482,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  customerIcon: {
-    fontSize: 18,
+  customerIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E6F8FA',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 8,
+  },
+  changeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   customerInfo: {
     flex: 1,
@@ -502,6 +520,10 @@ const styles = StyleSheet.create({
   clearCustText: {
     color: COLORS.textMuted,
     fontWeight: 'bold',
+  },
+  discountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchRow: {
     flexDirection: 'row',

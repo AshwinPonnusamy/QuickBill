@@ -10,6 +10,7 @@ import { productService } from '../../services/product.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Product, ProductUnit } from '../../types';
+import { Search, Plus, Boxes, Pencil } from 'lucide-react-native';
 
 const UNITS: ProductUnit[] = ['item', 'kg', 'g', 'liter', 'ml', 'meter', 'packet', 'box', 'plate', 'cup'];
 
@@ -162,16 +163,17 @@ export default function ProductsScreen() {
           outlineColor={COLORS.border}
           activeOutlineColor={COLORS.secondary}
           style={styles.searchInput}
-          left={<TextInput.Icon icon={() => <Text>🔍</Text>} />}
+          left={<TextInput.Icon icon={() => <Search size={18} color={COLORS.textSecondary} />} />}
         />
         <Button
           mode="contained"
           buttonColor={COLORS.primary}
           textColor={COLORS.white}
           style={styles.addBtn}
+          icon={() => <Plus size={16} color={COLORS.white} />}
           onPress={openAddModal}
         >
-          + Add
+          Add
         </Button>
       </View>
 
@@ -240,11 +242,13 @@ export default function ProductsScreen() {
                   }}
                   style={styles.stockAdjBtn}
                 >
-                  <Text style={styles.stockAdjText}>📦 Adjust Stock</Text>
+                  <Boxes size={14} color={COLORS.secondary} style={{ marginRight: 4 }} />
+                  <Text style={styles.stockAdjText}>Adjust Stock</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => openEditModal(p)} style={styles.editBtn}>
-                  <Text style={styles.editText}>✏️ Edit</Text>
+                  <Pencil size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
+                  <Text style={styles.editText}>Edit</Text>
                 </TouchableOpacity>
               </View>
             </Surface>
@@ -529,6 +533,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   stockAdjBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: ROUNDNESS.sm,
@@ -540,6 +546,8 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
   },
   editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: ROUNDNESS.sm,

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { View, StyleSheet, Text, Platform } from 'react-native';
+import { Home, Receipt, Plus, Package, BarChart3 } from 'lucide-react-native';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';
@@ -32,7 +33,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: t.tabHome,
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🏠</Text>,
+          tabBarIcon: ({ color, size }) => <Home size={size || 22} color={color as string} />,
         }}
       />
 
@@ -40,7 +41,7 @@ export default function TabsLayout() {
         name="bills"
         options={{
           title: t.tabBills,
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>🧾</Text>,
+          tabBarIcon: ({ color, size }) => <Receipt size={size || 22} color={color as string} />,
         }}
       />
 
@@ -50,7 +51,7 @@ export default function TabsLayout() {
           title: t.newBill,
           tabBarIcon: ({ focused }) => (
             <View style={styles.newBillBtn}>
-              <Text style={styles.newBillIcon}>➕</Text>
+              <Plus size={24} color={COLORS.white} strokeWidth={2.5} />
             </View>
           ),
           tabBarLabel: ({ focused }) => (
@@ -65,7 +66,7 @@ export default function TabsLayout() {
         name="products"
         options={{
           title: t.tabProducts,
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📦</Text>,
+          tabBarIcon: ({ color, size }) => <Package size={size || 22} color={color as string} />,
         }}
       />
 
@@ -73,7 +74,7 @@ export default function TabsLayout() {
         name="reports"
         options={{
           title: t.tabReports,
-          tabBarIcon: ({ color }) => <Text style={{ fontSize: 20 }}>📊</Text>,
+          tabBarIcon: ({ color, size }) => <BarChart3 size={size || 22} color={color as string} />,
         }}
       />
     </Tabs>

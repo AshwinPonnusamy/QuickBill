@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Surface } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { ArrowLeft, Settings } from 'lucide-react-native';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
@@ -30,7 +31,7 @@ export const Header: React.FC<HeaderProps> = ({
       <View style={styles.row}>
         {showBack ? (
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Text style={styles.backText}>←</Text>
+            <ArrowLeft size={20} color={COLORS.white} />
           </TouchableOpacity>
         ) : null}
 
@@ -48,7 +49,7 @@ export const Header: React.FC<HeaderProps> = ({
         <View style={styles.actions}>
           {showSettings ? (
             <TouchableOpacity onPress={() => router.push('/settings' as any)} style={styles.iconBtn}>
-              <Text style={styles.iconText}>⚙️</Text>
+              <Settings size={20} color={COLORS.white} />
             </TouchableOpacity>
           ) : null}
         </View>

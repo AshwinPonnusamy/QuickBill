@@ -8,6 +8,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
+import { Check, Sparkles, CheckCircle2 } from 'lucide-react-native';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -100,11 +101,26 @@ export default function SubscriptionScreen() {
             <Text style={styles.planPrice}>₹0 / Forever</Text>
           </View>
           <View style={styles.featuresList}>
-            <Text style={styles.featureItem}>✓ Unlimited offline billing</Text>
-            <Text style={styles.featureItem}>✓ Product catalog & stock management</Text>
-            <Text style={styles.featureItem}>✓ WhatsApp PDF & Thermal receipt printing</Text>
-            <Text style={styles.featureItem}>✓ Basic daily/weekly sales reports</Text>
-            <Text style={styles.featureItem}>✓ 1 Device & 1 Staff access</Text>
+            <View style={styles.featureRow}>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItem}>Unlimited offline billing</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItem}>Product catalog & stock management</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItem}>WhatsApp PDF & Thermal receipt printing</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItem}>Basic daily/weekly sales reports</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItem}>1 Device & 1 Staff access</Text>
+            </View>
           </View>
         </Surface>
 
@@ -122,11 +138,26 @@ export default function SubscriptionScreen() {
           </View>
 
           <View style={styles.featuresList}>
-            <Text style={styles.featureItemBold}>⭐ {t.proFeatureCloud}</Text>
-            <Text style={styles.featureItemBold}>⭐ {t.proFeatureStaff} (Up to 5 staff accounts)</Text>
-            <Text style={styles.featureItemBold}>⭐ {t.proFeatureReports}</Text>
-            <Text style={styles.featureItemBold}>⭐ {t.proFeatureTemplates}</Text>
-            <Text style={styles.featureItemBold}>⭐ Priority phone & WhatsApp support</Text>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureCloud}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureStaff} (Up to 5 staff accounts)</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureReports}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureTemplates}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
+              <Text style={styles.featureItemBold}>Priority phone & WhatsApp support</Text>
+            </View>
           </View>
 
           {!isProActive ? (
@@ -144,7 +175,8 @@ export default function SubscriptionScreen() {
             </Button>
           ) : (
             <View style={styles.activeBanner}>
-              <Text style={styles.activeBannerText}>✓ You are already enjoying Pro Benefits</Text>
+              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.activeBannerText}>You are already enjoying Pro Benefits</Text>
             </View>
           )}
         </Surface>
@@ -267,14 +299,20 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: SPACING.md,
   },
+  featureRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   featureItem: {
     fontSize: 13,
     color: COLORS.textSecondary,
+    flex: 1,
   },
   featureItemBold: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.primary,
+    flex: 1,
   },
   upgradeBtn: {
     borderRadius: ROUNDNESS.md,

@@ -6,6 +6,7 @@ import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
+import { Mail } from 'lucide-react-native';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function ForgotPasswordScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>✉️</Text>} />}
+            left={<TextInput.Icon icon={() => <Mail size={18} color={COLORS.textSecondary} />} />}
           />
 
           <Button

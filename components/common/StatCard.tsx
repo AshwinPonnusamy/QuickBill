@@ -7,7 +7,7 @@ interface StatCardProps {
   label: string;
   value: string;
   subValue?: string;
-  icon?: string;
+  icon?: React.ReactNode;
   color?: string;
   bgColor?: string;
 }
@@ -26,7 +26,7 @@ export const StatCard: React.FC<StatCardProps> = ({
         <Text variant="labelMedium" style={styles.label} numberOfLines={1}>
           {label}
         </Text>
-        {icon ? <Text style={styles.icon}>{icon}</Text> : null}
+        {icon ? <View style={styles.iconContainer}>{icon}</View> : null}
       </View>
       <Text variant="headlineSmall" style={[styles.value, { color }]}>
         {value}
@@ -60,8 +60,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 12,
   },
-  icon: {
-    fontSize: 16,
+  iconContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   value: {
     fontWeight: '700',

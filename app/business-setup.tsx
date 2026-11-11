@@ -9,16 +9,27 @@ import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
 import { BusinessType } from '../types';
+import {
+  Utensils,
+  ShoppingCart,
+  Cake,
+  Coffee,
+  Shirt,
+  Store,
+  ShoppingBag,
+  Building2,
+  Camera,
+} from 'lucide-react-native';
 
-const BUSINESS_TYPES: { type: BusinessType; label: string; icon: string }[] = [
-  { type: 'restaurant', label: 'Restaurant / Cafe', icon: '🍽️' },
-  { type: 'grocery', label: 'Grocery / Kirana', icon: '🛒' },
-  { type: 'bakery', label: 'Bakery & Sweets', icon: '🧁' },
-  { type: 'tea_shop', label: 'Tea / Snack Stall', icon: '☕' },
-  { type: 'clothing', label: 'Clothing / Textiles', icon: '👕' },
-  { type: 'supermarket', label: 'Supermarket', icon: '🏬' },
-  { type: 'retail', label: 'General Retail', icon: '🛍️' },
-  { type: 'other', label: 'Other Retail Store', icon: '🏪' },
+const BUSINESS_TYPES: { type: BusinessType; label: string; Icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
+  { type: 'restaurant', label: 'Restaurant / Cafe', Icon: Utensils },
+  { type: 'grocery', label: 'Grocery / Kirana', Icon: ShoppingCart },
+  { type: 'bakery', label: 'Bakery & Sweets', Icon: Cake },
+  { type: 'tea_shop', label: 'Tea / Snack Stall', Icon: Coffee },
+  { type: 'clothing', label: 'Clothing / Textiles', Icon: Shirt },
+  { type: 'supermarket', label: 'Supermarket', Icon: Store },
+  { type: 'retail', label: 'General Retail', Icon: ShoppingBag },
+  { type: 'other', label: 'Other Retail Store', Icon: Building2 },
 ];
 
 export default function BusinessSetupScreen() {
@@ -137,7 +148,7 @@ export default function BusinessSetupScreen() {
             <Image source={{ uri: logoUri }} style={styles.logoImage} />
           ) : (
             <View style={styles.placeholderLogo}>
-              <Text style={styles.logoCameraIcon}>📷</Text>
+              <Camera size={26} color={COLORS.secondary} style={{ marginBottom: 4 }} />
               <Text style={styles.logoUploadText}>Upload Logo</Text>
             </View>
           )}
@@ -215,13 +226,16 @@ export default function BusinessSetupScreen() {
       <View style={styles.typeGrid}>
         {BUSINESS_TYPES.map((item) => {
           const isSelected = businessType === item.type;
+          const IconComp = item.Icon;
           return (
             <TouchableOpacity
               key={item.type}
               onPress={() => setBusinessType(item.type)}
               style={[styles.typeTile, isSelected && styles.selectedTypeTile]}
             >
-              <Text style={styles.typeIcon}>{item.icon}</Text>
+              <View style={[styles.typeIconWrapper, isSelected && styles.selectedTypeIconWrapper]}>
+                <IconComp size={22} color={isSelected ? COLORS.white : COLORS.primary} />
+              </View>
               <Text
                 style={[styles.typeLabel, isSelected && styles.selectedTypeLabel]}
                 numberOfLines={1}
@@ -432,8 +446,16 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
     backgroundColor: '#E6F8FA',
   },
-  typeIcon: {
-    fontSize: 20,
+  typeIconWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF4F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedTypeIconWrapper: {
+    backgroundColor: COLORS.secondary,
   },
   typeLabel: {
     fontSize: 12,

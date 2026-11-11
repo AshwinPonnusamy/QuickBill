@@ -8,6 +8,7 @@ import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
 import { businessService } from '../../services/business.service';
 import { TRANSLATIONS } from '../../constants/translations';
+import { Receipt, Phone, Lock, Eye, EyeOff } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function LoginScreen() {
         {/* Brand Banner */}
         <View style={styles.headerArea}>
           <View style={styles.logoBadge}>
-            <Text style={styles.logoIcon}>🧾</Text>
+            <Receipt size={32} color={COLORS.secondary} />
           </View>
           <Text variant="headlineMedium" style={styles.title}>
             {t.login}
@@ -88,7 +89,7 @@ export default function LoginScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>📱</Text>} />}
+            left={<TextInput.Icon icon={() => <Phone size={18} color={COLORS.textSecondary} />} />}
           />
 
           <TextInput
@@ -101,10 +102,10 @@ export default function LoginScreen() {
             outlineColor={COLORS.border}
             activeOutlineColor={COLORS.primary}
             style={styles.input}
-            left={<TextInput.Icon icon={() => <Text>🔒</Text>} />}
+            left={<TextInput.Icon icon={() => <Lock size={18} color={COLORS.textSecondary} />} />}
             right={
               <TextInput.Icon
-                icon={() => <Text>{showPassword ? '👁️' : '🙈'}</Text>}
+                icon={() => showPassword ? <EyeOff size={18} color={COLORS.textSecondary} /> : <Eye size={18} color={COLORS.textSecondary} />}
                 onPress={() => setShowPassword(!showPassword)}
               />
             }
