@@ -35,8 +35,8 @@ const FAQS: FaqItem[] = [
     a: 'Yes! QuickBill is compatible with standard 58mm and 80mm wireless ESC/POS Bluetooth and USB thermal printers.',
   },
   {
-    q: 'How do I automatically send invoices on WhatsApp?',
-    a: 'During checkout on the Payment screen, keep the "Auto-share Bill on WhatsApp" toggle ON. Once payment is confirmed, the receipt preview automatically opens WhatsApp with the bill PDF attached.',
+    q: 'How do I print or share an invoice PDF?',
+    a: 'Once a bill is settled, you can tap Print or Share from the receipt preview screen to instantly output thermal receipts or share digital copies.',
   },
   {
     q: 'How does Customer Udhar (Credit) ledger work?',
@@ -60,22 +60,6 @@ export default function HelpSupportScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isPro = subscription?.status === 'active' && subscription?.plan === 'pro';
-
-  const handleOpenWhatsApp = async () => {
-    const phone = '919840000000';
-    const msg = `Hi QuickBill Support, I need assistance with my store: "${business?.name || 'QuickBill Merchant'}" (ID: ${business?.id || 'N/A'}).`;
-    const url = `whatsapp://send?phone=${phone}&text=${encodeURIComponent(msg)}`;
-    try {
-      const canOpen = await Linking.canOpenURL(url);
-      if (canOpen) {
-        await Linking.openURL(url);
-      } else {
-        await Linking.openURL(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`);
-      }
-    } catch {
-      Alert.alert('Support', 'Please message our support WhatsApp: +91 98400 00000');
-    }
-  };
 
   const handleCallSupport = () => {
     Linking.openURL('tel:+919840000000').catch(() => {
@@ -134,20 +118,11 @@ export default function HelpSupportScreen() {
           <View style={styles.contactRow}>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={handleOpenWhatsApp}
-              style={[styles.contactTile, { backgroundColor: '#DCFCE7' }]}
-            >
-              <MessageSquare size={20} color="#16A34A" />
-              <Text style={[styles.contactTileText, { color: '#166534' }]}>WhatsApp</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.8}
               onPress={handleCallSupport}
               style={[styles.contactTile, { backgroundColor: '#EEF4F9' }]}
             >
               <Phone size={20} color={COLORS.primary} />
-              <Text style={[styles.contactTileText, { color: COLORS.primary }]}>Call Us</Text>
+              <Text style={[styles.contactTileText, { color: COLORS.primary }]}>Phone Call Helpline</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -156,7 +131,7 @@ export default function HelpSupportScreen() {
               style={[styles.contactTile, { backgroundColor: '#F1F5F9' }]}
             >
               <Mail size={20} color={COLORS.secondary} />
-              <Text style={[styles.contactTileText, { color: COLORS.secondary }]}>Email</Text>
+              <Text style={[styles.contactTileText, { color: COLORS.secondary }]}>Email Support</Text>
             </TouchableOpacity>
           </View>
         </Card>
@@ -231,7 +206,7 @@ export default function HelpSupportScreen() {
         <View style={styles.hoursNotice}>
           <Text style={styles.hoursTitle}>Support Hours</Text>
           <Text style={styles.hoursText}>Monday to Saturday: 9:00 AM – 9:00 PM IST</Text>
-          <Text style={styles.hoursText}>Emergency Billing Issues: 24/7 via WhatsApp</Text>
+          <Text style={styles.hoursText}>Merchant Support Helpline: +91 98400 00000</Text>
         </View>
       </ScrollView>
     </View>
@@ -347,3 +322,4 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
 });
+
