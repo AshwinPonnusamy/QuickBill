@@ -217,8 +217,7 @@ export const pdfService = {
   },
 
   /**
-   * Shares PDF via OS share sheet (WhatsApp, Drive, Email, etc.)
-   * Falls back gracefully if OS-level sharing is rejected or unavailable.
+   * Shares PDF receipt file directly via OS share sheet (WhatsApp, Drive, Files, etc.)
    */
   async shareReceipt(
     invoice: Invoice,
@@ -228,23 +227,19 @@ export const pdfService = {
     const uri = await this.createPdfFile(invoice, business, templateType);
     const cleanUri = uri.startsWith('file://') ? uri : `file://${uri}`;
 
-    let shared = false;
-
-    // 1. Try Expo Sharing (handles Android FileProvider and iOS AirDrop)
+    // 1. Try Expo Sharing with PDF MIME type so WhatsApp / other apps receive the actual PDF file
     if (await Sharing.isAvailableAsync()) {
       try {
         await Sharing.shareAsync(cleanUri, {
-          UTI: '.pdf',
+          UTI: 'com.adobe.pdf',
           mimeType: 'application/pdf',
-          dialogTitle: `Receipt ${invoice.invoiceNumber}`,
+          dialogTitle: `Share PDF Receipt #${invoice.invoiceNumber}`,
         });
-        shared = true;
+        return;
       } catch (shareErr) {
         console.warn('ExpoSharing failed, trying preview/fallback:', shareErr);
       }
     }
-
-    if (shared) return;
 
     // 2. Try native File preview (iOS Quick Look / Android ACTION_VIEW)
     try {
@@ -287,34 +282,15 @@ export const pdfService = {
   },
 
   /**
-   * Directly opens WhatsApp chat or falls back to system sharing
+   * Shares the PDF invoice copy directly via WhatsApp / system share sheet.
+   * Prompts the native sharing dialog targeting WhatsApp so the actual PDF document is sent.
    */
   async sendWhatsAppReceipt(
     invoice: Invoice,
     business: Business,
     templateType: 'thermal' | 'a4' = 'thermal'
   ): Promise<void> {
-    const phone = invoice.customerPhone ? invoice.customerPhone.replace(/[^0-9]/g, '') : '';
-    const totalPaise = invoice.grandTotalPaise ?? invoice.subtotalPaise ?? 0;
-    const summary = `🧾 *${business.name}*\nBill #${invoice.invoiceNumber}\nDate: ${new Date(
-      invoice.createdAt
-    ).toLocaleDateString('en-IN')}\nTotal: ${formatRupees(totalPaise)}\n\nThank you for shopping with us!`;
-
-    if (phone && (phone.length === 10 || phone.length === 12)) {
-      const fullPhone = phone.length === 10 ? `91${phone}` : phone;
-      const waUrl = `whatsapp://send?phone=${fullPhone}&text=${encodeURIComponent(summary)}`;
-      try {
-        const canOpen = await Linking.canOpenURL(waUrl);
-        if (canOpen) {
-          await Linking.openURL(waUrl);
-          return;
-        }
-      } catch (err) {
-        console.warn('Could not open direct WhatsApp URL, falling back to shareReceipt:', err);
-      }
-    }
-
-    // Fallback: share PDF / standard share sheet
+    // Sharing the generated PDF document allows the user to select WhatsApp and send the actual PDF file attachment
     await this.shareReceipt(invoice, business, templateType);
   },
 };
