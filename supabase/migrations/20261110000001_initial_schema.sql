@@ -181,7 +181,7 @@ CREATE TABLE IF NOT EXISTS public.stock_movements (
 CREATE TABLE IF NOT EXISTS public.subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id UUID NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE UNIQUE,
-    plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro')),
+    plan TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'starter', 'pro')),
     billing_cycle TEXT CHECK (billing_cycle IN ('monthly', 'yearly')),
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'expired', 'trialing', 'cancelled')),
     starts_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

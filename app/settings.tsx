@@ -123,7 +123,7 @@ export default function SettingsScreen() {
             <Text style={styles.shopName}>{business?.name || 'QuickBill Store'}</Text>
             <Text style={styles.shopOwner}>{business?.ownerName} • {business?.phone}</Text>
             <Text style={styles.shopBadge}>
-              {subscription?.plan === 'pro' ? 'Pro Plan' : 'Free Plan'}
+              {subscription?.plan === 'pro' ? 'Pro Business' : subscription?.plan === 'starter' ? 'Starter Plan' : 'Free Plan'}
             </Text>
           </View>
           <Button
@@ -202,7 +202,7 @@ export default function SettingsScreen() {
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.subscriptionManagement}</Text>
               <Text style={styles.menuSub}>
-                Plan: {subscription?.plan === 'pro' ? 'Pro Business (Active)' : 'Free Tier'}
+                Plan: {subscription?.plan === 'pro' ? 'Pro Business (Active)' : subscription?.plan === 'starter' ? 'Starter Plan (Active)' : 'Free Tier'}
               </Text>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />

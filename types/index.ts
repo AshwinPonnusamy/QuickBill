@@ -234,7 +234,7 @@ export interface StockMovement {
   createdAt: string;
 }
 
-export type SubscriptionPlan = 'free' | 'pro';
+export type SubscriptionPlan = 'free' | 'starter' | 'pro';
 
 export interface Subscription {
   id: string;

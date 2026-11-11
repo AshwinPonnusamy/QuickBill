@@ -228,7 +228,7 @@ export const businessService = {
    */
   async upgradeSubscription(
     businessId: string,
-    plan: 'pro',
+    plan: 'starter' | 'pro',
     billingCycle: 'monthly' | 'yearly'
   ): Promise<{ success: boolean; error?: string }> {
     const expiresAt = new Date();
@@ -238,14 +238,15 @@ export const businessService = {
       expiresAt.setDate(expiresAt.getDate() + 365);
     }
 
+    const isPro = plan === 'pro';
     const subData: Partial<Subscription> = {
       plan,
       billingCycle,
       status: 'active',
       expiresAt: expiresAt.toISOString(),
-      maxStaff: 5,
+      maxStaff: isPro ? 5 : 2,
       cloudBackupEnabled: true,
-      advancedReportsEnabled: true,
+      advancedReportsEnabled: isPro,
     };
 
     if (!isSupabaseConfigured()) {
@@ -258,13 +259,13 @@ export const businessService = {
         .from('subscriptions')
         .upsert({
           business_id: businessId,
-          plan: 'pro',
+          plan,
           billing_cycle: billingCycle,
           status: 'active',
           expires_at: expiresAt.toISOString(),
-          max_staff: 5,
+          max_staff: isPro ? 5 : 2,
           cloud_backup_enabled: true,
-          advanced_reports_enabled: true,
+          advanced_reports_enabled: isPro,
           updated_at: new Date().toISOString(),
         });
 

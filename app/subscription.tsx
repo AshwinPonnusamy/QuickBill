@@ -8,7 +8,7 @@ import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
-import { Check, Sparkles, CheckCircle2 } from '../components/common/Icons';
+import { Check, Sparkles, CheckCircle2, Zap, ShieldCheck } from '../components/common/Icons';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
@@ -16,22 +16,25 @@ export default function SubscriptionScreen() {
   const { business, subscription, setSubscription } = useBusinessStore();
   const t = TRANSLATIONS[language];
 
-  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('yearly');
+  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const isProActive = subscription?.plan === 'pro' && subscription.status === 'active';
+  const activePlan = subscription?.status === 'active' ? (subscription?.plan || 'free') : 'free';
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (targetPlan: 'starter' | 'pro') => {
     if (!business) return;
     setIsProcessing(true);
     try {
-      const res = await businessService.upgradeSubscription(business.id, 'pro', cycle);
+      const res = await businessService.upgradeSubscription(business.id, targetPlan, cycle);
       if (res.success) {
         const updated = await businessService.getSubscription(business.id);
         setSubscription(updated);
-        Alert.alert(t.success, 'Congratulations! Your shop has been upgraded to QuickBill Pro Business Plan.', [
-          { text: 'OK', onPress: () => router.back() },
-        ]);
+        const planName = targetPlan === 'pro' ? 'QuickBill Pro Business' : 'QuickBill Starter';
+        Alert.alert(
+          t.success,
+          `Congratulations! Your shop has been successfully upgraded to ${planName}.`,
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
       } else {
         Alert.alert(t.error, res.error || 'Upgrade failed');
       }
@@ -59,20 +62,37 @@ export default function SubscriptionScreen() {
       <Header title={t.subscriptionTitle} showBack={true} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Current Plan Badge */}
+        {/* Current Plan Overview Banner */}
         <Card radius="lg" shadow="sm" style={styles.currentCard}>
-          <Text style={styles.currentLabel}>{t.currentPlan}:</Text>
-          <Text style={styles.currentPlanName}>
-            {isProActive ? '⭐ QuickBill Pro Business' : 'QuickBill Free Plan'}
-          </Text>
-          {subscription?.expiresAt ? (
-            <Text style={styles.renewalText}>
-              Renewal: {new Date(subscription.expiresAt).toLocaleDateString('en-IN')}
-            </Text>
-          ) : null}
+          <View style={styles.currentCardRow}>
+            <View>
+              <Text style={styles.currentLabel}>{t.currentPlan}</Text>
+              <Text style={styles.currentPlanName}>
+                {activePlan === 'pro'
+                  ? '⭐ QuickBill Pro Business'
+                  : activePlan === 'starter'
+                  ? '⚡ QuickBill Starter Retail'
+                  : 'QuickBill Free Plan'}
+              </Text>
+              {subscription?.expiresAt && activePlan !== 'free' ? (
+                <Text style={styles.renewalText}>
+                  Valid until: {new Date(subscription.expiresAt).toLocaleDateString('en-IN')}
+                </Text>
+              ) : (
+                <Text style={styles.renewalText}>Basic offline features active</Text>
+              )}
+            </View>
+            <Badge
+              color={activePlan === 'pro' ? 'secondary' : activePlan === 'starter' ? 'warning' : 'default'}
+              variant="flat"
+              size="md"
+            >
+              {activePlan.toUpperCase()}
+            </Badge>
+          </View>
         </Card>
 
-        {/* Plan Pricing Toggle */}
+        {/* Billing Cycle Switcher */}
         <View style={styles.cycleToggle}>
           <Button
             variant={cycle === 'monthly' ? 'solid' : 'bordered'}
@@ -82,7 +102,7 @@ export default function SubscriptionScreen() {
             style={{ flex: 1 }}
             onPress={() => setCycle('monthly')}
           >
-            Monthly (₹299)
+            Monthly Billing
           </Button>
 
           <Button
@@ -93,98 +113,210 @@ export default function SubscriptionScreen() {
             style={{ flex: 1 }}
             onPress={() => setCycle('yearly')}
           >
-            Yearly (₹2,499) • Save 30%
+            Yearly Billing (Save up to 30%)
           </Button>
         </View>
 
-        {/* Comparison Plan Cards */}
-        {/* 1. FREE PLAN */}
-        <Card radius="xl" shadow="sm" style={styles.planCard}>
+        {/* ------------------------------------------------------------------ */}
+        {/* PLAN 1: FREE PLAN (₹0) */}
+        {/* ------------------------------------------------------------------ */}
+        <Card radius="xl" shadow="sm" style={[styles.planCard, activePlan === 'free' && styles.activePlanOutline]}>
           <View style={styles.planHeader}>
-            <Text style={styles.planName}>{t.freePlan}</Text>
-            <Text style={styles.planPrice}>₹0 / Forever</Text>
+            <View>
+              <Text style={styles.planName}>{t.freePlan}</Text>
+              <Text style={styles.planSubDesc}>Ideal for micro-stalls & individual billing</Text>
+            </View>
+            <Text style={styles.planPrice}>₹0</Text>
           </View>
+
+          <Text style={styles.cycleSubPrice}>
+            {cycle === 'monthly' ? '₹0 / Month • Free Forever' : '₹0 / Year • Free Forever'}
+          </Text>
+
+          <Divider style={{ marginVertical: SPACING.md }} />
+
           <View style={styles.featuresList}>
             <View style={styles.featureRow}>
-              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItem}>Unlimited offline billing</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>100% Offline-first local billing</Text>
             </View>
             <View style={styles.featureRow}>
-              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItem}>Product catalog & stock management</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>Unlimited bills & customer receipts</Text>
             </View>
             <View style={styles.featureRow}>
-              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItem}>WhatsApp PDF & Thermal receipt printing</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>Product catalog & inventory tracking</Text>
             </View>
             <View style={styles.featureRow}>
-              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItem}>Basic daily/weekly sales reports</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>Thermal Bluetooth printing & WhatsApp PDF</Text>
             </View>
             <View style={styles.featureRow}>
-              <Check size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItem}>1 Device & 1 Staff access</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>Single cashier device access</Text>
             </View>
           </View>
+
+          {activePlan === 'free' ? (
+            <View style={styles.activeBanner}>
+              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.activeBannerText}>Current Active Plan</Text>
+            </View>
+          ) : (
+            <Button
+              variant="bordered"
+              color="default"
+              size="md"
+              radius="md"
+              fullWidth
+              isDisabled
+              style={styles.planBtn}
+            >
+              Default Plan
+            </Button>
+          )}
         </Card>
 
-        {/* 2. PRO PLAN */}
-        <Card radius="xl" shadow="md" style={[styles.planCard, styles.proCard]}>
-          <View style={styles.proBadge}>
-            <Text style={styles.proBadgeText}>RECOMMENDED FOR RETAILERS</Text>
+        {/* ------------------------------------------------------------------ */}
+        {/* PLAN 2: STARTER PLAN (₹99) */}
+        {/* ------------------------------------------------------------------ */}
+        <Card radius="xl" shadow="sm" style={[styles.planCard, styles.starterCard, activePlan === 'starter' && styles.activePlanOutline]}>
+          <View style={styles.badgeWrapper}>
+            <View style={styles.starterBadge}>
+              <Text style={styles.badgeText}>POPULAR FOR RETAIL SHOPS</Text>
+            </View>
           </View>
 
           <View style={styles.planHeader}>
-            <Text style={[styles.planName, { color: COLORS.primary }]}>{t.proPlan}</Text>
+            <View>
+              <Text style={[styles.planName, { color: COLORS.primary }]}>{t.starterPlan}</Text>
+              <Text style={styles.planSubDesc}>Perfect for grocery, tea shops & bakeries</Text>
+            </View>
             <Text style={[styles.planPrice, { color: COLORS.secondary }]}>
-              {cycle === 'yearly' ? '₹2,499 / Year' : '₹299 / Month'}
+              {cycle === 'monthly' ? '₹99' : '₹999'}
             </Text>
           </View>
 
+          <Text style={styles.cycleSubPrice}>
+            {cycle === 'monthly' ? '₹99 / Month (Billed Monthly)' : '₹999 / Year (Save 15% • ₹83/mo)'}
+          </Text>
+
+          <Divider style={{ marginVertical: SPACING.md }} />
+
           <View style={styles.featuresList}>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItemBold}>{t.proFeatureCloud}</Text>
+              <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.starterFeatureCloud}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItemBold}>{t.proFeatureStaff} (Up to 5 staff accounts)</Text>
+              <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.starterFeatureUdhar}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItemBold}>{t.proFeatureReports}</Text>
+              <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.starterFeatureStaff}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItemBold}>{t.proFeatureTemplates}</Text>
+              <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.starterFeatureAlerts}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color={COLORS.warning} style={{ marginRight: 6 }} />
-              <Text style={styles.featureItemBold}>Priority phone & WhatsApp support</Text>
+              <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItem}>Digital Dynamic UPI QR code on bill</Text>
             </View>
           </View>
 
-          {!isProActive ? (
+          {activePlan === 'starter' ? (
+            <View style={styles.activeBanner}>
+              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.activeBannerText}>Current Active Plan</Text>
+            </View>
+          ) : (
             <Button
               color="secondary"
               size="lg"
               radius="md"
               fullWidth
               isLoading={isProcessing}
-              style={styles.upgradeBtn}
-              onPress={handleUpgrade}
+              style={styles.planBtn}
+              onPress={() => handleUpgrade('starter')}
             >
-              {t.upgradeToPro}
+              {cycle === 'monthly' ? 'Get Starter (₹99 / Month)' : 'Get Starter (₹999 / Year)'}
             </Button>
-          ) : (
-            <View style={styles.activeBanner}>
-              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
-              <Text style={styles.activeBannerText}>You are already enjoying Pro Benefits</Text>
-            </View>
           )}
         </Card>
 
-        {/* Restore Purchases */}
+        {/* ------------------------------------------------------------------ */}
+        {/* PLAN 3: PRO BUSINESS PLAN (₹299) */}
+        {/* ------------------------------------------------------------------ */}
+        <Card radius="xl" shadow="md" style={[styles.planCard, styles.proCard, activePlan === 'pro' && styles.activePlanOutline]}>
+          <View style={styles.badgeWrapper}>
+            <View style={styles.proBadge}>
+              <Text style={styles.badgeText}>BEST FOR GROWING BUSINESSES</Text>
+            </View>
+          </View>
+
+          <View style={styles.planHeader}>
+            <View>
+              <Text style={[styles.planName, { color: COLORS.primary }]}>{t.proPlan}</Text>
+              <Text style={styles.planSubDesc}>Multi-counter supermarkets & restaurants</Text>
+            </View>
+            <Text style={[styles.planPrice, { color: '#0F766E' }]}>
+              {cycle === 'monthly' ? '₹299' : '₹2,499'}
+            </Text>
+          </View>
+
+          <Text style={styles.cycleSubPrice}>
+            {cycle === 'monthly' ? '₹299 / Month (Billed Monthly)' : '₹2,499 / Year (Save 30% • ₹208/mo)'}
+          </Text>
+
+          <Divider style={{ marginVertical: SPACING.md }} />
+
+          <View style={styles.featuresList}>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureReports}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureStaff}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureCloud}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureTemplates}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <ShieldCheck size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureSupport}</Text>
+            </View>
+          </View>
+
+          {activePlan === 'pro' ? (
+            <View style={styles.activeBanner}>
+              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.activeBannerText}>Current Active Plan</Text>
+            </View>
+          ) : (
+            <Button
+              color="primary"
+              size="lg"
+              radius="md"
+              fullWidth
+              isLoading={isProcessing}
+              style={styles.planBtn}
+              onPress={() => handleUpgrade('pro')}
+            >
+              {cycle === 'monthly' ? 'Upgrade to Pro (₹299 / Month)' : 'Upgrade to Pro (₹2,499 / Year)'}
+            </Button>
+          )}
+        </Card>
+
+        {/* Restore Purchases Button */}
         <TouchableOpacity onPress={handleRestore} style={styles.restoreBtn}>
           <Text style={styles.restoreText}>{t.restorePurchases}</Text>
         </TouchableOpacity>
@@ -206,14 +338,19 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     marginBottom: SPACING.md,
   },
+  currentCardRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   currentLabel: {
     fontSize: 11,
     color: COLORS.textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
     textTransform: 'uppercase',
   },
   currentPlanName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '800',
     color: COLORS.primary,
     marginTop: 2,
@@ -231,44 +368,73 @@ const styles = StyleSheet.create({
   planCard: {
     padding: SPACING.lg,
     marginBottom: SPACING.lg,
+    backgroundColor: COLORS.white,
+  },
+  activePlanOutline: {
+    borderColor: COLORS.success,
+    borderWidth: 2,
+  },
+  starterCard: {
+    borderColor: COLORS.secondary,
+    borderWidth: 1.5,
+    backgroundColor: '#FAFEFF',
   },
   proCard: {
-    borderColor: COLORS.secondary,
+    borderColor: '#0F766E',
     borderWidth: 2,
-    backgroundColor: '#FAFDFF',
+    backgroundColor: '#F0FDFA',
   },
-  proBadge: {
-    position: 'absolute',
-    top: -12,
-    alignSelf: 'center',
+  badgeWrapper: {
+    alignItems: 'center',
+    marginTop: -28,
+    marginBottom: 8,
+  },
+  starterBadge: {
     backgroundColor: COLORS.secondary,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: ROUNDNESS.full,
   },
-  proBadgeText: {
+  proBadge: {
+    backgroundColor: '#0F766E',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: ROUNDNESS.full,
+  },
+  badgeText: {
     color: COLORS.white,
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   planHeader: {
-    marginBottom: SPACING.md,
-    marginTop: 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
   },
   planName: {
     fontSize: 18,
     fontWeight: '800',
     color: COLORS.textPrimary,
   },
-  planPrice: {
-    fontSize: 20,
-    fontWeight: '900',
+  planSubDesc: {
+    fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
+  planPrice: {
+    fontSize: 26,
+    fontWeight: '900',
+    color: COLORS.primary,
+  },
+  cycleSubPrice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
   featuresList: {
-    gap: 8,
+    gap: 10,
     marginBottom: SPACING.md,
   },
   featureRow: {
@@ -286,7 +452,7 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     flex: 1,
   },
-  upgradeBtn: {
+  planBtn: {
     marginTop: SPACING.sm,
   },
   activeBanner: {
@@ -296,6 +462,7 @@ const styles = StyleSheet.create({
     borderRadius: ROUNDNESS.md,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: SPACING.sm,
   },
   activeBannerText: {
     color: COLORS.success,
@@ -304,7 +471,7 @@ const styles = StyleSheet.create({
   },
   restoreBtn: {
     alignItems: 'center',
-    marginTop: SPACING.sm,
+    marginTop: SPACING.xs,
     paddingVertical: 10,
   },
   restoreText: {

@@ -45,3 +45,4 @@ export type HeroColor = 'primary' | 'secondary' | 'success' | 'warning' | 'dange
 export type HeroVariant = 'solid' | 'bordered' | 'flat' | 'faded' | 'light' | 'shadow';
 export type HeroSize = 'sm' | 'md' | 'lg';
 export type HeroRadius = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
+
