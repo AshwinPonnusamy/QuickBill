@@ -9,6 +9,7 @@ import { authService } from '../../services/auth.service';
 import { businessService } from '../../services/business.service';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Receipt, Phone, Lock, Eye, EyeOff } from '../../components/common/Icons';
+import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -66,7 +67,7 @@ export default function LoginScreen() {
         {/* Brand Banner */}
         <View style={styles.headerArea}>
           <View style={styles.logoBadge}>
-            <Receipt size={32} color={COLORS.secondary} />
+            <QuickBillLogo size={68} />
           </View>
           <Text style={styles.title}>
             {t.login}
@@ -85,7 +86,7 @@ export default function LoginScreen() {
             onChangeText={setIdentifier}
             keyboardType="email-address"
             autoCapitalize="none"
-            startContent={<Phone size={18} color="#71717A" />}
+            startContent={<Phone size={18} color={COLORS.textMuted} />}
           />
 
           <Input
@@ -94,10 +95,10 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry={!showPassword}
-            startContent={<Lock size={18} color="#71717A" />}
+            startContent={<Lock size={18} color={COLORS.textMuted} />}
             endContent={
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                {showPassword ? <EyeOff size={18} color="#71717A" /> : <Eye size={18} color="#71717A" />}
+                {showPassword ? <EyeOff size={18} color={COLORS.textMuted} /> : <Eye size={18} color={COLORS.textMuted} />}
               </TouchableOpacity>
             }
           />
@@ -152,10 +153,6 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.xl,
   },
   logoBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: COLORS.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.md,

@@ -78,7 +78,7 @@ export default function RegisterScreen() {
             placeholder="e.g. R. Murugan"
             value={fullName}
             onChangeText={setFullName}
-            startContent={<User size={18} color="#71717A" />}
+            startContent={<User size={18} color={COLORS.textMuted} />}
           />
 
           <Input
@@ -88,7 +88,7 @@ export default function RegisterScreen() {
             onChangeText={setIdentifier}
             keyboardType="email-address"
             autoCapitalize="none"
-            startContent={<Phone size={18} color="#71717A" />}
+            startContent={<Phone size={18} color={COLORS.textMuted} />}
           />
 
           <Input
@@ -97,7 +97,7 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            startContent={<Lock size={18} color="#71717A" />}
+            startContent={<Lock size={18} color={COLORS.textMuted} />}
           />
 
           <Input
@@ -106,7 +106,7 @@ export default function RegisterScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            startContent={<KeyRound size={18} color="#71717A" />}
+            startContent={<KeyRound size={18} color={COLORS.textMuted} />}
           />
 
           <Button

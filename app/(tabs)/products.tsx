@@ -10,7 +10,7 @@ import { productService } from '../../services/product.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Product, ProductUnit } from '../../types';
-import { Search, Plus, Boxes, Pencil } from '../../components/common/Icons';
+import { Search, Plus, Boxes, Pencil, Trash2 } from '../../components/common/Icons';
 
 const UNITS: ProductUnit[] = ['item', 'kg', 'g', 'liter', 'ml', 'meter', 'packet', 'box', 'plate', 'cup'];
 
@@ -147,6 +147,28 @@ export default function ProductsScreen() {
     setStockModalVisible(false);
     setStockDelta('');
     setStockReason('');
+  };
+
+  const handleDeleteProduct = () => {
+    if (!editingId) return;
+    Alert.alert(
+      'Delete Product',
+      `Are you sure you want to delete "${name}" from your catalog?`,
+      [
+        { text: t.cancel, style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (business) {
+              await productService.deleteProduct(business.id, editingId);
+              deleteProduct(editingId);
+              setModalVisible(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -359,6 +381,21 @@ export default function ProductsScreen() {
             >
               {isEditing ? 'Update Product' : 'Save Product to Catalog'}
             </Button>
+
+            {isEditing ? (
+              <Button
+                variant="bordered"
+                color="danger"
+                size="md"
+                radius="md"
+                fullWidth
+                style={{ marginTop: SPACING.sm }}
+                startContent={<Trash2 size={16} color={COLORS.error} />}
+                onPress={handleDeleteProduct}
+              >
+                Delete Product
+              </Button>
+            ) : null}
           </ScrollView>
         </ModalBody>
       </Modal>
@@ -467,6 +504,9 @@ const styles = StyleSheet.create({
   prodCard: {
     padding: SPACING.md,
     marginBottom: SPACING.sm,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   prodMain: {
     flexDirection: 'row',

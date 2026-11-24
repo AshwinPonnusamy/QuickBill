@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     padding: SPACING.base,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: COLORS.borderStrong,
     marginBottom: SPACING.lg,
   },
   thermalWidth: {
@@ -369,7 +369,7 @@ const styles = StyleSheet.create({
   dashedLine: {
     borderBottomWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#94A3B8',
+    borderColor: COLORS.textMuted,
     marginVertical: 8,
   },
   solidLine: {
@@ -400,7 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingVertical: 4,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#E2E8F0',
+    borderBottomColor: COLORS.border,
   },
   colName: {
     flex: 2,
@@ -488,7 +488,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,

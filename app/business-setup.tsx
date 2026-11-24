@@ -399,13 +399,13 @@ const styles = StyleSheet.create({
   },
   selectedTypeTile: {
     borderColor: COLORS.secondary,
-    backgroundColor: '#E6F8FA',
+    backgroundColor: COLORS.secondaryContainer,
   },
   typeIconWrapper: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },

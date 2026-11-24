@@ -2,6 +2,7 @@ import React from 'react';
 import { Badge, HeroColor } from '../heroui';
 import { CheckCircle2, Clock, AlertTriangle } from './Icons';
 import { SyncStatus } from '../../types';
+import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';
 
@@ -33,7 +34,7 @@ export const SyncStatusBadge: React.FC<SyncStatusBadgeProps> = ({ status }) => {
       variant="flat"
       size="sm"
       radius="full"
-      startContent={<IconComponent size={12} color={color === 'success' ? '#17C964' : color === 'warning' ? '#F5A524' : '#F31260'} />}
+      startContent={<IconComponent size={12} color={color === 'success' ? COLORS.success : color === 'warning' ? COLORS.warning : COLORS.error} />}
     >
       {label}
     </Badge>

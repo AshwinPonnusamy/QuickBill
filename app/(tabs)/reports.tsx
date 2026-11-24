@@ -143,7 +143,7 @@ export default function ReportsScreen() {
             value={formatRupees(report.totalRevenuePaise)}
             icon={<IndianRupee size={18} color={COLORS.primary} />}
             color={COLORS.primary}
-            bgColor="#EEF4F9"
+            bgColor={COLORS.primaryContainer}
           />
           <StatCard
             label={t.totalBills}
@@ -151,7 +151,7 @@ export default function ReportsScreen() {
             subValue={`Avg: ${formatRupees(report.averageBillValuePaise)}`}
             icon={<Receipt size={18} color={COLORS.secondary} />}
             color={COLORS.secondary}
-            bgColor="#E6F8FA"
+            bgColor={COLORS.secondaryContainer}
           />
         </View>
 
@@ -358,9 +358,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: ROUNDNESS.full,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceVariant,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: COLORS.border,
   },
   tabPillSelected: {
     backgroundColor: COLORS.primary,
@@ -378,7 +378,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: SPACING.base,
     paddingVertical: SPACING.sm,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     gap: 8,
@@ -455,13 +455,13 @@ const styles = StyleSheet.create({
 
   // GST Section
   gstHeroCard: {
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     padding: SPACING.md,
     borderRadius: ROUNDNESS.lg,
     alignItems: 'center',
     marginBottom: SPACING.md,
     borderWidth: 1,
-    borderColor: '#D0E0EC',
+    borderColor: COLORS.primaryLight,
   },
   gstHeroLabel: {
     fontSize: 12,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   gstTile: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
     padding: SPACING.md,
     borderRadius: ROUNDNESS.md,
     borderWidth: 1,
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   infoCallout: {
     marginTop: SPACING.md,
     padding: SPACING.sm,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceVariant,
     borderRadius: ROUNDNESS.sm,
   },
   infoCalloutText: {
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: SPACING.md,
     borderRadius: ROUNDNESS.md,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -552,13 +552,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9',
+    borderBottomColor: COLORS.border,
   },
   rankBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -595,12 +595,12 @@ const styles = StyleSheet.create({
   disclaimerBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceVariant,
     padding: SPACING.md,
     borderRadius: ROUNDNESS.md,
     marginTop: SPACING.xs,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
+    borderColor: COLORS.borderStrong,
   },
   disclaimerText: {
     fontSize: 12,

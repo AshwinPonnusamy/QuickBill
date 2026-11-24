@@ -17,23 +17,19 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function bootstrap() {
-      // 1. Initialize SQLite Database
       await initDatabase();
 
-      // 2. Restore saved language
       const savedLang = await AsyncStorage.getItem('qb_language');
       if (savedLang === 'en') {
         setLanguage(savedLang);
       }
 
-      // 3. Restore cached demo user or session
       const cachedUser = await AsyncStorage.getItem('qb_demo_user');
       if (cachedUser) {
         const profile = JSON.parse(cachedUser);
         setAuth({ id: profile.id, email: profile.phone }, profile);
       }
 
-      // 4. Restore cached business
       const cachedBiz = await AsyncStorage.getItem('qb_active_business');
       if (cachedBiz) {
         const biz = JSON.parse(cachedBiz);
@@ -42,13 +38,11 @@ export default function RootLayout() {
         setSubscription(sub);
       }
 
-      // 5. Trigger sync queue
       syncService.processSyncQueue().catch(console.error);
     }
 
     bootstrap();
 
-    // Periodic sync attempt every 60 seconds
     const interval = setInterval(() => {
       syncService.processSyncQueue().catch(() => {});
     }, 60000);
@@ -75,9 +69,7 @@ export default function RootLayout() {
         <Stack.Screen name="subscription" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="customers" />
-        <Stack.Screen name="inventory" />
       </Stack>
     </PaperProvider>
   );
 }
-

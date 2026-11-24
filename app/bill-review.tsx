@@ -181,6 +181,9 @@ const styles = StyleSheet.create({
   card: {
     padding: SPACING.md,
     marginBottom: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   bizName: {
     fontSize: 16,

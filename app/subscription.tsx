@@ -262,7 +262,7 @@ export default function SubscriptionScreen() {
               <Text style={[styles.planName, { color: COLORS.primary }]}>{t.proPlan}</Text>
               <Text style={styles.planSubDesc}>Multi-counter supermarkets & restaurants</Text>
             </View>
-            <Text style={[styles.planPrice, { color: '#0F766E' }]}>
+            <Text style={[styles.planPrice, { color: COLORS.secondaryDark }]}>
               {cycle === 'monthly' ? '₹299' : '₹2,499'}
             </Text>
           </View>
@@ -275,19 +275,19 @@ export default function SubscriptionScreen() {
 
           <View style={styles.featuresList}>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
               <Text style={styles.featureItemBold}>{t.proFeatureReports}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
               <Text style={styles.featureItemBold}>{t.proFeatureStaff}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
               <Text style={styles.featureItemBold}>{t.proFeatureCloud}</Text>
             </View>
             <View style={styles.featureRow}>
-              <Sparkles size={16} color="#D97706" style={{ marginRight: 8 }} />
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
               <Text style={styles.featureItemBold}>{t.proFeatureTemplates}</Text>
             </View>
             <View style={styles.featureRow}>
@@ -377,12 +377,12 @@ const styles = StyleSheet.create({
   starterCard: {
     borderColor: COLORS.secondary,
     borderWidth: 1.5,
-    backgroundColor: '#FAFEFF',
+    backgroundColor: '#F0FDFA',
   },
   proCard: {
-    borderColor: '#0F766E',
+    borderColor: COLORS.primary,
     borderWidth: 2,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: '#EEF2FF',
   },
   badgeWrapper: {
     alignItems: 'center',
@@ -397,7 +397,7 @@ const styles = StyleSheet.create({
     borderRadius: ROUNDNESS.full,
   },
   proBadge: {
-    backgroundColor: '#0F766E',
+    backgroundColor: COLORS.secondaryDark,
     paddingHorizontal: 12,
     paddingVertical: 6,
     marginVertical: 6,

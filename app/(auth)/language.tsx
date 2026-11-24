@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
   },
   selectedCard: {
-    backgroundColor: '#E6F8FA',
+    backgroundColor: COLORS.secondaryContainer,
   },
   flagIcon: {
     width: 44,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Text, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Settings } from './Icons';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -60,9 +60,16 @@ export const Header: React.FC<HeaderProps> = ({
 const styles = StyleSheet.create({
   header: {
     backgroundColor: COLORS.primary,
-    paddingTop: 45,
-    paddingBottom: 12,
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: 14,
     paddingHorizontal: SPACING.base,
+    borderBottomLeftRadius: ROUNDNESS.lg,
+    borderBottomRightRadius: ROUNDNESS.lg,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
   },
   row: {
     flexDirection: 'row',
@@ -71,11 +78,6 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     paddingRight: SPACING.md,
-  },
-  backText: {
-    color: COLORS.white,
-    fontSize: 24,
-    fontWeight: 'bold',
   },
   titleContainer: {
     flex: 1,
@@ -86,8 +88,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   subtitle: {
-    color: '#94A3B8',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 12,
+    marginTop: 1,
   },
   actions: {
     flexDirection: 'row',
@@ -95,11 +98,8 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   iconBtn: {
-    padding: 6,
+    padding: 8,
     borderRadius: ROUNDNESS.full,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  iconText: {
-    fontSize: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
 });

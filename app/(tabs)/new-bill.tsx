@@ -160,7 +160,7 @@ export default function CreateBillScreen() {
           style={styles.searchInput}
         />
         <Button
-          variant="flat"
+          variant="bordered"
           color="primary"
           size="md"
           radius="md"
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#E6F8FA',
+    backgroundColor: COLORS.secondaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 8,

@@ -119,7 +119,7 @@ export default function HelpSupportScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleCallSupport}
-              style={[styles.contactTile, { backgroundColor: '#EEF4F9' }]}
+              style={[styles.contactTile, { backgroundColor: COLORS.primaryContainer }]}
             >
               <Phone size={20} color={COLORS.primary} />
               <Text style={[styles.contactTileText, { color: COLORS.primary }]}>Phone Call Helpline</Text>
@@ -128,7 +128,7 @@ export default function HelpSupportScreen() {
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={handleEmailSupport}
-              style={[styles.contactTile, { backgroundColor: '#F1F5F9' }]}
+              style={[styles.contactTile, { backgroundColor: COLORS.surfaceVariant }]}
             >
               <Mail size={20} color={COLORS.secondary} />
               <Text style={[styles.contactTileText, { color: COLORS.secondary }]}>Email Support</Text>
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   heroSub: {
-    color: '#94A3B8',
+    color: COLORS.textMuted,
     fontSize: 12,
     marginTop: 2,
   },
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.sm,
   },
   faqCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING.base,
     marginBottom: SPACING.lg,
     borderWidth: 1,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.border,
   },
   formCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.surface,
     padding: SPACING.base,
     marginBottom: SPACING.lg,
     borderWidth: 1,

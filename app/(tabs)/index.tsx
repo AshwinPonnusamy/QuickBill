@@ -24,7 +24,6 @@ import {
   AlertTriangle,
   PackagePlus,
   Users,
-  ArrowUpDown,
   TrendingUp,
   ArrowRight,
   Sparkles,
@@ -144,7 +143,7 @@ export default function HomeDashboard() {
             </Text>
             <View style={styles.heroMetaRow}>
               <View style={styles.heroMetaItem}>
-                <Receipt size={13} color="#94A3B8" />
+                <Receipt size={13} color={COLORS.textMuted} />
                 <Text style={styles.heroMetaText}>
                   {report.totalBills} bills today
                 </Text>
@@ -185,7 +184,7 @@ export default function HomeDashboard() {
           <Card radius="lg" shadow="sm" style={styles.metricCard}>
             <View style={styles.metricCardTop}>
               <Text style={styles.metricLabel}>{t.todaySales}</Text>
-              <View style={[styles.metricIconBox, { backgroundColor: '#EEF4F9' }]}>
+              <View style={[styles.metricIconBox, { backgroundColor: COLORS.primaryContainer }]}>
                 <IndianRupee size={16} color={COLORS.primary} />
               </View>
             </View>
@@ -199,7 +198,7 @@ export default function HomeDashboard() {
           <Card radius="lg" shadow="sm" style={styles.metricCard}>
             <View style={styles.metricCardTop}>
               <Text style={styles.metricLabel}>Total Bills</Text>
-              <View style={[styles.metricIconBox, { backgroundColor: '#E6F8FA' }]}>
+              <View style={[styles.metricIconBox, { backgroundColor: COLORS.secondaryContainer }]}>
                 <Receipt size={16} color={COLORS.secondary} />
               </View>
             </View>
@@ -243,7 +242,7 @@ export default function HomeDashboard() {
           <Card radius="lg" shadow="sm" style={styles.stockAlertCard}>
             <View style={styles.stockAlertHeader}>
               <View style={styles.stockAlertTitleRow}>
-                <AlertTriangle size={18} color="#D97706" style={{ marginRight: 6 }} />
+                <AlertTriangle size={18} color={COLORS.warning} style={{ marginRight: 6 }} />
                 <Text style={styles.stockAlertTitle}>
                   {t.lowStockAlerts} ({lowStockProducts.length})
                 </Text>
@@ -266,7 +265,7 @@ export default function HomeDashboard() {
           </Card>
         ) : null}
 
-        {/* Quick Operational Actions */}
+        {/* Quick Operational Actions — 3 tiles */}
         <View style={styles.quickHubSection}>
           <Text style={styles.sectionHeaderTitle}>{t.quickActions}</Text>
           <View style={styles.quickGrid}>
@@ -277,7 +276,7 @@ export default function HomeDashboard() {
               onPress={() => router.push('/(tabs)/products' as any)}
               style={styles.quickTile}
             >
-              <View style={[styles.quickTileIcon, { backgroundColor: '#EEF4F9' }]}>
+              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.primaryContainer }]}>
                 <PackagePlus size={22} color={COLORS.primary} />
               </View>
               <Text style={styles.quickTileLabel}>{t.addProduct}</Text>
@@ -290,7 +289,7 @@ export default function HomeDashboard() {
               onPress={() => router.push('/customers' as any)}
               style={styles.quickTile}
             >
-              <View style={[styles.quickTileIcon, { backgroundColor: '#F0FDF4' }]}>
+              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.successLight }]}>
                 <Users size={22} color={COLORS.success} />
               </View>
               <Text style={styles.quickTileLabel}>{t.addCustomer}</Text>
@@ -300,24 +299,11 @@ export default function HomeDashboard() {
               isPressable
               radius="lg"
               shadow="sm"
-              onPress={() => router.push('/inventory' as any)}
-              style={styles.quickTile}
-            >
-              <View style={[styles.quickTileIcon, { backgroundColor: '#FEF3C7' }]}>
-                <ArrowUpDown size={22} color="#D97706" />
-              </View>
-              <Text style={styles.quickTileLabel}>Stock In/Out</Text>
-            </Card>
-
-            <Card
-              isPressable
-              radius="lg"
-              shadow="sm"
               onPress={() => router.push('/subscription' as any)}
               style={styles.quickTile}
             >
-              <View style={[styles.quickTileIcon, { backgroundColor: '#F3E8FF' }]}>
-                <Sparkles size={22} color="#9333EA" />
+              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.accentLight }]}>
+                <Sparkles size={22} color={COLORS.accent} />
               </View>
               <Text style={styles.quickTileLabel}>Plans</Text>
             </Card>
@@ -409,7 +395,7 @@ const styles = StyleSheet.create({
     marginRight: SPACING.sm,
   },
   heroOwnerGreeting: {
-    color: '#94A3B8',
+    color: COLORS.primaryLight,
     fontSize: 13,
     fontWeight: '600',
   },
@@ -433,7 +419,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.12)',
   },
   heroRevenueCaption: {
-    color: '#CBD5E1',
+    color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -456,11 +442,11 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   heroMetaText: {
-    color: '#94A3B8',
+    color: COLORS.textMuted,
     fontSize: 12,
   },
   heroMetaDivider: {
-    color: '#64748B',
+    color: COLORS.textSecondary,
     marginHorizontal: 8,
   },
   heroCtaBtn: {
@@ -539,9 +525,9 @@ const styles = StyleSheet.create({
 
   // Low Stock Card
   stockAlertCard: {
-    backgroundColor: '#FFFBEB',
+    backgroundColor: COLORS.warningLight,
     borderWidth: 1,
-    borderColor: '#FCD34D',
+    borderColor: COLORS.warningBorder,
     padding: SPACING.md,
     marginTop: SPACING.md,
   },
@@ -575,7 +561,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: COLORS.warningBorder,
     minWidth: 110,
   },
   stockPillName: {

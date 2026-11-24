@@ -6,6 +6,7 @@ import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Zap, WifiOff, Printer, BookOpen } from '../../components/common/Icons';
+import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 const { width } = Dimensions.get('window');
 
@@ -44,7 +45,10 @@ export default function OnboardingScreen() {
     <View style={styles.container}>
       {/* Top Header */}
       <View style={styles.topBar}>
-        <Text style={styles.brandTitle}>QuickBill</Text>
+        <QuickBillLogo size={36} />
+        <Text style={styles.brandTitle}>
+          Quick<Text style={{ color: COLORS.secondary }}>Bill</Text>
+        </Text>
       </View>
 
       {/* Main Slide Card */}
@@ -123,6 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
   brandTitle: {
     fontSize: 24,
@@ -143,7 +148,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#E6F8FA',
+    backgroundColor: COLORS.secondaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: SPACING.lg,

@@ -267,7 +267,7 @@ export default function PaymentScreen() {
           <Card radius="lg" shadow="sm" style={styles.whatsappCard}>
             <View style={styles.whatsappLeft}>
               <View style={styles.whatsappIconCircle}>
-                <MessageSquare size={18} color="#16A34A" />
+                <MessageSquare size={18} color={COLORS.success} />
               </View>
               <View style={styles.whatsappInfo}>
                 <Text style={styles.whatsappTitle}>{t.autoSendWhatsApp}</Text>
@@ -316,7 +316,7 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
   },
   payableLabel: {
-    color: '#94A3B8',
+    color: COLORS.textMuted,
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   payableCust: {
-    color: '#CBD5E1',
+    color: COLORS.borderStrong,
     fontSize: 12,
   },
   sectionTitle: {
@@ -396,7 +396,7 @@ const styles = StyleSheet.create({
   },
   upiQrWrapper: {
     padding: 12,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.surface,
     borderRadius: ROUNDNESS.md,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -434,17 +434,17 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.md,
   },
   creditCardSurface: {
-    backgroundColor: '#FFFBEB',
-    borderColor: '#FCD34D',
+    backgroundColor: COLORS.warningLight,
+    borderColor: COLORS.warningBorder,
   },
   creditHeader: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#92400E',
+    color: COLORS.onSecondaryContainer,
   },
   creditNotice: {
     fontSize: 12,
-    color: '#78350F',
+    color: COLORS.onSecondaryContainer,
     marginTop: 6,
     lineHeight: 18,
   },
@@ -460,8 +460,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: SPACING.md,
     marginTop: SPACING.md,
-    backgroundColor: '#F0FDF4',
-    borderColor: '#BBF7D0',
+    backgroundColor: COLORS.successLight,
+    borderColor: COLORS.successBorder,
     borderWidth: 1,
   },
   whatsappLeft: {
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: COLORS.successLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -485,11 +485,11 @@ const styles = StyleSheet.create({
   whatsappTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: '#166534',
+    color: COLORS.success,
   },
   whatsappDesc: {
     fontSize: 11,
-    color: '#15803D',
+    color: COLORS.success,
     marginTop: 2,
     lineHeight: 15,
   },

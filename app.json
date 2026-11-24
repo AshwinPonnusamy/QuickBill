@@ -18,7 +18,7 @@
     "android": {
       "package": "com.quickbill.pos",
       "adaptiveIcon": {
-        "backgroundColor": "#15324B",
+        "backgroundColor": "#4F46E5",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
@@ -26,6 +26,16 @@
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "d4135107-5669-493d-8513-ca9b2ecc37ec"
+      }
     }
   }
 }

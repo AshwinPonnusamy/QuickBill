@@ -259,5 +259,24 @@ export const productService = {
       return { success: true, newStock };
     }
   },
+
+  /**
+   * Delete / Deactivate product
+   */
+  async deleteProduct(businessId: string, productId: string): Promise<boolean> {
+    const db = getDB();
+    if (db && typeof db.runSync === 'function') {
+      try {
+        db.runSync(`DELETE FROM local_products WHERE id = ?;`, [productId]);
+      } catch (e) {}
+    }
+    if (!isSupabaseConfigured()) return true;
+    try {
+      await supabase.from('products').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', productId);
+      return true;
+    } catch {
+      return true;
+    }
+  },
 };
 

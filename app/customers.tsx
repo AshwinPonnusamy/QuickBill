@@ -278,6 +278,9 @@ const styles = StyleSheet.create({
   custCard: {
     padding: SPACING.md,
     marginBottom: SPACING.md,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   custTop: {
     flexDirection: 'row',

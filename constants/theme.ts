@@ -1,31 +1,46 @@
 import { MD3LightTheme as DefaultTheme } from 'react-native-paper';
 
+// ─────────────────────────────────────────────────────────
+// QuickBill Fresh Modern Theme — Vibrant & User-Friendly
+// ─────────────────────────────────────────────────────────
+
 export const COLORS = {
-  primary: '#15324B',
-  primaryDark: '#0D2133',
-  primaryLight: '#264D70',
-  primaryContainer: '#E3ECF5',
-  onPrimaryContainer: '#0D2133',
+  // Primary — rich indigo-blue (modern, trustworthy)
+  primary: '#4F46E5',
+  primaryDark: '#3730A3',
+  primaryLight: '#818CF8',
+  primaryContainer: '#EEF2FF',
+  onPrimaryContainer: '#312E81',
 
-  secondary: '#087E8B',
-  secondaryDark: '#05565E',
-  secondaryLight: '#0EABC7',
-  secondaryContainer: '#D1F4F9',
-  onSecondaryContainer: '#043B41',
+  // Secondary — vibrant teal-green (action-oriented)
+  secondary: '#0D9488',
+  secondaryDark: '#0F766E',
+  secondaryLight: '#2DD4BF',
+  secondaryContainer: '#CCFBF1',
+  onSecondaryContainer: '#134E4A',
 
-  background: '#F4F7FA',
+  // Accent — warm amber for highlights
+  accent: '#F59E0B',
+  accentLight: '#FEF3C7',
+
+  // Backgrounds — warm off-white for a softer feel
+  background: '#F8FAFC',
   surface: '#FFFFFF',
-  surfaceVariant: '#EAEFF5',
+  surfaceVariant: '#F1F5F9',
   surfaceDisabled: '#E2E8F0',
+  surfaceElevated: '#FFFFFF',
 
-  textPrimary: '#181C1E',
+  // Text
+  textPrimary: '#0F172A',
   textSecondary: '#64748B',
   textMuted: '#94A3B8',
   textInverse: '#FFFFFF',
 
+  // Borders
   border: '#E2E8F0',
   borderStrong: '#CBD5E1',
 
+  // Semantic
   success: '#16A34A',
   successLight: '#DCFCE7',
   successBorder: '#86EFAC',
@@ -34,14 +49,18 @@ export const COLORS = {
   warningLight: '#FEF3C7',
   warningBorder: '#FCD34D',
 
-  error: '#DC2626',
+  error: '#EF4444',
   errorLight: '#FEE2E2',
   errorBorder: '#FCA5A5',
 
+  // Utility
   white: '#FFFFFF',
   black: '#000000',
+  shadowColor: '#1E293B',
 
-  shadowColor: '#15324B',
+  // Gradient stops (for hero cards, headers, etc.)
+  gradientStart: '#4F46E5',
+  gradientEnd: '#7C3AED',
 };
 
 export const SPACING = {
@@ -55,12 +74,22 @@ export const SPACING = {
 };
 
 export const ROUNDNESS = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
+  xs: 6,
+  sm: 10,
+  md: 14,
+  lg: 18,
   xl: 24,
   full: 9999,
+};
+
+export const FONT_SIZES = {
+  xs: 10,
+  sm: 12,
+  md: 14,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  hero: 32,
 };
 
 export const AppPaperTheme = {
@@ -81,6 +110,5 @@ export const AppPaperTheme = {
     error: COLORS.error,
     outline: COLORS.border,
   },
-  roundness: 12,
+  roundness: 14,
 };
-

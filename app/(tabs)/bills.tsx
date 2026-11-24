@@ -536,9 +536,9 @@ const styles = StyleSheet.create({
     height: 44,
     paddingHorizontal: 12,
     borderRadius: ROUNDNESS.md,
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     borderWidth: 1,
-    borderColor: '#D0E0EC',
+    borderColor: COLORS.primaryLight,
     gap: 6,
   },
   filterActionBtnActive: {
@@ -590,7 +590,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: SPACING.base,
     paddingVertical: 8,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: COLORS.surfaceVariant,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
@@ -630,8 +630,8 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
   },
   voidCard: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FECACA',
+    backgroundColor: COLORS.errorLight,
+    borderColor: COLORS.errorBorder,
   },
   cardTopRow: {
     flexDirection: 'row',
@@ -674,7 +674,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   modeBadgeBox: {
-    backgroundColor: '#EEF4F9',
+    backgroundColor: COLORS.primaryContainer,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: ROUNDNESS.sm,
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING.md,
     paddingTop: SPACING.xs,
     borderTopWidth: 0.5,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: COLORS.border,
   },
   viewReceiptLink: {
     fontSize: 12,

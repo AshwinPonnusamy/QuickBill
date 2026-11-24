@@ -1,43 +1,43 @@
 export const HERO_COLORS = {
-  primary: '#15324B',
+  primary: '#4F46E5',
   primaryForeground: '#FFFFFF',
-  primaryLight: '#EEF4F9',
+  primaryLight: '#EEF2FF',
 
-  secondary: '#087E8B',
+  secondary: '#0D9488',
   secondaryForeground: '#FFFFFF',
-  secondaryLight: '#E6F8FA',
+  secondaryLight: '#CCFBF1',
 
-  success: '#17C964',
+  success: '#16A34A',
   successForeground: '#FFFFFF',
-  successLight: '#E8FAF0',
+  successLight: '#DCFCE7',
 
-  warning: '#F5A524',
+  warning: '#F59E0B',
   warningForeground: '#FFFFFF',
-  warningLight: '#FEF6E6',
+  warningLight: '#FEF3C7',
 
-  danger: '#F31260',
+  danger: '#EF4444',
   dangerForeground: '#FFFFFF',
-  dangerLight: '#FEE7EF',
+  dangerLight: '#FEE2E2',
 
-  default: '#71717A',
+  default: '#64748B',
   defaultForeground: '#FFFFFF',
-  defaultLight: '#F4F4F5',
-  defaultBorder: '#E4E4E7',
+  defaultLight: '#F1F5F9',
+  defaultBorder: '#E2E8F0',
 
-  background: '#F4F7FA',
+  background: '#F8FAFC',
   content1: '#FFFFFF',
-  content2: '#F4F4F5',
-  content3: '#E4E4E7',
-  foreground: '#11181C',
-  foregroundMuted: '#71717A',
+  content2: '#F1F5F9',
+  content3: '#E2E8F0',
+  foreground: '#0F172A',
+  foregroundMuted: '#64748B',
 };
 
 export const HERO_RADIUS = {
   none: 0,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
+  sm: 10,
+  md: 14,
+  lg: 18,
+  xl: 24,
   full: 9999,
 };
 
@@ -45,4 +45,3 @@ export type HeroColor = 'primary' | 'secondary' | 'success' | 'warning' | 'dange
 export type HeroVariant = 'solid' | 'bordered' | 'flat' | 'faded' | 'light' | 'shadow';
 export type HeroSize = 'sm' | 'md' | 'lg';
 export type HeroRadius = 'none' | 'sm' | 'md' | 'lg' | 'xl' | 'full';
-
