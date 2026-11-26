@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, Text } from 'react-native';
 import { Button, Card, Input, Divider, Badge } from '../components/heroui';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -44,8 +45,13 @@ const FAQS: FaqItem[] = [
 
 export default function HelpSupportScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business, subscription } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const { business, subscription } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      subscription: s.subscription,
+    }))
+  );
   const t = TRANSLATIONS[language];
 
   const [expandedFaq, setExpandedFaq] = useState<number | null>(0);

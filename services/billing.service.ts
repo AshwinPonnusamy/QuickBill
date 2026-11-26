@@ -29,6 +29,76 @@ const isUniqueViolation = (error: any): boolean => {
   return code === '23505' || msg.includes('duplicate key') || msg.includes('unique constraint');
 };
 
+const INVOICE_HEADER_COLUMNS =
+  'id, business_id, customer_id, created_by, invoice_number, financial_year, local_id, customer_name, customer_phone, subtotal_paise, discount_type, discount_value, discount_paise, cgst_paise, sgst_paise, igst_paise, total_tax_paise, grand_total_paise, paid_amount_paise, balance_amount_paise, payment_status, payment_method, notes, is_void, void_reason, voided_at, created_at';
+
+const mapInvoiceRow = (d: any): Invoice => ({
+  id: d.id,
+  businessId: d.business_id,
+  customerId: d.customer_id || undefined,
+  createdBy: d.created_by || undefined,
+  invoiceNumber: d.invoice_number,
+  financialYear: d.financial_year,
+  localId: d.local_id || undefined,
+  customerName: d.customer_name || undefined,
+  customerPhone: d.customer_phone || undefined,
+  subtotalPaise: Number(d.subtotal_paise),
+  discountType: d.discount_type,
+  discountValue: Number(d.discount_value),
+  discountPaise: Number(d.discount_paise),
+  cgstPaise: Number(d.cgst_paise),
+  sgstPaise: Number(d.sgst_paise),
+  igstPaise: Number(d.igst_paise),
+  totalTaxPaise: Number(d.total_tax_paise),
+  grandTotalPaise: Number(d.grand_total_paise),
+  paidAmountPaise: Number(d.paid_amount_paise),
+  balanceAmountPaise: Number(d.balance_amount_paise),
+  paymentStatus: d.payment_status,
+  paymentMethod: d.payment_method,
+  notes: d.notes || undefined,
+  isVoid: Boolean(d.is_void),
+  voidReason: d.void_reason || undefined,
+  voidedAt: d.voided_at || undefined,
+  createdAt: d.created_at,
+  items: d.invoice_items?.map((it: any) => ({
+    id: it.id,
+    productId: it.product_id || undefined,
+    productName: it.product_name,
+    unit: it.unit,
+    quantity: Number(it.quantity),
+    unitPricePaise: Number(it.unit_price_paise),
+    subtotalPaise: Number(it.subtotal_paise),
+    taxRate: Number(it.tax_rate),
+    cgstPaise: Number(it.cgst_paise),
+    sgstPaise: Number(it.sgst_paise),
+    igstPaise: Number(it.igst_paise),
+    taxPaise: Number(it.tax_paise),
+    discountPaise: Number(it.discount_paise),
+    totalPaise: Number(it.total_paise),
+  })),
+  payments: d.payments?.map((p: any) => ({
+    id: p.id,
+    businessId: p.business_id,
+    invoiceId: p.invoice_id,
+    customerId: p.customer_id || undefined,
+    amountPaise: Number(p.amount_paise),
+    paymentMethod: p.payment_method,
+    paymentReference: p.payment_reference || undefined,
+    status: p.status,
+    localId: p.local_id || undefined,
+    notes: p.notes || undefined,
+    createdAt: p.created_at,
+  })),
+});
+
+export interface GetInvoicesOptions {
+  limit?: number;
+  before?: string;
+  from?: string;
+  withItems?: boolean;
+  withPayments?: boolean;
+}
+
 export const billingService = {
   /**
    * Parses trailing sequence from latest invoice_number and computes next number
@@ -278,17 +348,39 @@ export const billingService = {
   },
 
   /**
-   * Fetch invoice history from Supabase
+   * Fetch invoice history from Supabase with cursor pagination and optional item/payment joins.
    */
-  async getInvoices(businessId: string): Promise<Invoice[]> {
+  async getInvoices(businessId: string, opts: GetInvoicesOptions = {}): Promise<Invoice[]> {
     if (!isSupabaseConfigured()) return [];
 
+    const {
+      limit = 200,
+      before,
+      from,
+      withItems = true,
+      withPayments = withItems,
+    } = opts;
+
+    const selectParts = [INVOICE_HEADER_COLUMNS];
+    if (withItems) selectParts.push('invoice_items(*)');
+    if (withPayments) selectParts.push('payments(*)');
+
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoices')
-        .select('*, invoice_items(*)')
-        .eq('business_id', businessId)
-        .order('created_at', { ascending: false });
+        .select(selectParts.join(', '))
+        .eq('business_id', businessId);
+
+      if (from) {
+        query = query.gte('created_at', from);
+      }
+      if (before) {
+        query = query.lt('created_at', before);
+      }
+
+      const { data, error } = await query
+        .order('created_at', { ascending: false })
+        .limit(limit);
 
       if (error || !data) {
         console.warn('Error fetching invoices:', error?.message);
@@ -296,53 +388,33 @@ export const billingService = {
         return [];
       }
 
-      return data.map((d: any) => ({
-        id: d.id,
-        businessId: d.business_id,
-        customerId: d.customer_id || undefined,
-        createdBy: d.created_by || undefined,
-        invoiceNumber: d.invoice_number,
-        financialYear: d.financial_year,
-        localId: d.local_id || undefined,
-        customerName: d.customer_name || undefined,
-        customerPhone: d.customer_phone || undefined,
-        subtotalPaise: Number(d.subtotal_paise),
-        discountType: d.discount_type,
-        discountValue: Number(d.discount_value),
-        discountPaise: Number(d.discount_paise),
-        cgstPaise: Number(d.cgst_paise),
-        sgstPaise: Number(d.sgst_paise),
-        igstPaise: Number(d.igst_paise),
-        totalTaxPaise: Number(d.total_tax_paise),
-        grandTotalPaise: Number(d.grand_total_paise),
-        paidAmountPaise: Number(d.paid_amount_paise),
-        balanceAmountPaise: Number(d.balance_amount_paise),
-        paymentStatus: d.payment_status,
-        paymentMethod: d.payment_method,
-        notes: d.notes || undefined,
-        isVoid: Boolean(d.is_void),
-        voidReason: d.void_reason || undefined,
-        voidedAt: d.voided_at || undefined,
-        createdAt: d.created_at,
-        items: d.invoice_items?.map((it: any) => ({
-          id: it.id,
-          productId: it.product_id || undefined,
-          productName: it.product_name,
-          unit: it.unit,
-          quantity: Number(it.quantity),
-          unitPricePaise: Number(it.unit_price_paise),
-          subtotalPaise: Number(it.subtotal_paise),
-          taxRate: Number(it.tax_rate),
-          cgstPaise: Number(it.cgst_paise),
-          sgstPaise: Number(it.sgst_paise),
-          igstPaise: Number(it.igst_paise),
-          taxPaise: Number(it.tax_paise),
-          discountPaise: Number(it.discount_paise),
-          totalPaise: Number(it.total_paise),
-        })),
-      }));
+      return data.map(mapInvoiceRow);
     } catch {
       return [];
+    }
+  },
+
+  /**
+   * Fetches a single invoice with its line items and payment rows (used on detail/receipt view).
+   */
+  async getInvoiceById(invoiceId: string): Promise<Invoice | null> {
+    if (!isSupabaseConfigured() || !invoiceId) return null;
+
+    try {
+      const { data, error } = await supabase
+        .from('invoices')
+        .select(`${INVOICE_HEADER_COLUMNS}, invoice_items(*), payments(*)`)
+        .eq('id', invoiceId)
+        .maybeSingle();
+
+      if (error || !data) {
+        await checkAndLogoutIfSuspended(error?.message);
+        return null;
+      }
+
+      return mapInvoiceRow(data);
+    } catch {
+      return null;
     }
   },
 

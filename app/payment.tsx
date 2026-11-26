@@ -4,6 +4,7 @@ import { Button, Card, Input, Switch } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { useBillStore } from '../store/bill.store';
@@ -16,10 +17,17 @@ import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle, MessageSq
 
 export default function PaymentScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
-  const { customer, notes, getCalculation, clearBill } = useBillStore();
-  const { adjustStock } = useProductStore();
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
+  const { customer, notes, getCalculation, clearBill } = useBillStore(
+    useShallow((s) => ({
+      customer: s.customer,
+      notes: s.notes,
+      getCalculation: s.getCalculation,
+      clearBill: s.clearBill,
+    }))
+  );
+  const adjustStock = useProductStore((s) => s.adjustStock);
   const t = TRANSLATIONS[language];
 
   const calculation = getCalculation();

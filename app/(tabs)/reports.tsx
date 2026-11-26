@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, Text } from 'react-native';
 import { Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { Button, Card, Divider, Badge } from '../../components/heroui';
 import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -33,8 +34,13 @@ import {
 type ReportTab = 'overview' | 'gst' | 'items' | 'customers';
 
 export default function ReportsScreen() {
-  const { language } = useAuthStore();
-  const { business, isRoleLoaded } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const { business, isRoleLoaded } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      isRoleLoaded: s.isRoleLoaded,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
   const canViewReports = canDo('view_reports');
@@ -44,29 +50,46 @@ export default function ReportsScreen() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     if (!business || !canViewReports) return;
     setIsRefreshing(true);
     try {
-      const data = await billingService.getInvoices(business.id);
+      const data = await billingService.getInvoices(business.id, {
+        limit: 500,
+        withItems: true,
+        withPayments: true,
+      });
       setInvoices(data);
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [business, canViewReports]);
 
   useEffect(() => {
-    if (canViewReports) {
-      loadData();
-    }
+    if (!business || !canViewReports) return;
+    let cancelled = false;
+    setIsRefreshing(true);
+    billingService
+      .getInvoices(business.id, { limit: 500, withItems: true, withPayments: true })
+      .then((data) => {
+        if (!cancelled) setInvoices(data);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [business, canViewReports]);
 
   if (isRoleLoaded && !canViewReports) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
 
-  const authorized = reportService.getAuthorizedReport(invoices, period);
-  const report: SalesReportMetrics = authorized.metrics || reportService.generateReport([], period);
+  const report: SalesReportMetrics = useMemo(() => {
+    const authorized = reportService.getAuthorizedReport(invoices, period);
+    return authorized.metrics || reportService.generateReport([], period);
+  }, [invoices, period]);
 
   const reportTabs: { id: ReportTab; label: string; Icon: any }[] = [
     { id: 'overview', label: 'Overview', Icon: BarChart3 },

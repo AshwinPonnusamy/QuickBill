@@ -3,6 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image, Text } fr
 import { Button, Card, Input, Switch } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
@@ -35,8 +36,19 @@ const BUSINESS_TYPES: { type: BusinessType; label: string; Icon: React.Component
 
 export default function BusinessSetupScreen() {
   const router = useRouter();
-  const { user, profile, language } = useAuthStore();
-  const { setBusiness, setRole } = useBusinessStore();
+  const { user, profile, language } = useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      profile: s.profile,
+      language: s.language,
+    }))
+  );
+  const { setBusiness, setRole } = useBusinessStore(
+    useShallow((s) => ({
+      setBusiness: s.setBusiness,
+      setRole: s.setRole,
+    }))
+  );
   const t = TRANSLATIONS[language];
 
   const [businessName, setBusinessName] = useState('');
@@ -60,6 +72,7 @@ export default function BusinessSetupScreen() {
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.7,
+        base64: false,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
@@ -156,7 +169,7 @@ export default function BusinessSetupScreen() {
       <Card radius="lg" shadow="sm" style={styles.logoRow}>
         <TouchableOpacity onPress={handlePickLogo} style={styles.logoPicker}>
           {logoUri ? (
-            <Image source={{ uri: logoUri }} style={styles.logoImage} />
+            <Image source={{ uri: logoUri, cache: 'force-cache' }} style={styles.logoImage} resizeMode="cover" />
           ) : (
             <View style={styles.placeholderLogo}>
               <Camera size={26} color={COLORS.secondary} style={{ marginBottom: 4 }} />

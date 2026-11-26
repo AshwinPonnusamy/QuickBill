@@ -4,6 +4,7 @@ import { Button, Card, Divider } from '../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
+import { useShallow } from 'zustand/react/shallow';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { useBillStore } from '../store/bill.store';
@@ -13,9 +14,14 @@ import { safeGoBack } from '../utils/navigation';
 
 export default function BillReviewScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
-  const { customer, getCalculation } = useBillStore();
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
+  const { customer, getCalculation } = useBillStore(
+    useShallow((s) => ({
+      customer: s.customer,
+      getCalculation: s.getCalculation,
+    }))
+  );
   const t = TRANSLATIONS[language];
 
   const calculation = getCalculation();

@@ -7,6 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
@@ -19,8 +20,20 @@ const { width } = Dimensions.get('window');
 
 export default function SplashScreen() {
   const router = useRouter();
-  const { isAuthenticated, isHydrated, language } = useAuthStore();
-  const { business, role, isRoleLoaded } = useBusinessStore();
+  const { isAuthenticated, isHydrated, language } = useAuthStore(
+    useShallow((s) => ({
+      isAuthenticated: s.isAuthenticated,
+      isHydrated: s.isHydrated,
+      language: s.language,
+    }))
+  );
+  const { business, role, isRoleLoaded } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      role: s.role,
+      isRoleLoaded: s.isRoleLoaded,
+    }))
+  );
   const t = TRANSLATIONS[language] || TRANSLATIONS.en;
 
   useEffect(() => {

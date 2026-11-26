@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
 import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
@@ -16,9 +17,27 @@ import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { language, setAuth, logout } = useAuthStore();
-  const { setBusiness, setRole, setSubscription, resetBusinessSession } = useBusinessStore();
-  const { setProducts, setCategories } = useProductStore();
+  const { language, setAuth, logout } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      setAuth: s.setAuth,
+      logout: s.logout,
+    }))
+  );
+  const { setBusiness, setRole, setSubscription, resetBusinessSession } = useBusinessStore(
+    useShallow((s) => ({
+      setBusiness: s.setBusiness,
+      setRole: s.setRole,
+      setSubscription: s.setSubscription,
+      resetBusinessSession: s.resetBusinessSession,
+    }))
+  );
+  const { setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
   const t = TRANSLATIONS[language];
 
   const [identifier, setIdentifier] = useState('');

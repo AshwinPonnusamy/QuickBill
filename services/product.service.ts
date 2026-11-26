@@ -27,14 +27,16 @@ const mapProductRow = (p: any): Product => ({
   updatedAt: p.updated_at,
 });
 
+const OWNER_PRODUCT_COLUMNS =
+  'id, business_id, category_id, name, sku, barcode, selling_price_paise, purchase_price_paise, unit, tax_rate, is_tax_inclusive, stock_quantity, low_stock_threshold, image_url, is_favourite, is_active, created_at, updated_at';
+
 const STAFF_SAFE_PRODUCT_COLUMNS =
   'id, business_id, category_id, name, sku, barcode, selling_price_paise, unit, tax_rate, is_tax_inclusive, stock_quantity, low_stock_threshold, image_url, is_favourite, is_active, created_at, updated_at';
 
 export const productService = {
   /**
    * Fetch all active products for a business from Supabase.
-   * When role cannot view cost prices, reads from products_staff_view (or non-cost columns)
-   * so purchase_price_paise is not exposed to staff.
+   * Selects explicit columns instead of `*`, and omits purchase_price_paise for staff.
    */
   async getProducts(businessId: string): Promise<Product[]> {
     if (!isSupabaseConfigured()) return [];
@@ -46,7 +48,7 @@ export const productService = {
       if (includeCostPrice) {
         const { data, error } = await supabase
           .from('products')
-          .select('*')
+          .select(OWNER_PRODUCT_COLUMNS)
           .eq('business_id', businessId)
           .eq('is_active', true)
           .order('name', { ascending: true });

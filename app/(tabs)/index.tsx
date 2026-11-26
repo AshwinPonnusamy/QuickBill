@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { Card, Button, Badge } from '../../components/heroui';
 import { useRouter, Redirect } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -30,9 +31,22 @@ import {
 
 export default function HomeDashboard() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore();
-  const { products, setProducts, setCategories } = useProductStore();
+  const language = useAuthStore((s) => s.language);
+  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      subscription: s.subscription,
+      isRoleLoaded: s.isRoleLoaded,
+      setSubscription: s.setSubscription,
+    }))
+  );
+  const { products, setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      products: s.products,
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 
@@ -41,12 +55,12 @@ export default function HomeDashboard() {
 
   const canViewReports = canDo('view_reports');
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!business || !canViewReports) return;
     setIsRefreshing(true);
     try {
       const [invs, sub, prods, cats] = await Promise.all([
-        billingService.getInvoices(business.id),
+        billingService.getInvoices(business.id, { limit: 100, withItems: false, withPayments: true }),
         businessService.getSubscription(business.id),
         productService.getProducts(business.id),
         productService.getCategories(business.id),
@@ -58,24 +72,47 @@ export default function HomeDashboard() {
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [business, canViewReports, setSubscription, setProducts, setCategories]);
 
   useEffect(() => {
-    if (canViewReports) {
-      loadDashboardData();
-    }
-  }, [business, canViewReports]);
+    if (!business || !canViewReports) return;
+    let cancelled = false;
+    setIsRefreshing(true);
+    Promise.all([
+      billingService.getInvoices(business.id, { limit: 100, withItems: false, withPayments: true }),
+      businessService.getSubscription(business.id),
+      productService.getProducts(business.id),
+      productService.getCategories(business.id),
+    ])
+      .then(([invs, sub, prods, cats]) => {
+        if (cancelled) return;
+        setInvoices(invs);
+        if (sub) setSubscription(sub);
+        setProducts(prods);
+        setCategories(cats);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business, canViewReports, setSubscription, setProducts, setCategories]);
 
   if (isRoleLoaded && !canViewReports) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
 
-  // Compute metrics
-  const report = reportService.generateReport(invoices, 'weekly');
-  const lowStockProducts = products.filter((p) => p.stockQuantity <= p.lowStockThreshold);
+  // Compute metrics in useMemo
+  const report = useMemo(() => reportService.generateReport(invoices, 'weekly'), [invoices]);
+  const lowStockProducts = useMemo(
+    () => products.filter((p) => p.stockQuantity <= p.lowStockThreshold),
+    [products]
+  );
 
   // Recent 5 transactions
-  const recentInvoices = invoices.slice(0, 5);
+  const recentInvoices = useMemo(() => invoices.slice(0, 5), [invoices]);
 
   const isProPlan = subscription?.status === 'active' && subscription.plan === 'pro';
   const planLabel = isProPlan ? 'PRO PLAN' : subscription?.plan === 'starter' ? 'STARTER' : 'FREE PLAN';

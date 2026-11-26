@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Divider } from '../components/heroui';
 import { useRouter, Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -39,9 +40,27 @@ const SHOP_TYPES: { type: BusinessType; label: string }[] = [
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { language, logout } = useAuthStore();
-  const { business, subscription, isRoleLoaded, updateBusiness, resetBusinessSession } = useBusinessStore();
-  const { setProducts, setCategories } = useProductStore();
+  const { language, logout } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      logout: s.logout,
+    }))
+  );
+  const { business, subscription, isRoleLoaded, updateBusiness, resetBusinessSession } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      subscription: s.subscription,
+      isRoleLoaded: s.isRoleLoaded,
+      updateBusiness: s.updateBusiness,
+      resetBusinessSession: s.resetBusinessSession,
+    }))
+  );
+  const { setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 

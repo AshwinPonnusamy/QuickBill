@@ -2,6 +2,7 @@ import React from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { View, StyleSheet, Text, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
 import { Home, Receipt, Plus, Package, BarChart3 } from '../../components/common/Icons';
 import { COLORS } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
@@ -10,8 +11,19 @@ import { TRANSLATIONS } from '../../constants/translations';
 import { useCan } from '../../utils/permissions';
 
 export default function TabsLayout() {
-  const { language, isAuthenticated, isHydrated } = useAuthStore();
-  const { business, isRoleLoaded } = useBusinessStore();
+  const { language, isAuthenticated, isHydrated } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      isAuthenticated: s.isAuthenticated,
+      isHydrated: s.isHydrated,
+    }))
+  );
+  const { business, isRoleLoaded } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      isRoleLoaded: s.isRoleLoaded,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
   const insets = useSafeAreaInsets();

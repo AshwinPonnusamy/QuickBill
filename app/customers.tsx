@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet, FlatList, RefreshControl, Alert, Text } from 'react-native';
 import { Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -10,18 +11,80 @@ import { billingService } from '../services/billing.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { useCan } from '../utils/permissions';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { Customer } from '../types';
 import { Search, Plus, Users, Phone, MapPin } from '../components/common/Icons';
 
+interface CustomerRowCardProps {
+  customer: Customer;
+  onSettlePress: (customer: Customer) => void;
+}
+
+const CustomerRowCard = React.memo<CustomerRowCardProps>(({ customer: c, onSettlePress }) => {
+  return (
+    <Card radius="lg" shadow="sm" style={styles.custCard}>
+      <View style={styles.custTop}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.custName} numberOfLines={1}>{c.name}</Text>
+          <View style={styles.custDetailRow}>
+            <Phone size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+            <Text style={styles.custPhone}>{c.phone || 'No phone recorded'}</Text>
+          </View>
+          {c.address ? (
+            <View style={styles.custDetailRow}>
+              <MapPin size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
+              <Text style={styles.custAddress} numberOfLines={1}>{c.address}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={styles.balanceBlock}>
+          <Text style={styles.balanceLabel}>Udhar Balance</Text>
+          <Text
+            style={[
+              styles.balanceVal,
+              c.outstandingBalancePaise > 0 ? styles.dueText : styles.clearText,
+            ]}
+          >
+            {formatRupees(c.outstandingBalancePaise)}
+          </Text>
+        </View>
+      </View>
+
+      {c.outstandingBalancePaise > 0 ? (
+        <View style={styles.custBottom}>
+          <Button
+            variant="bordered"
+            color="secondary"
+            size="sm"
+            radius="md"
+            fullWidth
+            onPress={() => onSettlePress(c)}
+          >
+            Collect Udhar Payment
+          </Button>
+        </View>
+      ) : null}
+    </Card>
+  );
+});
+
 export default function CustomersScreen() {
-  const { language } = useAuthStore();
-  const { business, isRoleLoaded } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const { business, isRoleLoaded } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      isRoleLoaded: s.isRoleLoaded,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
   const canSettleUdhar = canDo('settle_udhar');
 
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [modalVisible, setModalVisible] = useState(false);
 
   // New Customer State
@@ -31,27 +94,87 @@ export default function CustomersScreen() {
   const [address, setAddress] = useState('');
   const [gstin, setGstin] = useState('');
 
-  const loadCustomers = async () => {
+  const loadCustomers = useCallback(async () => {
     if (!business) return;
-    const list = await billingService.getCustomers(business.id);
-    setCustomers(list);
-  };
+    setIsRefreshing(true);
+    try {
+      const list = await billingService.getCustomers(business.id);
+      setCustomers(list);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [business]);
 
   useEffect(() => {
-    if (canSettleUdhar) {
-      loadCustomers();
-    }
+    if (!business || !canSettleUdhar) return;
+    let cancelled = false;
+    setIsRefreshing(true);
+    billingService
+      .getCustomers(business.id)
+      .then((list) => {
+        if (!cancelled) setCustomers(list);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [business, canSettleUdhar]);
 
   if (isRoleLoaded && !canSettleUdhar) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
 
-  const filteredCustomers = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.phone && c.phone.includes(search))
+  const filteredCustomers = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
+    if (!query) return customers;
+    return customers.filter(
+      (c) =>
+        c.name.toLowerCase().includes(query) ||
+        Boolean(c.phone && c.phone.includes(query))
+    );
+  }, [customers, debouncedSearch]);
+
+  const handleSettleUdharPress = useCallback(
+    (c: Customer) => {
+      Alert.alert(
+        'Collect Udhar Payment',
+        `Settle ${formatRupees(c.outstandingBalancePaise)} balance from ${c.name}?`,
+        [
+          { text: t.cancel, style: 'cancel' },
+          {
+            text: 'Mark Collected',
+            onPress: async () => {
+              if (!business) return;
+              const res = await billingService.settleCustomerUdhar(business.id, c.id);
+              if (!res.success) {
+                Alert.alert(t.error, res.error || 'Failed to settle udhar.');
+                return;
+              }
+              const nextBalance = res.newBalancePaise ?? 0;
+              setCustomers((prev) =>
+                prev.map((item) =>
+                  item.id === c.id ? { ...item, outstandingBalancePaise: nextBalance } : item
+                )
+              );
+              Alert.alert(t.success, 'Udhar payment settled.');
+            },
+          },
+        ]
+      );
+    },
+    [business, t.cancel, t.error, t.success]
   );
+
+  const renderCustomerRow = useCallback(
+    ({ item }: { item: Customer }) => (
+      <CustomerRowCard customer={item} onSettlePress={handleSettleUdharPress} />
+    ),
+    [handleSettleUdharPress]
+  );
+
+  const customerKeyExtractor = useCallback((item: Customer) => item.id, []);
 
   const handleAddCustomer = async () => {
     if (!name.trim()) {
@@ -107,87 +230,24 @@ export default function CustomersScreen() {
         </Button>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {filteredCustomers.length === 0 ? (
+      <FlatList
+        data={filteredCustomers}
+        keyExtractor={customerKeyExtractor}
+        renderItem={renderCustomerRow}
+        initialNumToRender={15}
+        maxToRenderPerBatch={15}
+        windowSize={5}
+        removeClippedSubviews
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={loadCustomers} />}
+        ListEmptyComponent={
           <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <Users size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No customers registered yet</Text>
             <Text style={styles.emptySub}>Tap 'Add' to register a customer account with Udhar tracking.</Text>
           </Card>
-        ) : (
-          filteredCustomers.map((c) => (
-            <Card key={c.id} radius="lg" shadow="sm" style={styles.custCard}>
-              <View style={styles.custTop}>
-                <View>
-                  <Text style={styles.custName}>{c.name}</Text>
-                  <View style={styles.custDetailRow}>
-                    <Phone size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                    <Text style={styles.custPhone}>{c.phone || 'No phone recorded'}</Text>
-                  </View>
-                  {c.address ? (
-                    <View style={styles.custDetailRow}>
-                      <MapPin size={12} color={COLORS.textSecondary} style={{ marginRight: 4 }} />
-                      <Text style={styles.custAddress}>{c.address}</Text>
-                    </View>
-                  ) : null}
-                </View>
-
-                <View style={styles.balanceBlock}>
-                  <Text style={styles.balanceLabel}>Udhar Balance</Text>
-                  <Text
-                    style={[
-                      styles.balanceVal,
-                      c.outstandingBalancePaise > 0 ? styles.dueText : styles.clearText,
-                    ]}
-                  >
-                    {formatRupees(c.outstandingBalancePaise)}
-                  </Text>
-                </View>
-              </View>
-
-              {c.outstandingBalancePaise > 0 ? (
-                <View style={styles.custBottom}>
-                  <Button
-                    variant="bordered"
-                    color="secondary"
-                    size="sm"
-                    radius="md"
-                    fullWidth
-                    onPress={() =>
-                      Alert.alert(
-                        'Collect Udhar Payment',
-                        `Settle ${formatRupees(c.outstandingBalancePaise)} balance from ${c.name}?`,
-                        [
-                          { text: t.cancel, style: 'cancel' },
-                          {
-                            text: 'Mark Collected',
-                            onPress: async () => {
-                              if (!business) return;
-                              const res = await billingService.settleCustomerUdhar(business.id, c.id);
-                              if (!res.success) {
-                                Alert.alert(t.error, res.error || 'Failed to settle udhar.');
-                                return;
-                              }
-                              setCustomers(
-                                customers.map((item) =>
-                                  item.id === c.id ? { ...item, outstandingBalancePaise: 0 } : item
-                                )
-                              );
-                              Alert.alert(t.success, 'Udhar payment settled.');
-                            },
-                          },
-                        ]
-                      )
-                    }
-                  >
-                    Collect Udhar Payment
-                  </Button>
-                </View>
-              ) : null}
-            </Card>
-          ))
-        )}
-      </ScrollView>
+        }
+      />
 
       {/* Add Customer Modal */}
       <Modal

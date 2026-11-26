@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
 import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
@@ -11,7 +12,12 @@ import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function RegisterScreen() {
   const router = useRouter();
-  const { language, setAuth } = useAuthStore();
+  const { language, setAuth } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      setAuth: s.setAuth,
+    }))
+  );
   const t = TRANSLATIONS[language];
 
   const [fullName, setFullName] = useState('');

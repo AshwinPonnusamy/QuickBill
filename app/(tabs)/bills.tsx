@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Text } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity, RefreshControl, Alert, Text } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, ModalFooter, Badge, Divider } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -11,6 +11,7 @@ import { pdfService } from '../../services/pdf.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { useCan, RoleGate } from '../../utils/permissions';
+import { useDebouncedValue } from '../../utils/useDebouncedValue';
 import { Invoice } from '../../types';
 import {
   Search,
@@ -33,16 +34,120 @@ type StatusFilter = 'all' | 'paid' | 'partial' | 'unpaid' | 'void';
 type ModeFilter = 'all' | 'cash' | 'upi' | 'card' | 'credit';
 type DateFilter = 'all' | 'today' | 'week' | 'month';
 
+const PAGE_SIZE = 50;
+const INVOICE_ROW_HEIGHT = 172;
+
+interface InvoiceRowCardProps {
+  inv: Invoice;
+  canVoid: boolean;
+  onViewReceipt: (inv: Invoice) => void;
+  onShare: (inv: Invoice) => void;
+  onPrint: (inv: Invoice) => void;
+  onVoidPress: (inv: Invoice) => void;
+}
+
+const InvoiceRowCard = React.memo<InvoiceRowCardProps>(
+  ({ inv, canVoid, onViewReceipt, onShare, onPrint, onVoidPress }) => {
+    const formattedDate = useMemo(
+      () =>
+        new Date(inv.createdAt).toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      [inv.createdAt]
+    );
+
+    return (
+      <Card
+        radius="lg"
+        shadow="sm"
+        style={[styles.invoiceCard, inv.isVoid && styles.voidCard]}
+      >
+        <View style={styles.cardTopRow}>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.invNumber} numberOfLines={1}>{inv.invoiceNumber}</Text>
+            </View>
+            <Text style={styles.invDate}>{formattedDate}</Text>
+          </View>
+
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={[styles.invTotal, inv.isVoid && styles.voidText]}>
+              {formatRupees(inv.grandTotalPaise)}
+            </Text>
+            <Badge
+              color={inv.isVoid ? 'danger' : inv.paymentStatus === 'paid' ? 'success' : 'warning'}
+              variant="flat"
+              size="sm"
+              style={{ marginTop: 4 }}
+            >
+              {inv.isVoid ? 'VOIDED' : inv.paymentStatus.toUpperCase()}
+            </Badge>
+          </View>
+        </View>
+
+        <Divider style={{ marginVertical: SPACING.sm }} />
+
+        <View style={styles.cardMidRow}>
+          <View style={styles.custRow}>
+            <User size={14} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
+            <Text style={styles.custText} numberOfLines={1}>
+              {inv.customerName || 'Walk-in Customer'} {inv.customerPhone ? `(${inv.customerPhone})` : ''}
+            </Text>
+          </View>
+          <View style={styles.modeBadgeBox}>
+            <Text style={styles.methodText}>{inv.paymentMethod.toUpperCase()}</Text>
+          </View>
+        </View>
+
+        <View style={styles.cardBottomRow}>
+          <TouchableOpacity onPress={() => onViewReceipt(inv)}>
+            <Text style={styles.viewReceiptLink}>View Bill Receipt →</Text>
+          </TouchableOpacity>
+
+          <View style={styles.actionBtns}>
+            <TouchableOpacity onPress={() => onShare(inv)} style={styles.iconActionBtn}>
+              <Share2 size={18} color={COLORS.secondary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => onPrint(inv)} style={styles.iconActionBtn}>
+              <Printer size={18} color={COLORS.primary} />
+            </TouchableOpacity>
+
+            {!inv.isVoid && canVoid ? (
+              <Button
+                variant="light"
+                color="danger"
+                size="sm"
+                onPress={() => onVoidPress(inv)}
+              >
+                Void
+              </Button>
+            ) : null}
+          </View>
+        </View>
+      </Card>
+    );
+  }
+);
+
 export default function BillHistoryScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
   const canDo = useCan();
   const t = TRANSLATIONS[language];
   const canViewAllInvoices = canDo('view_all_invoices');
+  const canVoid = canDo('void_invoice');
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
@@ -59,19 +164,63 @@ export default function BillHistoryScreen() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [voidReason, setVoidReason] = useState('');
 
-  const loadInvoices = async () => {
+  const loadInvoices = useCallback(async () => {
     if (!business) return;
     setIsRefreshing(true);
     try {
-      const data = await billingService.getInvoices(business.id);
+      const data = await billingService.getInvoices(business.id, {
+        limit: PAGE_SIZE,
+        withItems: false,
+      });
       setInvoices(data);
+      setHasMore(data.length >= PAGE_SIZE);
     } finally {
       setIsRefreshing(false);
     }
-  };
+  }, [business]);
+
+  const loadMoreInvoices = useCallback(async () => {
+    if (!business || !hasMore || isLoadingMore || invoices.length === 0) return;
+    setIsLoadingMore(true);
+    try {
+      const oldestCreatedAt = invoices[invoices.length - 1].createdAt;
+      const nextPage = await billingService.getInvoices(business.id, {
+        limit: PAGE_SIZE,
+        before: oldestCreatedAt,
+        withItems: false,
+      });
+      if (nextPage.length === 0) {
+        setHasMore(false);
+      } else {
+        setInvoices((prev) => {
+          const seen = new Set(prev.map((i) => i.id));
+          const unique = nextPage.filter((i) => !seen.has(i.id));
+          return [...prev, ...unique];
+        });
+        setHasMore(nextPage.length >= PAGE_SIZE);
+      }
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [business, hasMore, isLoadingMore, invoices]);
 
   useEffect(() => {
-    loadInvoices();
+    if (!business) return;
+    let cancelled = false;
+    setIsRefreshing(true);
+    billingService
+      .getInvoices(business.id, { limit: PAGE_SIZE, withItems: false })
+      .then((data) => {
+        if (cancelled) return;
+        setInvoices(data);
+        setHasMore(data.length >= PAGE_SIZE);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [business]);
 
   const openFilterModal = () => {
@@ -94,62 +243,119 @@ export default function BillHistoryScreen() {
     setTempDate('all');
   };
 
-  const now = new Date();
-  const filteredInvoices = invoices.filter((inv) => {
-    // 1. Status Filter
-    const matchesStatus =
-      statusFilter === 'all'
-        ? true
-        : statusFilter === 'void'
-        ? inv.isVoid
-        : inv.paymentStatus === statusFilter && !inv.isVoid;
+  const filteredInvoices = useMemo(() => {
+    const now = new Date();
+    const query = debouncedSearch.trim().toLowerCase();
+    return invoices.filter((inv) => {
+      const matchesStatus =
+        statusFilter === 'all'
+          ? true
+          : statusFilter === 'void'
+          ? inv.isVoid
+          : inv.paymentStatus === statusFilter && !inv.isVoid;
+      if (!matchesStatus) return false;
 
-    // 2. Payment Mode Filter
-    const matchesMode =
-      modeFilter === 'all'
-        ? true
-        : inv.paymentMethod === modeFilter;
+      if (modeFilter !== 'all' && inv.paymentMethod !== modeFilter) return false;
 
-    // 3. Date Filter
-    const invDate = new Date(inv.createdAt);
-    let matchesDate = true;
-    if (dateFilter === 'today') {
-      matchesDate =
-        invDate.getDate() === now.getDate() &&
-        invDate.getMonth() === now.getMonth() &&
-        invDate.getFullYear() === now.getFullYear();
-    } else if (dateFilter === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      matchesDate = invDate >= weekAgo;
-    } else if (dateFilter === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      matchesDate = invDate >= monthAgo;
-    }
+      if (dateFilter !== 'all') {
+        const invDate = new Date(inv.createdAt);
+        if (dateFilter === 'today') {
+          if (
+            invDate.getDate() !== now.getDate() ||
+            invDate.getMonth() !== now.getMonth() ||
+            invDate.getFullYear() !== now.getFullYear()
+          ) {
+            return false;
+          }
+        } else if (dateFilter === 'week') {
+          const weekAgo = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+          if (invDate.getTime() < weekAgo) return false;
+        } else if (dateFilter === 'month') {
+          const monthAgo = now.getTime() - 30 * 24 * 60 * 60 * 1000;
+          if (invDate.getTime() < monthAgo) return false;
+        }
+      }
 
-    // 4. Search Filter
-    const matchesSearch =
-      search.trim() === '' ||
-      inv.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-      (inv.customerName && inv.customerName.toLowerCase().includes(search.toLowerCase())) ||
-      (inv.customerPhone && inv.customerPhone.includes(search));
+      if (!query) return true;
+      return (
+        inv.invoiceNumber.toLowerCase().includes(query) ||
+        Boolean(inv.customerName && inv.customerName.toLowerCase().includes(query)) ||
+        Boolean(inv.customerPhone && inv.customerPhone.includes(query))
+      );
+    });
+  }, [invoices, statusFilter, modeFilter, dateFilter, debouncedSearch]);
 
-    return matchesStatus && matchesMode && matchesDate && matchesSearch;
-  });
+  const totalFilteredAmount = useMemo(
+    () =>
+      filteredInvoices
+        .filter((i) => !i.isVoid)
+        .reduce((sum, i) => sum + i.grandTotalPaise, 0),
+    [filteredInvoices]
+  );
 
-  // Calculate filtered totals
-  const totalFilteredAmount = filteredInvoices
-    .filter((i) => !i.isVoid)
-    .reduce((sum, i) => sum + i.grandTotalPaise, 0);
+  const hydrateInvoiceWithItems = useCallback(async (inv: Invoice): Promise<Invoice> => {
+    if (inv.items && inv.items.length > 0) return inv;
+    const full = await billingService.getInvoiceById(inv.id);
+    return full || inv;
+  }, []);
 
-  const handlePrint = async (inv: Invoice) => {
-    if (!business) return;
-    await pdfService.printReceipt(inv, business, 'thermal');
-  };
+  const handleViewReceipt = useCallback(
+    (inv: Invoice) => {
+      router.push({
+        pathname: '/receipt-preview',
+        params: { invoiceData: JSON.stringify(inv) },
+      } as any);
+    },
+    [router]
+  );
 
-  const handleShare = async (inv: Invoice) => {
-    if (!business) return;
-    await pdfService.shareReceipt(inv, business, 'thermal');
-  };
+  const handlePrint = useCallback(
+    async (inv: Invoice) => {
+      if (!business) return;
+      const fullInv = await hydrateInvoiceWithItems(inv);
+      await pdfService.printReceipt(fullInv, business, 'thermal');
+    },
+    [business, hydrateInvoiceWithItems]
+  );
+
+  const handleShare = useCallback(
+    async (inv: Invoice) => {
+      if (!business) return;
+      const fullInv = await hydrateInvoiceWithItems(inv);
+      await pdfService.shareReceipt(fullInv, business, 'thermal');
+    },
+    [business, hydrateInvoiceWithItems]
+  );
+
+  const handleVoidPress = useCallback((inv: Invoice) => {
+    setSelectedInvoice(inv);
+    setVoidModalVisible(true);
+  }, []);
+
+  const renderInvoiceRow = useCallback(
+    ({ item }: { item: Invoice }) => (
+      <InvoiceRowCard
+        inv={item}
+        canVoid={canVoid}
+        onViewReceipt={handleViewReceipt}
+        onShare={handleShare}
+        onPrint={handlePrint}
+        onVoidPress={handleVoidPress}
+      />
+    ),
+    [canVoid, handleViewReceipt, handleShare, handlePrint, handleVoidPress]
+  );
+
+  const invoiceKeyExtractor = useCallback((item: Invoice) => item.id, []);
+
+  const invoiceGetItemLayout = useCallback(
+    (_data: ArrayLike<Invoice> | null | undefined, index: number) => ({
+      length: INVOICE_ROW_HEIGHT,
+      offset: INVOICE_ROW_HEIGHT * index,
+      index,
+    }),
+    []
+  );
 
   const handleConfirmVoid = async () => {
     if (!selectedInvoice) return;
@@ -274,11 +480,20 @@ export default function BillHistoryScreen() {
       </View>
 
       {/* Bills List */}
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
+      <FlatList
+        data={filteredInvoices}
+        keyExtractor={invoiceKeyExtractor}
+        getItemLayout={invoiceGetItemLayout}
+        renderItem={renderInvoiceRow}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
+        onEndReached={loadMoreInvoices}
+        onEndReachedThreshold={0.4}
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={loadInvoices} />}
-      >
-        {filteredInvoices.length === 0 ? (
+        ListEmptyComponent={
           <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <FolderOpen size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No matching bills found</Text>
@@ -289,103 +504,8 @@ export default function BillHistoryScreen() {
               </Button>
             ) : null}
           </Card>
-        ) : (
-          filteredInvoices.map((inv) => (
-            <Card
-              key={inv.id}
-              radius="lg"
-              shadow="sm"
-              style={[styles.invoiceCard, inv.isVoid && styles.voidCard]}
-            >
-              <View style={styles.cardTopRow}>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
-                  </View>
-                  <Text style={styles.invDate}>
-                    {new Date(inv.createdAt).toLocaleDateString('en-IN', {
-                      day: '2-digit',
-                      month: 'short',
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                </View>
-
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={[styles.invTotal, inv.isVoid && styles.voidText]}>
-                    {formatRupees(inv.grandTotalPaise)}
-                  </Text>
-                  <Badge
-                    color={inv.isVoid ? 'danger' : inv.paymentStatus === 'paid' ? 'success' : 'warning'}
-                    variant="flat"
-                    size="sm"
-                    style={{ marginTop: 4 }}
-                  >
-                    {inv.isVoid ? 'VOIDED' : inv.paymentStatus.toUpperCase()}
-                  </Badge>
-                </View>
-              </View>
-
-              <Divider style={{ marginVertical: SPACING.sm }} />
-
-              <View style={styles.cardMidRow}>
-                <View style={styles.custRow}>
-                  <User size={14} color={COLORS.textSecondary} style={{ marginRight: 6 }} />
-                  <Text style={styles.custText} numberOfLines={1}>
-                    {inv.customerName || 'Walk-in Customer'} {inv.customerPhone ? `(${inv.customerPhone})` : ''}
-                  </Text>
-                </View>
-                <View style={styles.modeBadgeBox}>
-                  <Text style={styles.methodText}>
-                    {inv.paymentMethod.toUpperCase()}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.cardBottomRow}>
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({
-                      pathname: '/receipt-preview',
-                      params: { invoiceData: JSON.stringify(inv) },
-                    } as any)
-                  }
-                >
-                  <Text style={styles.viewReceiptLink}>View Bill Receipt →</Text>
-                </TouchableOpacity>
-
-                <View style={styles.actionBtns}>
-                  <TouchableOpacity onPress={() => handleShare(inv)} style={styles.iconActionBtn}>
-                    <Share2 size={18} color={COLORS.secondary} />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity onPress={() => handlePrint(inv)} style={styles.iconActionBtn}>
-                    <Printer size={18} color={COLORS.primary} />
-                  </TouchableOpacity>
-
-                  {!inv.isVoid ? (
-                    <RoleGate permission="void_invoice">
-                      <Button
-                        variant="light"
-                        color="danger"
-                        size="sm"
-                        onPress={() => {
-                          setSelectedInvoice(inv);
-                          setVoidModalVisible(true);
-                        }}
-                      >
-                        Void
-                      </Button>
-                    </RoleGate>
-                  ) : null}
-                </View>
-              </View>
-            </Card>
-          ))
-        )}
-      </ScrollView>
+        }
+      />
 
       {/* Dedicated Filter Selection Modal */}
       <Modal isOpen={filterModalVisible} onClose={() => setFilterModalVisible(false)}>
@@ -637,6 +757,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderWidth: 1,
     borderColor: COLORS.border,
+    minHeight: INVOICE_ROW_HEIGHT - SPACING.sm,
   },
   voidCard: {
     backgroundColor: COLORS.errorLight,

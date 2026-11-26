@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { View, StyleSheet, ScrollView, FlatList, Alert, Text, RefreshControl } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Badge, Divider } from '../../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -10,15 +11,122 @@ import { productService } from '../../services/product.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { useCan, RoleGate } from '../../utils/permissions';
+import { useDebouncedValue } from '../../utils/useDebouncedValue';
 import { Product, ProductUnit } from '../../types';
 import { Search, Plus, Boxes, Pencil, Trash2 } from '../../components/common/Icons';
 
 const UNITS: ProductUnit[] = ['item', 'kg', 'g', 'liter', 'ml', 'meter', 'packet', 'box', 'plate', 'cup'];
+const OWNER_ROW_HEIGHT = 136;
+const STAFF_ROW_HEIGHT = 82;
+
+interface ProductRowCardProps {
+  product: Product;
+  canAdjustStock: boolean;
+  canManageProducts: boolean;
+  onOpenStock: (product: Product) => void;
+  onEdit: (product: Product) => void;
+}
+
+const ProductRowCard = React.memo<ProductRowCardProps>(
+  ({ product, canAdjustStock, canManageProducts, onOpenStock, onEdit }) => {
+    const isLow = product.stockQuantity <= product.lowStockThreshold;
+    const showActions = canAdjustStock || canManageProducts;
+    return (
+      <Card
+        radius="lg"
+        shadow="sm"
+        style={[
+          styles.prodCard,
+          { height: showActions ? OWNER_ROW_HEIGHT - SPACING.sm : STAFF_ROW_HEIGHT - SPACING.sm },
+        ]}
+      >
+        <View style={styles.prodMain}>
+          <View style={styles.prodInfo}>
+            <Text style={styles.prodName} numberOfLines={1}>
+              {product.name}
+            </Text>
+            <Text style={styles.prodMeta} numberOfLines={1}>
+              GST {product.taxRate}% • {product.unit} {product.sku ? `• SKU: ${product.sku}` : ''}
+            </Text>
+          </View>
+
+          <View style={styles.priceStockBlock}>
+            <Text style={styles.prodPrice}>{formatRupees(product.sellingPricePaise)}</Text>
+            <Badge
+              color={isLow ? 'danger' : 'default'}
+              variant="flat"
+              size="sm"
+              style={{ marginTop: 4 }}
+            >
+              {product.stockQuantity} {product.unit}
+            </Badge>
+          </View>
+        </View>
+
+        {showActions ? (
+          <>
+            <Divider style={{ marginVertical: SPACING.sm }} />
+
+            <View style={styles.actionRow}>
+              {canAdjustStock ? (
+                <Button
+                  variant="flat"
+                  color="secondary"
+                  size="sm"
+                  radius="sm"
+                  startContent={<Boxes size={14} color={COLORS.secondary} />}
+                  onPress={() => onOpenStock(product)}
+                >
+                  Adjust Stock
+                </Button>
+              ) : null}
+
+              {canManageProducts ? (
+                <Button
+                  variant="flat"
+                  color="primary"
+                  size="sm"
+                  radius="sm"
+                  startContent={<Pencil size={14} color={COLORS.primary} />}
+                  onPress={() => onEdit(product)}
+                >
+                  Edit
+                </Button>
+              ) : null}
+            </View>
+          </>
+        ) : null}
+      </Card>
+    );
+  }
+);
 
 export default function ProductsScreen() {
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
-  const { products, categories, setProducts, setCategories, addProduct, updateProduct, deleteProduct, adjustStock } = useProductStore();
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
+  const {
+    products,
+    searchKeysById,
+    categories,
+    setProducts,
+    setCategories,
+    addProduct,
+    updateProduct,
+    deleteProduct,
+    adjustStock,
+  } = useProductStore(
+    useShallow((s) => ({
+      products: s.products,
+      searchKeysById: s.searchKeysById,
+      categories: s.categories,
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+      addProduct: s.addProduct,
+      updateProduct: s.updateProduct,
+      deleteProduct: s.deleteProduct,
+      adjustStock: s.adjustStock,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 
@@ -42,10 +150,29 @@ export default function ProductsScreen() {
   }, [business, setProducts, setCategories]);
 
   useEffect(() => {
-    loadProducts();
-  }, [loadProducts]);
+    if (!business) return;
+    let cancelled = false;
+    setIsRefreshing(true);
+    Promise.all([
+      productService.getProducts(business.id),
+      productService.getCategories(business.id),
+    ])
+      .then(([prods, cats]) => {
+        if (cancelled) return;
+        setProducts(prods);
+        setCategories(cats);
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business, setProducts, setCategories]);
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
   // Add / Edit Product Modal state
@@ -72,15 +199,17 @@ export default function ProductsScreen() {
   const [movementType, setMovementType] = useState<'purchase' | 'return' | 'adjustment'>('purchase');
   const [stockReason, setStockReason] = useState('');
 
-  const filteredProducts = products.filter((p) => {
-    const matchesCat = selectedCat ? p.categoryId === selectedCat : true;
-    const matchesSearch = search.trim() === '' ||
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.sku && p.sku.includes(search));
-    return matchesCat && matchesSearch;
-  });
+  const filteredProducts = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
+    return products.filter((p) => {
+      if (selectedCat && p.categoryId !== selectedCat) return false;
+      if (!query) return true;
+      const key = searchKeysById[p.id] || p.name.toLowerCase();
+      return key.includes(query);
+    });
+  }, [products, searchKeysById, selectedCat, debouncedSearch]);
 
-  const openAddModal = () => {
+  const openAddModal = useCallback(() => {
     setIsEditing(false);
     setEditingId(null);
     setName('');
@@ -95,9 +224,9 @@ export default function ProductsScreen() {
     setIsFavourite(false);
     setCategoryId(undefined);
     setModalVisible(true);
-  };
+  }, [business]);
 
-  const openEditModal = (p: Product) => {
+  const openEditModal = useCallback((p: Product) => {
     setIsEditing(true);
     setEditingId(p.id);
     setName(p.name);
@@ -112,7 +241,38 @@ export default function ProductsScreen() {
     setIsFavourite(p.isFavourite);
     setCategoryId(p.categoryId);
     setModalVisible(true);
-  };
+  }, []);
+
+  const handleOpenStockModal = useCallback((p: Product) => {
+    setStockProduct(p);
+    setStockModalVisible(true);
+  }, []);
+
+  const rowHeight = canAdjustStock || canManageProducts ? OWNER_ROW_HEIGHT : STAFF_ROW_HEIGHT;
+
+  const renderProductRow = useCallback(
+    ({ item }: { item: Product }) => (
+      <ProductRowCard
+        product={item}
+        canAdjustStock={canAdjustStock}
+        canManageProducts={canManageProducts}
+        onOpenStock={handleOpenStockModal}
+        onEdit={openEditModal}
+      />
+    ),
+    [canAdjustStock, canManageProducts, handleOpenStockModal, openEditModal]
+  );
+
+  const productKeyExtractor = useCallback((item: Product) => item.id, []);
+
+  const productGetItemLayout = useCallback(
+    (_data: ArrayLike<Product> | null | undefined, index: number) => ({
+      length: rowHeight,
+      offset: rowHeight * index,
+      index,
+    }),
+    [rowHeight]
+  );
 
   const handleSaveProduct = async () => {
     if (!name.trim()) {
@@ -266,13 +426,20 @@ export default function ProductsScreen() {
       </View>
 
       {/* Products List */}
-      <ScrollView
+      <FlatList
+        data={filteredProducts}
+        keyExtractor={productKeyExtractor}
+        getItemLayout={productGetItemLayout}
+        renderItem={renderProductRow}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
         contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={loadProducts} />
         }
-      >
-        {filteredProducts.length === 0 ? (
+        ListEmptyComponent={
           <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <Boxes size={38} color={COLORS.textMuted} style={{ marginBottom: 8 }} />
             <Text style={styles.emptyTitle}>
@@ -297,73 +464,8 @@ export default function ProductsScreen() {
               Refresh Catalog
             </Button>
           </Card>
-        ) : (
-          filteredProducts.map((p) => {
-          const isLow = p.stockQuantity <= p.lowStockThreshold;
-          return (
-            <Card key={p.id} radius="lg" shadow="sm" style={styles.prodCard}>
-              <View style={styles.prodMain}>
-                <View style={styles.prodInfo}>
-                  <Text style={styles.prodName}>{p.name}</Text>
-                  <Text style={styles.prodMeta}>
-                    GST {p.taxRate}% • {p.unit} {p.sku ? `• SKU: ${p.sku}` : ''}
-                  </Text>
-                </View>
-
-                <View style={styles.priceStockBlock}>
-                  <Text style={styles.prodPrice}>{formatRupees(p.sellingPricePaise)}</Text>
-                  <Badge
-                    color={isLow ? 'danger' : 'default'}
-                    variant="flat"
-                    size="sm"
-                    style={{ marginTop: 4 }}
-                  >
-                    {p.stockQuantity} {p.unit}
-                  </Badge>
-                </View>
-              </View>
-
-              {canAdjustStock || canManageProducts ? (
-                <>
-                  <Divider style={{ marginVertical: SPACING.sm }} />
-
-                  <View style={styles.actionRow}>
-                    <RoleGate permission="adjust_stock">
-                      <Button
-                        variant="flat"
-                        color="secondary"
-                        size="sm"
-                        radius="sm"
-                        startContent={<Boxes size={14} color={COLORS.secondary} />}
-                        onPress={() => {
-                          setStockProduct(p);
-                          setStockModalVisible(true);
-                        }}
-                      >
-                        Adjust Stock
-                      </Button>
-                    </RoleGate>
-
-                    <RoleGate permission="manage_products">
-                      <Button
-                        variant="flat"
-                        color="primary"
-                        size="sm"
-                        radius="sm"
-                        startContent={<Pencil size={14} color={COLORS.primary} />}
-                        onPress={() => openEditModal(p)}
-                      >
-                        Edit
-                      </Button>
-                    </RoleGate>
-                  </View>
-                </>
-              ) : null}
-            </Card>
-          );
-        })
-        )}
-      </ScrollView>
+        }
+      />
 
       {/* MODAL 1: Add / Edit Product (owner/admin only) */}
       <RoleGate permission="manage_products">

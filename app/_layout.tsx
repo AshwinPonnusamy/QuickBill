@@ -5,6 +5,7 @@ import { PaperProvider } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationBar } from 'expo-navigation-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useShallow } from 'zustand/react/shallow';
 import { AppPaperTheme } from '../constants/theme';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
@@ -16,9 +17,28 @@ import { productService } from '../services/product.service';
 import { forceLogoutSuspendedUser } from '../services/sessionGuard';
 
 export default function RootLayout() {
-  const { setAuth, setLanguage, setHydrated, logout } = useAuthStore();
-  const { setBusiness, setSubscription, setRole, resetBusinessSession } = useBusinessStore();
-  const { setProducts, setCategories } = useProductStore();
+  const { setAuth, setLanguage, setHydrated, logout } = useAuthStore(
+    useShallow((s) => ({
+      setAuth: s.setAuth,
+      setLanguage: s.setLanguage,
+      setHydrated: s.setHydrated,
+      logout: s.logout,
+    }))
+  );
+  const { setBusiness, setSubscription, setRole, resetBusinessSession } = useBusinessStore(
+    useShallow((s) => ({
+      setBusiness: s.setBusiness,
+      setSubscription: s.setSubscription,
+      setRole: s.setRole,
+      resetBusinessSession: s.resetBusinessSession,
+    }))
+  );
+  const { setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -57,12 +77,12 @@ export default function RootLayout() {
         return;
       }
 
-      const profile = await authService.ensureProfile(user);
+      const [profile, biz] = await Promise.all([
+        authService.ensureProfile(user),
+        businessService.getBusiness(user.id),
+      ]);
       if (!isMounted) return;
       setAuth(user, profile);
-
-      const biz = await businessService.getBusiness(user.id);
-      if (!isMounted) return;
 
       if (!biz) {
         const suspended = await businessService.isUserSuspended(user.id);
@@ -77,29 +97,37 @@ export default function RootLayout() {
         return;
       }
 
-      if (biz.ownerId !== user.id) {
-        const status = await businessService.getMembershipStatus(biz.id, user.id);
-        if (!isMounted) return;
-        if (status !== 'active') {
-          await forceLogoutSuspendedUser('Your staff membership is suspended or no longer active.');
-          return;
-        }
+      const [status, role] = await Promise.all([
+        biz.ownerId !== user.id
+          ? businessService.getMembershipStatus(biz.id, user.id)
+          : Promise.resolve('active' as const),
+        businessService.getMyRole(biz.id, user.id),
+      ]);
+      if (!isMounted) return;
+      if (status !== 'active') {
+        await forceLogoutSuspendedUser('Your staff membership is suspended or no longer active.');
+        return;
       }
 
-      const role = await businessService.getMyRole(biz.id, user.id);
-      if (!isMounted) return;
       setBusiness(biz);
       setRole(role);
 
-      const [sub, prods, cats] = await Promise.all([
+      // Fetch subscription & products in parallel; defer non-critical categories after first paint
+      Promise.all([
         businessService.getSubscription(biz.id),
         productService.getProducts(biz.id),
-        productService.getCategories(biz.id),
-      ]);
-      if (!isMounted) return;
-      setSubscription(sub);
-      setProducts(prods);
-      setCategories(cats);
+      ]).then(([sub, prods]) => {
+        if (!isMounted) return;
+        setSubscription(sub);
+        setProducts(prods);
+      });
+
+      setTimeout(() => {
+        if (!isMounted) return;
+        productService.getCategories(biz.id).then((cats) => {
+          if (isMounted) setCategories(cats);
+        });
+      }, 0);
     }
 
     async function bootstrap() {

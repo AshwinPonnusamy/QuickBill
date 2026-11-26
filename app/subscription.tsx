@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Badge, Divider } from '../components/heroui';
 import { useRouter, Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -14,8 +15,15 @@ import { Check, Sparkles, CheckCircle2, Zap, ShieldCheck } from '../components/c
 
 export default function SubscriptionScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      subscription: s.subscription,
+      isRoleLoaded: s.isRoleLoaded,
+      setSubscription: s.setSubscription,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 

@@ -6,6 +6,7 @@ import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
+import { billingService } from '../services/billing.service';
 import { pdfService } from '../services/pdf.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
@@ -16,13 +17,31 @@ import { QuickBillLogo } from '../components/common/QuickBillLogo';
 export default function ReceiptPreviewScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
   const t = TRANSLATIONS[language];
 
-  const invoice: Invoice = params.invoiceData ? JSON.parse(params.invoiceData as string) : null;
+  const initialInvoice: Invoice | null = params.invoiceData
+    ? JSON.parse(params.invoiceData as string)
+    : null;
+  const [invoice, setInvoice] = useState<Invoice | null>(initialInvoice);
   const [template, setTemplate] = useState<'thermal' | 'a4'>('thermal');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // If navigated from paginated bill list (withItems: false), hydrate line items cleanly
+  useEffect(() => {
+    if (!initialInvoice?.id) return;
+    if (initialInvoice.items && initialInvoice.items.length > 0) return;
+    let cancelled = false;
+    billingService.getInvoiceById(initialInvoice.id).then((full) => {
+      if (!cancelled && full) {
+        setInvoice(full);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [initialInvoice?.id]);
 
   // Auto-send WhatsApp receipt if requested by checkout
   useEffect(() => {

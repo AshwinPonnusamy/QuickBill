@@ -1,5 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Text, RefreshControl } from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  FlatList,
+  Alert,
+  Text,
+  RefreshControl,
+} from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -13,32 +23,111 @@ import { productService } from '../../services/product.service';
 import { formatRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
 import { useCan, RoleGate } from '../../utils/permissions';
+import { useDebouncedValue } from '../../utils/useDebouncedValue';
 import { Customer, Product, ProductUnit } from '../../types';
 import { User, Search, X, Tag, ChevronDown } from '../../components/common/Icons';
 
+const POS_TILE_HEIGHT = 140;
+const POS_ROW_STRIDE = POS_TILE_HEIGHT + SPACING.xs * 2;
+
+interface PosProductTileProps {
+  item: Product;
+  cartItemId?: string;
+  cartQty: number;
+  onAdd: (product: Product) => void;
+  onStepQuantity: (cartItemId: string, nextQty: number) => void;
+}
+
+const PosProductTile = React.memo<PosProductTileProps>(
+  ({ item, cartItemId, cartQty, onAdd, onStepQuantity }) => {
+    return (
+      <Card radius="lg" shadow="sm" style={styles.productCard}>
+        <View style={styles.productInfo}>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.name}
+          </Text>
+          <Text style={styles.productUnit}>per {item.unit}</Text>
+          <Text style={styles.productPrice}>{formatRupees(item.sellingPricePaise)}</Text>
+        </View>
+
+        {cartQty === 0 ? (
+          <Button
+            color="secondary"
+            variant="flat"
+            size="sm"
+            radius="sm"
+            fullWidth
+            onPress={() => onAdd(item)}
+          >
+            + ADD
+          </Button>
+        ) : (
+          <View style={styles.stepperRow}>
+            <TouchableOpacity
+              onPress={() => cartItemId && onStepQuantity(cartItemId, cartQty - 1)}
+              style={styles.stepperBtn}
+            >
+              <Text style={styles.stepperBtnText}>-</Text>
+            </TouchableOpacity>
+            <Text style={styles.stepperValue}>{cartQty}</Text>
+            <TouchableOpacity
+              onPress={() => cartItemId && onStepQuantity(cartItemId, cartQty + 1)}
+              style={styles.stepperBtn}
+            >
+              <Text style={styles.stepperBtnText}>+</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </Card>
+    );
+  }
+);
+
 export default function CreateBillScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
-  const { business } = useBusinessStore();
-  const { products, categories, setProducts, setCategories } = useProductStore();
-  const canDo = useCan();
-  const { 
-    cart, 
-    customer, 
-    addToCart, 
-    updateQuantity, 
-    removeFromCart, 
-    addCustomItem, 
-    setCustomer, 
-    discountType, 
-    discountValue, 
+  const language = useAuthStore((s) => s.language);
+  const business = useBusinessStore((s) => s.business);
+  const { products, searchKeysById, categories, setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      products: s.products,
+      searchKeysById: s.searchKeysById,
+      categories: s.categories,
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
+  const {
+    cart,
+    customer,
+    discountType,
+    discountValue,
+    addToCart,
+    updateQuantity,
+    addCustomItem,
+    setCustomer,
     setDiscount,
-    clearBill, 
-    getCalculation 
-  } = useBillStore();
+    clearBill,
+    getCalculation,
+  } = useBillStore(
+    useShallow((s) => ({
+      cart: s.cart,
+      customer: s.customer,
+      discountType: s.discountType,
+      discountValue: s.discountValue,
+      addToCart: s.addToCart,
+      updateQuantity: s.updateQuantity,
+      addCustomItem: s.addCustomItem,
+      setCustomer: s.setCustomer,
+      setDiscount: s.setDiscount,
+      clearBill: s.clearBill,
+      getCalculation: s.getCalculation,
+    }))
+  );
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
 
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -75,23 +164,100 @@ export default function CreateBillScreen() {
   }, [business, setProducts, setCategories]);
 
   useEffect(() => {
-    refreshCatalogAndCustomers();
-  }, [refreshCatalogAndCustomers]);
+    if (!business) return;
+    let cancelled = false;
+
+    if (products.length === 0) {
+      productService.getProducts(business.id).then((prods) => {
+        if (!cancelled) setProducts(prods);
+      });
+    }
+
+    const timer = setTimeout(() => {
+      if (cancelled) return;
+      Promise.all([
+        billingService.getCustomers(business.id),
+        categories.length === 0 ? productService.getCategories(business.id) : Promise.resolve(null),
+      ]).then(([custList, cats]) => {
+        if (cancelled) return;
+        setCustomers(custList);
+        if (cats) setCategories(cats);
+      });
+    }, 0);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [business]);
 
   useEffect(() => {
     if (!canDo('apply_discount') && (discountType !== 'none' || discountValue !== 0)) {
       setDiscount('none', 0);
     }
-  }, [canDo, discountType, discountValue]);
+  }, [canDo, discountType, discountValue, setDiscount]);
 
-  // Filter products by category & search
-  const filteredProducts = products.filter((p) => {
-    const matchesCategory = selectedCat ? p.categoryId === selectedCat : true;
-    const matchesSearch = search.trim() === '' || 
-      p.name.toLowerCase().includes(search.toLowerCase()) ||
-      (p.barcode && p.barcode.includes(search));
-    return matchesCategory && matchesSearch;
-  });
+  const filteredProducts = useMemo(() => {
+    const query = debouncedSearch.trim().toLowerCase();
+    return products.filter((p) => {
+      if (selectedCat && p.categoryId !== selectedCat) return false;
+      if (!query) return true;
+      const key = searchKeysById[p.id] || p.name.toLowerCase();
+      return key.includes(query);
+    });
+  }, [products, searchKeysById, selectedCat, debouncedSearch]);
+
+  const cartByProductId = useMemo(() => {
+    const map = new Map<string, { id: string; quantity: number }>();
+    for (let i = 0; i < cart.length; i++) {
+      const c = cart[i];
+      if (c.productId) {
+        map.set(c.productId, { id: c.id, quantity: c.quantity });
+      }
+    }
+    return map;
+  }, [cart]);
+
+  const handleAddProduct = useCallback(
+    (product: Product) => {
+      addToCart(product, 1);
+    },
+    [addToCart]
+  );
+
+  const handleStepQuantity = useCallback(
+    (cartItemId: string, nextQty: number) => {
+      updateQuantity(cartItemId, nextQty);
+    },
+    [updateQuantity]
+  );
+
+  const renderProductTile = useCallback(
+    ({ item }: { item: Product }) => {
+      const inCart = cartByProductId.get(item.id);
+      return (
+        <PosProductTile
+          item={item}
+          cartItemId={inCart?.id}
+          cartQty={inCart?.quantity || 0}
+          onAdd={handleAddProduct}
+          onStepQuantity={handleStepQuantity}
+        />
+      );
+    },
+    [cartByProductId, handleAddProduct, handleStepQuantity]
+  );
+
+  const keyExtractor = useCallback((item: Product) => item.id, []);
+
+  const getItemLayout = useCallback(
+    (_data: ArrayLike<Product> | null | undefined, index: number) => ({
+      length: POS_ROW_STRIDE,
+      offset: POS_ROW_STRIDE * Math.floor(index / 2),
+      index,
+    }),
+    []
+  );
 
   const calculation = getCalculation();
 
@@ -236,57 +402,18 @@ export default function CreateBillScreen() {
       {/* Main Products Grid */}
       <FlatList
         data={filteredProducts}
-        keyExtractor={(item) => item.id}
+        keyExtractor={keyExtractor}
+        getItemLayout={getItemLayout}
         numColumns={2}
+        initialNumToRender={12}
+        maxToRenderPerBatch={12}
+        windowSize={5}
+        removeClippedSubviews
         contentContainerStyle={styles.productList}
         refreshControl={
           <RefreshControl refreshing={isRefreshing} onRefresh={refreshCatalogAndCustomers} />
         }
-        renderItem={({ item }) => {
-          const inCartItem = cart.find((c) => c.productId === item.id);
-          const cartQty = inCartItem?.quantity || 0;
-
-          return (
-            <Card radius="lg" shadow="sm" style={styles.productCard}>
-              <View style={styles.productInfo}>
-                <Text style={styles.productName} numberOfLines={2}>
-                  {item.name}
-                </Text>
-                <Text style={styles.productUnit}>per {item.unit}</Text>
-                <Text style={styles.productPrice}>{formatRupees(item.sellingPricePaise)}</Text>
-              </View>
-
-              {cartQty === 0 ? (
-                <Button
-                  color="secondary"
-                  variant="flat"
-                  size="sm"
-                  radius="sm"
-                  fullWidth
-                  onPress={() => addToCart(item, 1)}
-                >
-                  + ADD
-                </Button>
-              ) : (
-                <View style={styles.stepperRow}>
-                  <TouchableOpacity
-                    onPress={() => updateQuantity(inCartItem!.id, cartQty - 1)}
-                    style={styles.stepperBtn}
-                  >
-                    <Text style={styles.stepperBtnText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.stepperValue}>{cartQty}</Text>
-                  <TouchableOpacity
-                    onPress={() => updateQuantity(inCartItem!.id, cartQty + 1)}
-                    style={styles.stepperBtn}
-                  >
-                    <Text style={styles.stepperBtnText}>+</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </Card>
-          );
-        }}
+        renderItem={renderProductTile}
       />
 
       {/* Cart Summary Drawer / Bottom Bar */}
@@ -608,7 +735,7 @@ const styles = StyleSheet.create({
     margin: SPACING.xs,
     padding: SPACING.md,
     justifyContent: 'space-between',
-    minHeight: 130,
+    height: POS_TILE_HEIGHT,
   },
   productInfo: {
     marginBottom: SPACING.sm,

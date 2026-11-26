@@ -12,7 +12,7 @@ import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
+  const language = useAuthStore((s) => s.language);
   const t = TRANSLATIONS[language];
 
   const [email, setEmail] = useState('');

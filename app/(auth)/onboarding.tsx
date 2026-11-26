@@ -95,7 +95,7 @@ const SLIDES: OnboardingSlide[] = [
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const { language } = useAuthStore();
+  const language = useAuthStore((s) => s.language);
   const t = TRANSLATIONS[language];
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const [activeSlide, setActiveSlide] = useState(0);

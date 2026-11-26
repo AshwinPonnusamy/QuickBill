@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Text, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import { ArrowLeft, Settings, User, Users, LogOut } from './Icons';
 import { QuickBillLogo } from './QuickBillLogo';
 import { Button, Modal, ModalHeader, ModalBody, Badge, Divider } from '../heroui';
@@ -35,10 +36,28 @@ export const Header: React.FC<HeaderProps> = ({
   showSettings = true,
 }) => {
   const router = useRouter();
-  const { language, profile, logout } = useAuthStore();
-  const { business, role, isRoleLoaded, resetBusinessSession } = useBusinessStore();
-  const { setProducts, setCategories } = useProductStore();
-  const { clearBill } = useBillStore();
+  const { language, profile, logout } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      profile: s.profile,
+      logout: s.logout,
+    }))
+  );
+  const { business, role, isRoleLoaded, resetBusinessSession } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      role: s.role,
+      isRoleLoaded: s.isRoleLoaded,
+      resetBusinessSession: s.resetBusinessSession,
+    }))
+  );
+  const { setProducts, setCategories } = useProductStore(
+    useShallow((s) => ({
+      setProducts: s.setProducts,
+      setCategories: s.setCategories,
+    }))
+  );
+  const clearBill = useBillStore((s) => s.clearBill);
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 

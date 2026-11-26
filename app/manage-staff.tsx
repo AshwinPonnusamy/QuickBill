@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter, Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 import {
   Button,
   Card,
@@ -49,8 +50,20 @@ const ROLE_DISPLAY: Record<UserRole, string> = {
 
 export default function ManageStaffScreen() {
   const router = useRouter();
-  const { language, user } = useAuthStore();
-  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore();
+  const { language, user } = useAuthStore(
+    useShallow((s) => ({
+      language: s.language,
+      user: s.user,
+    }))
+  );
+  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore(
+    useShallow((s) => ({
+      business: s.business,
+      subscription: s.subscription,
+      isRoleLoaded: s.isRoleLoaded,
+      setSubscription: s.setSubscription,
+    }))
+  );
   const canDo = useCan();
   const t = TRANSLATIONS[language];
   const canManageStaff = canDo('manage_staff');
@@ -99,10 +112,33 @@ export default function ManageStaffScreen() {
   }, [business, canManageStaff]);
 
   useEffect(() => {
-    if (canManageStaff) {
-      loadData();
-    }
-  }, [loadData, canManageStaff]);
+    if (!business || !canManageStaff) return;
+    let cancelled = false;
+    setLoadError(null);
+    Promise.all([
+      staffService.listStaff(business.id),
+      businessService.getSubscription(business.id),
+    ])
+      .then(([staffRes, sub]) => {
+        if (cancelled) return;
+        if (staffRes.error) {
+          setLoadError(staffRes.error);
+        } else {
+          setMembers(staffRes.staff);
+        }
+        if (sub) setSubscription(sub);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [business, canManageStaff, setSubscription]);
 
   if (isRoleLoaded && !canManageStaff) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
