@@ -27,8 +27,13 @@ interface ProductRowCardProps {
   onEdit: (product: Product) => void;
 }
 
-const ProductRowCard = React.memo<ProductRowCardProps>(
-  ({ product, canAdjustStock, canManageProducts, onOpenStock, onEdit }) => {
+const ProductRowCard = React.memo<ProductRowCardProps>(function ProductRowCard({
+  product,
+  canAdjustStock,
+  canManageProducts,
+  onOpenStock,
+  onEdit,
+}) {
     const isLow = product.stockQuantity <= product.lowStockThreshold;
     const showActions = canAdjustStock || canManageProducts;
     return (
@@ -152,13 +157,18 @@ export default function ProductsScreen() {
   useEffect(() => {
     if (!business) return;
     let cancelled = false;
-    setIsRefreshing(true);
-    Promise.all([
-      productService.getProducts(business.id),
-      productService.getCategories(business.id),
-    ])
-      .then(([prods, cats]) => {
-        if (cancelled) return;
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setIsRefreshing(true);
+        return Promise.all([
+          productService.getProducts(business.id),
+          productService.getCategories(business.id),
+        ]);
+      })
+      .then((res) => {
+        if (cancelled || !res) return;
+        const [prods, cats] = res;
         setProducts(prods);
         setCategories(cats);
       })

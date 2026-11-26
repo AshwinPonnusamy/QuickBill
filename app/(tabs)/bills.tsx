@@ -46,8 +46,14 @@ interface InvoiceRowCardProps {
   onVoidPress: (inv: Invoice) => void;
 }
 
-const InvoiceRowCard = React.memo<InvoiceRowCardProps>(
-  ({ inv, canVoid, onViewReceipt, onShare, onPrint, onVoidPress }) => {
+const InvoiceRowCard = React.memo<InvoiceRowCardProps>(function InvoiceRowCard({
+  inv,
+  canVoid,
+  onViewReceipt,
+  onShare,
+  onPrint,
+  onVoidPress,
+}) {
     const formattedDate = useMemo(
       () =>
         new Date(inv.createdAt).toLocaleDateString('en-IN', {
@@ -207,9 +213,12 @@ export default function BillHistoryScreen() {
   useEffect(() => {
     if (!business) return;
     let cancelled = false;
-    setIsRefreshing(true);
-    billingService
-      .getInvoices(business.id, { limit: PAGE_SIZE, withItems: false })
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return [];
+        setIsRefreshing(true);
+        return billingService.getInvoices(business.id, { limit: PAGE_SIZE, withItems: false });
+      })
       .then((data) => {
         if (cancelled) return;
         setInvoices(data);

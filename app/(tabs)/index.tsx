@@ -77,15 +77,20 @@ export default function HomeDashboard() {
   useEffect(() => {
     if (!business || !canViewReports) return;
     let cancelled = false;
-    setIsRefreshing(true);
-    Promise.all([
-      billingService.getInvoices(business.id, { limit: 100, withItems: false, withPayments: true }),
-      businessService.getSubscription(business.id),
-      productService.getProducts(business.id),
-      productService.getCategories(business.id),
-    ])
-      .then(([invs, sub, prods, cats]) => {
-        if (cancelled) return;
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setIsRefreshing(true);
+        return Promise.all([
+          billingService.getInvoices(business.id, { limit: 100, withItems: false, withPayments: true }),
+          businessService.getSubscription(business.id),
+          productService.getProducts(business.id),
+          productService.getCategories(business.id),
+        ]);
+      })
+      .then((res) => {
+        if (cancelled || !res) return;
+        const [invs, sub, prods, cats] = res;
         setInvoices(invs);
         if (sub) setSubscription(sub);
         setProducts(prods);
@@ -100,11 +105,7 @@ export default function HomeDashboard() {
     };
   }, [business, canViewReports, setSubscription, setProducts, setCategories]);
 
-  if (isRoleLoaded && !canViewReports) {
-    return <Redirect href={'/(tabs)/new-bill' as any} />;
-  }
-
-  // Compute metrics in useMemo
+  // Compute metrics in useMemo (must run unconditionally before any Redirect)
   const report = useMemo(() => reportService.generateReport(invoices, 'weekly'), [invoices]);
   const lowStockProducts = useMemo(
     () => products.filter((p) => p.stockQuantity <= p.lowStockThreshold),
@@ -113,6 +114,10 @@ export default function HomeDashboard() {
 
   // Recent 5 transactions
   const recentInvoices = useMemo(() => invoices.slice(0, 5), [invoices]);
+
+  if (isRoleLoaded && !canViewReports) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   const isProPlan = subscription?.status === 'active' && subscription.plan === 'pro';
   const planLabel = isProPlan ? 'PRO PLAN' : subscription?.plan === 'starter' ? 'STARTER' : 'FREE PLAN';
@@ -194,7 +199,7 @@ export default function HomeDashboard() {
 
         {/* Financial Metrics 2x2 Grid */}
         <View style={styles.sectionHeaderRow}>
-          <Text style={styles.sectionHeaderTitle}>Today's Snapshot</Text>
+          <Text style={styles.sectionHeaderTitle}>Today&apos;s Snapshot</Text>
           <TouchableOpacity onPress={() => router.push('/(tabs)/reports' as any)}>
             <Text style={styles.sectionLink}>Full Reports →</Text>
           </TouchableOpacity>

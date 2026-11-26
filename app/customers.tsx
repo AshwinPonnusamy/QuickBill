@@ -20,7 +20,10 @@ interface CustomerRowCardProps {
   onSettlePress: (customer: Customer) => void;
 }
 
-const CustomerRowCard = React.memo<CustomerRowCardProps>(({ customer: c, onSettlePress }) => {
+const CustomerRowCard = React.memo<CustomerRowCardProps>(function CustomerRowCard({
+  customer: c,
+  onSettlePress,
+}) {
   return (
     <Card radius="lg" shadow="sm" style={styles.custCard}>
       <View style={styles.custTop}>
@@ -108,11 +111,14 @@ export default function CustomersScreen() {
   useEffect(() => {
     if (!business || !canSettleUdhar) return;
     let cancelled = false;
-    setIsRefreshing(true);
-    billingService
-      .getCustomers(business.id)
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return null;
+        setIsRefreshing(true);
+        return billingService.getCustomers(business.id);
+      })
       .then((list) => {
-        if (!cancelled) setCustomers(list);
+        if (!cancelled && list) setCustomers(list);
       })
       .finally(() => {
         if (!cancelled) setIsRefreshing(false);
@@ -121,10 +127,6 @@ export default function CustomersScreen() {
       cancelled = true;
     };
   }, [business, canSettleUdhar]);
-
-  if (isRoleLoaded && !canSettleUdhar) {
-    return <Redirect href={'/(tabs)/new-bill' as any} />;
-  }
 
   const filteredCustomers = useMemo(() => {
     const query = debouncedSearch.trim().toLowerCase();
@@ -175,6 +177,10 @@ export default function CustomersScreen() {
   );
 
   const customerKeyExtractor = useCallback((item: Customer) => item.id, []);
+
+  if (isRoleLoaded && !canSettleUdhar) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   const handleAddCustomer = async () => {
     if (!name.trim()) {
@@ -244,7 +250,7 @@ export default function CustomersScreen() {
           <Card radius="lg" shadow="sm" style={styles.emptyCard}>
             <Users size={40} color={COLORS.textMuted} style={{ marginBottom: SPACING.sm }} />
             <Text style={styles.emptyTitle}>No customers registered yet</Text>
-            <Text style={styles.emptySub}>Tap 'Add' to register a customer account with Udhar tracking.</Text>
+            <Text style={styles.emptySub}>Tap &apos;Add&apos; to register a customer account with Udhar tracking.</Text>
           </Card>
         }
       />

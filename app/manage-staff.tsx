@@ -114,7 +114,6 @@ export default function ManageStaffScreen() {
   useEffect(() => {
     if (!business || !canManageStaff) return;
     let cancelled = false;
-    setLoadError(null);
     Promise.all([
       staffService.listStaff(business.id),
       businessService.getSubscription(business.id),
@@ -124,6 +123,7 @@ export default function ManageStaffScreen() {
         if (staffRes.error) {
           setLoadError(staffRes.error);
         } else {
+          setLoadError(null);
           setMembers(staffRes.staff);
         }
         if (sub) setSubscription(sub);

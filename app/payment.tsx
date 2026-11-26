@@ -264,7 +264,7 @@ export default function PaymentScreen() {
               <Text style={styles.creditHeader}>Udhar / Unpaid Credit Sale</Text>
             </View>
             <Text style={styles.creditNotice}>
-              This invoice will be marked as UNPAID. The outstanding balance of {formatRupees(grandTotalPaise)} will be automatically added to {customer?.name || 'the customer'}'s ledger.
+              This invoice will be marked as UNPAID. The outstanding balance of {formatRupees(grandTotalPaise)} will be automatically added to {customer?.name || 'the customer'}&apos;s ledger.
             </Text>
           </Card>
         ) : null}

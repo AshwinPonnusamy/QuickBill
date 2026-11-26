@@ -56,7 +56,7 @@ export default function ForgotPasswordScreen() {
             {t.forgotPassword}
           </Text>
           <Text style={styles.subtitle}>
-            Enter your registered email address and we'll send you instructions to reset your password.
+            Enter your registered email address and we&apos;ll send you instructions to reset your password.
           </Text>
         </View>
 

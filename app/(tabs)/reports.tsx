@@ -77,31 +77,30 @@ export default function ReportsScreen() {
   useEffect(() => {
     if (!business || !canViewReports) return;
     let cancelled = false;
-    setIsRefreshing(true);
-
-    const task = needsDetailBreakdown
-      ? billingService
-          .getInvoices(business.id, { limit: 500, withItems: true, withPayments: true })
-          .then((data) => {
-            if (!cancelled) setInvoices(data);
-          })
-      : reportService.fetchReportForPeriod(business.id, period).then((res) => {
+    Promise.resolve()
+      .then(() => {
+        if (cancelled) return;
+        setIsRefreshing(true);
+        if (needsDetailBreakdown) {
+          return billingService
+            .getInvoices(business.id, { limit: 500, withItems: true, withPayments: true })
+            .then((data) => {
+              if (!cancelled) setInvoices(data);
+            });
+        }
+        return reportService.fetchReportForPeriod(business.id, period).then((res) => {
           if (cancelled) return;
           if (res.invoices.length > 0) setInvoices(res.invoices);
           setViewMetrics(res.metrics);
         });
-
-    task.finally(() => {
-      if (!cancelled) setIsRefreshing(false);
-    });
+      })
+      .finally(() => {
+        if (!cancelled) setIsRefreshing(false);
+      });
     return () => {
       cancelled = true;
     };
   }, [business, canViewReports, needsDetailBreakdown, period]);
-
-  if (isRoleLoaded && !canViewReports) {
-    return <Redirect href={'/(tabs)/new-bill' as any} />;
-  }
 
   const report: SalesReportMetrics = useMemo(() => {
     if (!needsDetailBreakdown && viewMetrics) {
@@ -110,6 +109,10 @@ export default function ReportsScreen() {
     const authorized = reportService.getAuthorizedReport(invoices, period);
     return authorized.metrics || reportService.generateReport([], period);
   }, [needsDetailBreakdown, viewMetrics, invoices, period]);
+
+  if (isRoleLoaded && !canViewReports) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   const reportTabs: { id: ReportTab; label: string; Icon: any }[] = [
     { id: 'overview', label: 'Overview', Icon: BarChart3 },

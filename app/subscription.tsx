@@ -27,12 +27,12 @@ export default function SubscriptionScreen() {
   const canDo = useCan();
   const t = TRANSLATIONS[language];
 
+  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
+  const [isProcessing, setIsProcessing] = useState(false);
+
   if (isRoleLoaded && !canDo('manage_subscription')) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
-
-  const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [isProcessing, setIsProcessing] = useState(false);
 
   const activePlan = subscription?.status === 'active' ? (subscription?.plan || 'free') : 'free';
 

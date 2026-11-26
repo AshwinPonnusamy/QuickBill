@@ -38,8 +38,13 @@ interface PosProductTileProps {
   onStepQuantity: (cartItemId: string, nextQty: number) => void;
 }
 
-const PosProductTile = React.memo<PosProductTileProps>(
-  ({ item, cartItemId, cartQty, onAdd, onStepQuantity }) => {
+const PosProductTile = React.memo<PosProductTileProps>(function PosProductTile({
+  item,
+  cartItemId,
+  cartQty,
+  onAdd,
+  onStepQuantity,
+}) {
     return (
       <Card radius="lg" shadow="sm" style={styles.productCard}>
         <View style={styles.productInfo}>
