@@ -25,9 +25,12 @@ export async function forceLogoutSuspendedUser(
     useBillStore.getState().clearBill();
     Alert.alert('Access Revoked', message);
   } finally {
-    setTimeout(() => {
+    const resetTimer = setTimeout(() => {
       isHandlingSuspension = false;
     }, 1500);
+    if (typeof (resetTimer as any)?.unref === 'function') {
+      (resetTimer as any).unref();
+    }
   }
 }
 
