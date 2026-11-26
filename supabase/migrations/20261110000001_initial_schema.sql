@@ -256,7 +256,7 @@ CREATE POLICY "Users can view and update own profile"
 -- BUSINESSES POLICIES
 CREATE POLICY "Members can view their business"
     ON public.businesses FOR SELECT
-    USING (check_user_business_role(id, ARRAY['owner', 'admin', 'staff']));
+    USING (auth.uid() = owner_id OR check_user_business_role(id, ARRAY['owner', 'admin', 'staff']));
 
 CREATE POLICY "Owners and admins can update business"
     ON public.businesses FOR UPDATE
@@ -272,6 +272,16 @@ CREATE POLICY "Members can view staff in business"
     USING (business_id IN (
         SELECT bm.business_id FROM public.business_members bm WHERE bm.user_id = auth.uid() AND bm.status = 'active'
     ));
+
+CREATE POLICY "Owners can add initial membership"
+    ON public.business_members FOR INSERT
+    WITH CHECK (
+        user_id = auth.uid()
+        AND EXISTS (
+            SELECT 1 FROM public.businesses b
+            WHERE b.id = business_id AND b.owner_id = auth.uid()
+        )
+    );
 
 CREATE POLICY "Admins and owners can manage members"
     ON public.business_members FOR ALL
@@ -344,6 +354,11 @@ CREATE POLICY "Members can view and log stock movements"
 CREATE POLICY "Members can view subscription"
     ON public.subscriptions FOR SELECT
     USING (check_user_business_role(business_id, ARRAY['owner', 'admin', 'staff']));
+
+CREATE POLICY "Owners and admins can manage subscription"
+    ON public.subscriptions FOR ALL
+    USING (check_user_business_role(business_id, ARRAY['owner', 'admin']))
+    WITH CHECK (check_user_business_role(business_id, ARRAY['owner', 'admin']));
 
 -- AUDIT LOGS POLICIES
 CREATE POLICY "Owners and admins can view audit logs"

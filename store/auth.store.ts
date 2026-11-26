@@ -8,9 +8,11 @@ interface AuthState {
   language: SupportedLanguage;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isHydrated: boolean;
   setAuth: (user: any | null, profile: Profile | null) => void;
   setLanguage: (lang: SupportedLanguage) => void;
   setProfile: (profile: Profile) => void;
+  setHydrated: (hydrated: boolean) => void;
   logout: () => void;
 }
 
@@ -20,6 +22,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   language: 'en',
   isLoading: false,
   isAuthenticated: false,
+  isHydrated: false,
 
   setAuth: (user, profile) => {
     set({
@@ -39,6 +42,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setProfile: (profile) => set({ profile }),
+
+  setHydrated: (isHydrated) => set({ isHydrated }),
 
   logout: () => {
     set({

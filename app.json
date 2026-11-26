@@ -9,7 +9,14 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      [
+        "expo-navigation-bar",
+        {
+          "hidden": true,
+          "enforceContrast": false,
+          "style": "dark"
+        }
+      ]
     ],
     "ios": {
       "supportsTablet": true,
@@ -35,7 +42,9 @@
       },
       "eas": {
         "projectId": "d4135107-5669-493d-8513-ca9b2ecc37ec"
-      }
+      },
+      "supabaseUrl": "https://xmvpfbevkdpldbohfdra.supabase.co",
+      "supabasePublishableKey": "sb_publishable_9biyMh2nJTgZTN7PO8v-ZA_ziWbWfgN"
     }
   }
 }

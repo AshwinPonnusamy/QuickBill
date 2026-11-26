@@ -3,6 +3,7 @@ import { View, StyleSheet, Text } from 'react-native';
 import { Card, Button } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING } from '../../constants/theme';
+import { safeGoBack } from '../../utils/navigation';
 import { Globe, CheckCircle2 } from '../../components/common/Icons';
 
 export default function LanguageScreen() {
@@ -39,7 +40,7 @@ export default function LanguageScreen() {
           radius="md"
           fullWidth
           style={styles.btn}
-          onPress={() => router.back()}
+          onPress={() => safeGoBack(router)}
         >
           Confirm
         </Button>

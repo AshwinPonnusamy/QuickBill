@@ -11,6 +11,7 @@ import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
 import { Invoice } from '../types';
 import { Receipt, FileText, Share2, Printer, Download, Plus } from '../components/common/Icons';
+import { QuickBillLogo } from '../components/common/QuickBillLogo';
 
 export default function ReceiptPreviewScreen() {
   const router = useRouter();
@@ -246,7 +247,10 @@ export default function ReceiptPreviewScreen() {
 
           <View style={styles.receiptFooter}>
             <Text style={styles.footerNote}>{t.thankYou}</Text>
-            <Text style={styles.footerBrand}>Powered by QuickBill</Text>
+            <View style={styles.footerBrandRow}>
+              <QuickBillLogo size={16} />
+              <Text style={styles.footerBrand}>Powered by QuickBill</Text>
+            </View>
           </View>
         </Card>
 
@@ -467,10 +471,16 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: COLORS.textSecondary,
   },
+  footerBrandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+  },
   footerBrand: {
-    fontSize: 9,
+    fontSize: 10,
     color: COLORS.textMuted,
-    marginTop: 2,
+    fontWeight: '600',
   },
   actionGrid: {
     flexDirection: 'row',

@@ -1,29 +1,101 @@
 import { supabase, isSupabaseConfigured } from './supabase';
 import { Profile, SupportedLanguage } from '../types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const CONFIG_ERROR = 'Supabase is not configured. Please check your environment variables.';
+
+const SYNTHETIC_PHONE_DOMAIN = 'quickbill.app';
+
+const formatIdentifierAsEmail = (emailOrPhone: string): string => {
+  const trimmed = emailOrPhone.trim();
+  if (trimmed.includes('@')) {
+    return trimmed.toLowerCase();
+  }
+  const digits = trimmed.replace(/\D/g, '');
+  return `${digits}@${SYNTHETIC_PHONE_DOMAIN}`;
+};
+
+const mapProfileRow = (data: any): Profile => ({
+  id: data.id,
+  fullName: data.full_name,
+  phone: data.phone || undefined,
+  avatarUrl: data.avatar_url || undefined,
+  preferredLanguage: data.preferred_language || 'en',
+  createdAt: data.created_at,
+  updatedAt: data.updated_at,
+});
 
 export const authService = {
   /**
-   * Login with email or phone + password
+   * Ensure a corresponding row exists in public.profiles for the authenticated user
    */
-  async signIn(emailOrPhone: string, password: string):Promise<{ user: any; profile: Profile | null; error?: string }> {
-    const formattedEmail = emailOrPhone.includes('@') 
-      ? emailOrPhone.trim().toLowerCase() 
-      : `${emailOrPhone.replace(/\D/g, '')}@quickbill.local`;
+  async ensureProfile(
+    user: any,
+    fallbackFullName?: string,
+    language: SupportedLanguage = 'en'
+  ): Promise<Profile | null> {
+    if (!user?.id) return null;
 
-    if (!isSupabaseConfigured()) {
-      // Offline/Demo fallback account
-      const demoProfile: Profile = {
-        id: 'usr-demo-001',
-        fullName: 'Murugan Store Owner',
-        phone: emailOrPhone.replace('@quickbill.local', ''),
-        preferredLanguage: 'en',
+    const existing = await this.getProfile(user.id);
+    if (existing) return existing;
+
+    const fullName =
+      fallbackFullName ||
+      user.user_metadata?.full_name ||
+      user.email?.split('@')[0] ||
+      'Merchant';
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .upsert(
+        {
+          id: user.id,
+          full_name: fullName,
+          phone: user.phone || user.user_metadata?.phone || null,
+          preferred_language: user.user_metadata?.preferred_language || language,
+        },
+        { onConflict: 'id' }
+      )
+      .select()
+      .single();
+
+    if (error || !data) {
+      if (error) {
+        console.warn('Profile upsert failed:', error.message);
+      }
+      return {
+        id: user.id,
+        fullName,
+        phone: user.phone || undefined,
+        preferredLanguage: language,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      await AsyncStorage.setItem('qb_demo_user', JSON.stringify(demoProfile));
-      return { user: { id: demoProfile.id, email: formattedEmail }, profile: demoProfile };
     }
+
+    return mapProfileRow(data);
+  },
+
+  /**
+   * Login with email or phone + password via Supabase Auth
+   */
+  async signIn(
+    emailOrPhone: string,
+    password: string
+  ): Promise<{ user: any; profile: Profile | null; error?: string }> {
+    if (!isSupabaseConfigured()) {
+      return { user: null, profile: null, error: CONFIG_ERROR };
+    }
+
+    const trimmed = emailOrPhone.trim();
+    if (!trimmed.includes('@') && trimmed.replace(/\D/g, '').length < 10) {
+      return {
+        user: null,
+        profile: null,
+        error: 'Please enter a valid email address or 10-digit mobile number.',
+      };
+    }
+
+    const formattedEmail = formatIdentifierAsEmail(trimmed);
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -31,10 +103,11 @@ export const authService = {
         password,
       });
 
-      if (error) return { user: null, profile: null, error: error.message };
+      if (error || !data.user) {
+        return { user: null, profile: null, error: error?.message || 'Login failed' };
+      }
 
-      // Fetch profile
-      const profile = await this.getProfile(data.user.id);
+      const profile = await this.ensureProfile(data.user);
       return { user: data.user, profile };
     } catch (err: any) {
       return { user: null, profile: null, error: err.message || 'Login failed' };
@@ -42,7 +115,7 @@ export const authService = {
   },
 
   /**
-   * Sign up new user and initialize profile
+   * Sign up new user and initialize profile in Supabase
    */
   async signUp(
     emailOrPhone: string,
@@ -50,52 +123,47 @@ export const authService = {
     fullName: string,
     language: SupportedLanguage = 'en'
   ): Promise<{ user: any; profile: Profile | null; error?: string }> {
-    const formattedEmail = emailOrPhone.includes('@') 
-      ? emailOrPhone.trim().toLowerCase() 
-      : `${emailOrPhone.replace(/\D/g, '')}@quickbill.local`;
-
     if (!isSupabaseConfigured()) {
-      const demoProfile: Profile = {
-        id: `usr-${Date.now()}`,
-        fullName,
-        phone: emailOrPhone,
-        preferredLanguage: language,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      await AsyncStorage.setItem('qb_demo_user', JSON.stringify(demoProfile));
-      return { user: { id: demoProfile.id, email: formattedEmail }, profile: demoProfile };
+      return { user: null, profile: null, error: CONFIG_ERROR };
     }
+
+    const trimmed = emailOrPhone.trim();
+    if (!trimmed.includes('@') && trimmed.replace(/\D/g, '').length < 10) {
+      return {
+        user: null,
+        profile: null,
+        error: 'Please enter a valid email address or 10-digit mobile number.',
+      };
+    }
+
+    const formattedEmail = formatIdentifierAsEmail(trimmed);
+    const phone = emailOrPhone.includes('@') ? null : emailOrPhone.trim();
 
     try {
       const { data, error } = await supabase.auth.signUp({
         email: formattedEmail,
         password,
         options: {
-          data: { full_name: fullName, preferred_language: language },
+          data: {
+            full_name: fullName,
+            phone,
+            preferred_language: language,
+          },
         },
       });
 
       if (error) return { user: null, profile: null, error: error.message };
       if (!data.user) return { user: null, profile: null, error: 'Registration failed' };
 
-      // Create profile row in Supabase
-      const profile: Profile = {
-        id: data.user.id,
-        fullName,
-        phone: emailOrPhone.includes('@') ? undefined : emailOrPhone,
-        preferredLanguage: language,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (!data.session) {
+        return {
+          user: null,
+          profile: null,
+          error: 'Please check your email to confirm your account before logging in.',
+        };
+      }
 
-      await supabase.from('profiles').upsert({
-        id: profile.id,
-        full_name: profile.fullName,
-        phone: profile.phone,
-        preferred_language: profile.preferredLanguage,
-      });
-
+      const profile = await this.ensureProfile(data.user, fullName, language);
       return { user: data.user, profile };
     } catch (err: any) {
       return { user: null, profile: null, error: err.message || 'Sign up failed' };
@@ -103,12 +171,13 @@ export const authService = {
   },
 
   /**
-   * Request OTP
+   * Request Phone OTP via Supabase Auth
    */
   async sendOtp(phone: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured()) {
-      return { success: true };
+      return { success: false, error: CONFIG_ERROR };
     }
+
     try {
       const { error } = await supabase.auth.signInWithOtp({
         phone: phone.startsWith('+') ? phone : `+91${phone.replace(/\D/g, '')}`,
@@ -116,24 +185,19 @@ export const authService = {
       if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e.message || 'Failed to send OTP' };
     }
   },
 
   /**
-   * Verify OTP
+   * Verify Phone OTP via Supabase Auth
    */
-  async verifyOtp(phone: string, token: string): Promise<{ user: any; profile: Profile | null; error?: string }> {
+  async verifyOtp(
+    phone: string,
+    token: string
+  ): Promise<{ user: any; profile: Profile | null; error?: string }> {
     if (!isSupabaseConfigured()) {
-      const demoProfile: Profile = {
-        id: 'usr-demo-001',
-        fullName: 'Kirana Store Merchant',
-        phone,
-        preferredLanguage: 'en',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      return { user: { id: demoProfile.id }, profile: demoProfile };
+      return { user: null, profile: null, error: CONFIG_ERROR };
     }
 
     try {
@@ -142,71 +206,59 @@ export const authService = {
         token,
         type: 'sms',
       });
-      if (error) return { user: null, profile: null, error: error.message };
-      const profile = await this.getProfile(data.user!.id);
+      if (error || !data.user) {
+        return { user: null, profile: null, error: error?.message || 'OTP verification failed' };
+      }
+      const profile = await this.ensureProfile(data.user);
       return { user: data.user, profile };
     } catch (e: any) {
-      return { user: null, profile: null, error: e.message };
+      return { user: null, profile: null, error: e.message || 'OTP verification failed' };
     }
   },
 
   /**
-   * Reset password email
+   * Request password reset email via Supabase Auth
    */
   async resetPassword(email: string): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured()) {
-      return { success: true };
+      return { success: false, error: CONFIG_ERROR };
     }
+
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
       if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (e: any) {
-      return { success: false, error: e.message };
+      return { success: false, error: e.message || 'Failed to send reset link' };
     }
   },
 
   /**
-   * Fetch profile from Supabase or cached storage
+   * Fetch profile from Supabase
    */
   async getProfile(userId: string): Promise<Profile | null> {
-    if (!isSupabaseConfigured()) {
-      const cached = await AsyncStorage.getItem('qb_demo_user');
-      return cached ? JSON.parse(cached) : null;
-    }
+    if (!isSupabaseConfigured()) return null;
 
     try {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (error || !data) return null;
-
-      return {
-        id: data.id,
-        fullName: data.full_name,
-        phone: data.phone,
-        avatarUrl: data.avatar_url,
-        preferredLanguage: data.preferred_language,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-    } catch (e) {
+      return mapProfileRow(data);
+    } catch {
       return null;
     }
   },
 
   /**
-   * Sign out
+   * Sign out from Supabase Auth
    */
   async signOut(): Promise<void> {
     if (isSupabaseConfigured()) {
       await supabase.auth.signOut();
     }
-    await AsyncStorage.removeItem('qb_demo_user');
-    await AsyncStorage.removeItem('qb_active_business');
   },
 };
-

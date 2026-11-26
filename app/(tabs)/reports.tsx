@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, Dimensions, TouchableOpacity, Text } from 'react-native';
+import { Redirect } from 'expo-router';
 import { Button, Card, Divider, Badge } from '../../components/heroui';
 import { SalesBarChart } from '../../components/common/SalesBarChart';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -11,6 +12,7 @@ import { billingService } from '../../services/billing.service';
 import { reportService, SalesReportMetrics } from '../../services/report.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
+import { useCan } from '../../utils/permissions';
 import { Invoice } from '../../types';
 import {
   IndianRupee,
@@ -32,8 +34,10 @@ type ReportTab = 'overview' | 'gst' | 'items' | 'customers';
 
 export default function ReportsScreen() {
   const { language } = useAuthStore();
-  const { business } = useBusinessStore();
+  const { business, isRoleLoaded } = useBusinessStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
+  const canViewReports = canDo('view_reports');
 
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly');
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
@@ -41,7 +45,7 @@ export default function ReportsScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async () => {
-    if (!business) return;
+    if (!business || !canViewReports) return;
     setIsRefreshing(true);
     try {
       const data = await billingService.getInvoices(business.id);
@@ -52,10 +56,17 @@ export default function ReportsScreen() {
   };
 
   useEffect(() => {
-    loadData();
-  }, [business]);
+    if (canViewReports) {
+      loadData();
+    }
+  }, [business, canViewReports]);
 
-  const report: SalesReportMetrics = reportService.generateReport(invoices, period);
+  if (isRoleLoaded && !canViewReports) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
+
+  const authorized = reportService.getAuthorizedReport(invoices, period);
+  const report: SalesReportMetrics = authorized.metrics || reportService.generateReport([], period);
 
   const reportTabs: { id: ReportTab; label: string; Icon: any }[] = [
     { id: 'overview', label: 'Overview', Icon: BarChart3 },
@@ -250,7 +261,7 @@ export default function ReportsScreen() {
 
             <View style={styles.infoCallout}>
               <Text style={styles.infoCalloutText}>
-                💡 Shop GSTIN: {business?.gstin || 'Unregistered'} • Filing Frequency: Monthly
+                Shop GSTIN: {business?.gstin || 'Unregistered'} • Filing Frequency: Monthly
               </Text>
             </View>
           </Card>

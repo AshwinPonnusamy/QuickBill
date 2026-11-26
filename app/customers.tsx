@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Alert, Text } from 'react-native';
+import { Redirect } from 'expo-router';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -8,13 +9,16 @@ import { useBusinessStore } from '../store/business.store';
 import { billingService } from '../services/billing.service';
 import { formatRupees } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
+import { useCan } from '../utils/permissions';
 import { Customer } from '../types';
 import { Search, Plus, Users, Phone, MapPin } from '../components/common/Icons';
 
 export default function CustomersScreen() {
   const { language } = useAuthStore();
-  const { business } = useBusinessStore();
+  const { business, isRoleLoaded } = useBusinessStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
+  const canSettleUdhar = canDo('settle_udhar');
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [search, setSearch] = useState('');
@@ -34,8 +38,14 @@ export default function CustomersScreen() {
   };
 
   useEffect(() => {
-    loadCustomers();
-  }, [business]);
+    if (canSettleUdhar) {
+      loadCustomers();
+    }
+  }, [business, canSettleUdhar]);
+
+  if (isRoleLoaded && !canSettleUdhar) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   const filteredCustomers = customers.filter(
     (c) =>
@@ -50,7 +60,7 @@ export default function CustomersScreen() {
     }
     if (!business) return;
 
-    const newCust = await billingService.addCustomer(business.id, {
+    const res = await billingService.addCustomer(business.id, {
       name: name.trim(),
       phone: phone.trim() || undefined,
       email: email.trim() || undefined,
@@ -58,7 +68,12 @@ export default function CustomersScreen() {
       gstin: gstin.trim().toUpperCase() || undefined,
     });
 
-    setCustomers([newCust, ...customers]);
+    if (res.error || !res.customer) {
+      Alert.alert(t.error, res.error || 'Failed to add customer.');
+      return;
+    }
+
+    setCustomers([res.customer, ...customers]);
     setName('');
     setPhone('');
     setEmail('');
@@ -146,7 +161,13 @@ export default function CustomersScreen() {
                           { text: t.cancel, style: 'cancel' },
                           {
                             text: 'Mark Collected',
-                            onPress: () => {
+                            onPress: async () => {
+                              if (!business) return;
+                              const res = await billingService.settleCustomerUdhar(business.id, c.id);
+                              if (!res.success) {
+                                Alert.alert(t.error, res.error || 'Failed to settle udhar.');
+                                return;
+                              }
                               setCustomers(
                                 customers.map((item) =>
                                   item.id === c.id ? { ...item, outstandingBalancePaise: 0 } : item

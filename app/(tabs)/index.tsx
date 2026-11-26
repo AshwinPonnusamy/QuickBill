@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Text } from 'react-native';
 import { Card, Button, Badge } from '../../components/heroui';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
-import { SyncStatusBadge } from '../../components/common/SyncStatusBadge';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { useProductStore } from '../../store/product.store';
@@ -14,6 +13,7 @@ import { reportService } from '../../services/report.service';
 import { businessService } from '../../services/business.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
+import { useCan, RoleGate } from '../../utils/permissions';
 import { Invoice } from '../../types';
 import {
   Zap,
@@ -24,69 +24,51 @@ import {
   AlertTriangle,
   PackagePlus,
   Users,
-  TrendingUp,
   ArrowRight,
   Sparkles,
-  ShoppingBag,
-  CreditCard,
-  Boxes,
-  Plus,
 } from '../../components/common/Icons';
-
-// Pre-seeded retail inventory for zero-setup instant demo
-const DEFAULT_SAMPLE_PRODUCTS = [
-  { name: 'Tea / Chai', sellingPricePaise: 1500, unit: 'cup' as const, taxRate: 5, stockQuantity: 200, lowStockThreshold: 20, isFavourite: true, isActive: true },
-  { name: 'Filter Coffee', sellingPricePaise: 2500, unit: 'cup' as const, taxRate: 5, stockQuantity: 150, lowStockThreshold: 15, isFavourite: true, isActive: true },
-  { name: 'Full Cream Milk (500ml)', sellingPricePaise: 3200, unit: 'packet' as const, taxRate: 0, stockQuantity: 40, lowStockThreshold: 10, isFavourite: true, isActive: true },
-  { name: 'Ponni Boiled Rice (1kg)', sellingPricePaise: 6500, unit: 'kg' as const, taxRate: 0, stockQuantity: 8, lowStockThreshold: 15, isFavourite: true, isActive: true }, // Low stock!
-  { name: 'Refined Sunflower Oil (1L)', sellingPricePaise: 13500, unit: 'packet' as const, taxRate: 5, stockQuantity: 25, lowStockThreshold: 5, isFavourite: false, isActive: true },
-  { name: 'Marie Gold Biscuits', sellingPricePaise: 1000, unit: 'packet' as const, taxRate: 18, stockQuantity: 50, lowStockThreshold: 10, isFavourite: true, isActive: true },
-  { name: 'Wheat Bread (400g)', sellingPricePaise: 4000, unit: 'packet' as const, taxRate: 0, stockQuantity: 4, lowStockThreshold: 8, isFavourite: false, isActive: true }, // Low stock!
-];
 
 export default function HomeDashboard() {
   const router = useRouter();
   const { language } = useAuthStore();
-  const { business, subscription, setSubscription } = useBusinessStore();
-  const { products, setProducts } = useProductStore();
+  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore();
+  const { products, setProducts, setCategories } = useProductStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const canViewReports = canDo('view_reports');
+
   const loadDashboardData = async () => {
-    if (!business) return;
+    if (!business || !canViewReports) return;
     setIsRefreshing(true);
     try {
-      // 1. Fetch Invoices
-      const invs = await billingService.getInvoices(business.id);
+      const [invs, sub, prods, cats] = await Promise.all([
+        billingService.getInvoices(business.id),
+        businessService.getSubscription(business.id),
+        productService.getProducts(business.id),
+        productService.getCategories(business.id),
+      ]);
       setInvoices(invs);
-
-      // 2. Fetch Subscription status
-      const sub = await businessService.getSubscription(business.id);
       if (sub) setSubscription(sub);
-
-      // 3. Fetch Products
-      let prods = await productService.getProducts(business.id);
-      if (prods.length === 0) {
-        for (const sample of DEFAULT_SAMPLE_PRODUCTS) {
-          await productService.saveProduct(business.id, {
-            ...sample,
-            id: `seed-${Date.now()}-${Math.random()}`,
-            isTaxInclusive: true,
-          });
-        }
-        prods = await productService.getProducts(business.id);
-      }
       setProducts(prods);
+      setCategories(cats);
     } finally {
       setIsRefreshing(false);
     }
   };
 
   useEffect(() => {
-    loadDashboardData();
-  }, [business]);
+    if (canViewReports) {
+      loadDashboardData();
+    }
+  }, [business, canViewReports]);
+
+  if (isRoleLoaded && !canViewReports) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   // Compute metrics
   const report = reportService.generateReport(invoices, 'weekly');
@@ -112,27 +94,29 @@ export default function HomeDashboard() {
           <View style={styles.heroTopRow}>
             <View style={styles.heroStoreInfo}>
               <Text style={styles.heroOwnerGreeting}>
-                Hello, {business?.ownerName || 'Merchant'} 👋
+                Hello, {business?.ownerName || 'Merchant'}
               </Text>
               <Text style={styles.heroStoreName} numberOfLines={1}>
                 {business?.name || 'QuickBill Store'}
               </Text>
             </View>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => router.push('/subscription' as any)}
-            >
-              <Badge
-                color={isProPlan ? 'secondary' : 'default'}
-                variant="solid"
-                size="sm"
-                startContent={<Sparkles size={11} color={COLORS.white} />}
-                style={styles.planBadge}
+            <RoleGate permission="manage_subscription">
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => router.push('/subscription' as any)}
               >
-                {planLabel}
-              </Badge>
-            </TouchableOpacity>
+                <Badge
+                  color={isProPlan ? 'secondary' : 'default'}
+                  variant="solid"
+                  size="sm"
+                  startContent={<Sparkles size={11} color={COLORS.white} />}
+                  style={styles.planBadge}
+                >
+                  {planLabel}
+                </Badge>
+              </TouchableOpacity>
+            </RoleGate>
           </View>
 
           {/* Today's Sales Stat inside Hero */}
@@ -265,48 +249,69 @@ export default function HomeDashboard() {
           </Card>
         ) : null}
 
-        {/* Quick Operational Actions — 3 tiles */}
+        {/* Quick Operational Actions */}
         <View style={styles.quickHubSection}>
           <Text style={styles.sectionHeaderTitle}>{t.quickActions}</Text>
           <View style={styles.quickGrid}>
-            <Card
-              isPressable
-              radius="lg"
-              shadow="sm"
-              onPress={() => router.push('/(tabs)/products' as any)}
-              style={styles.quickTile}
-            >
-              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.primaryContainer }]}>
-                <PackagePlus size={22} color={COLORS.primary} />
-              </View>
-              <Text style={styles.quickTileLabel}>{t.addProduct}</Text>
-            </Card>
+            <RoleGate permission="manage_products">
+              <Card
+                isPressable
+                radius="lg"
+                shadow="sm"
+                onPress={() => router.push('/(tabs)/products' as any)}
+                style={styles.quickTile}
+              >
+                <View style={[styles.quickTileIcon, { backgroundColor: COLORS.primaryContainer }]}>
+                  <PackagePlus size={22} color={COLORS.primary} />
+                </View>
+                <Text style={styles.quickTileLabel}>{t.addProduct}</Text>
+              </Card>
+            </RoleGate>
 
-            <Card
-              isPressable
-              radius="lg"
-              shadow="sm"
-              onPress={() => router.push('/customers' as any)}
-              style={styles.quickTile}
-            >
-              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.successLight }]}>
-                <Users size={22} color={COLORS.success} />
-              </View>
-              <Text style={styles.quickTileLabel}>{t.addCustomer}</Text>
-            </Card>
+            <RoleGate permission="settle_udhar">
+              <Card
+                isPressable
+                radius="lg"
+                shadow="sm"
+                onPress={() => router.push('/customers' as any)}
+                style={styles.quickTile}
+              >
+                <View style={[styles.quickTileIcon, { backgroundColor: COLORS.successLight }]}>
+                  <Users size={22} color={COLORS.success} />
+                </View>
+                <Text style={styles.quickTileLabel}>Udhar</Text>
+              </Card>
+            </RoleGate>
 
-            <Card
-              isPressable
-              radius="lg"
-              shadow="sm"
-              onPress={() => router.push('/subscription' as any)}
-              style={styles.quickTile}
-            >
-              <View style={[styles.quickTileIcon, { backgroundColor: COLORS.accentLight }]}>
-                <Sparkles size={22} color={COLORS.accent} />
-              </View>
-              <Text style={styles.quickTileLabel}>Plans</Text>
-            </Card>
+            <RoleGate permission="manage_staff">
+              <Card
+                isPressable
+                radius="lg"
+                shadow="sm"
+                onPress={() => router.push('/manage-staff' as any)}
+                style={styles.quickTile}
+              >
+                <View style={[styles.quickTileIcon, { backgroundColor: COLORS.secondaryContainer }]}>
+                  <Users size={22} color={COLORS.secondary} />
+                </View>
+                <Text style={styles.quickTileLabel}>Staff</Text>
+              </Card>
+            </RoleGate>
+
+            <RoleGate permission="manage_subscription">
+              <Card
+                isPressable
+                radius="lg"
+                shadow="sm"
+                onPress={() => router.push('/subscription' as any)}
+                style={styles.quickTile}
+              >
+                <View style={[styles.quickTileIcon, { backgroundColor: COLORS.accentLight }]}>
+                  <Sparkles size={22} color={COLORS.accent} />
+                </View>
+                <Text style={styles.quickTileLabel}>Plans</Text>
+              </Card>
+            </RoleGate>
           </View>
         </View>
 
@@ -341,7 +346,6 @@ export default function HomeDashboard() {
                 <View style={styles.invLeft}>
                   <View style={styles.invHeaderRow}>
                     <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
-                    <SyncStatusBadge status={inv.syncStatus} />
                   </View>
                   <Text style={styles.invCust} numberOfLines={1}>
                     {inv.customerName || 'Walk-in Customer'} • {new Date(inv.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

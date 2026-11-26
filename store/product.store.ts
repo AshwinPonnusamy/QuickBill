@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { Product, Category } from '../types';
-import { cacheLocalProducts } from '../database/sqlite';
 
 interface ProductState {
   products: Product[];
@@ -18,17 +17,14 @@ interface ProductState {
   adjustStock: (productId: string, quantityChange: number) => void;
 }
 
-export const useProductStore = create<ProductState>((set, get) => ({
+export const useProductStore = create<ProductState>((set) => ({
   products: [],
   categories: [],
   selectedCategoryId: null,
   searchQuery: '',
   isLoading: false,
 
-  setProducts: (products) => {
-    cacheLocalProducts(products);
-    set({ products });
-  },
+  setProducts: (products) => set({ products }),
 
   setCategories: (categories) => set({ categories }),
 
@@ -37,41 +33,30 @@ export const useProductStore = create<ProductState>((set, get) => ({
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 
   addProduct: (product) => {
-    set((state) => {
-      const next = [product, ...state.products];
-      cacheLocalProducts(next);
-      return { products: next };
-    });
+    set((state) => ({ products: [product, ...state.products] }));
   },
 
   updateProduct: (id, updates) => {
-    set((state) => {
-      const next = state.products.map((p) => (p.id === id ? { ...p, ...updates } : p));
-      cacheLocalProducts(next);
-      return { products: next };
-    });
+    set((state) => ({
+      products: state.products.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+    }));
   },
 
   deleteProduct: (id) => {
-    set((state) => {
-      const next = state.products.filter((p) => p.id !== id);
-      cacheLocalProducts(next);
-      return { products: next };
-    });
+    set((state) => ({
+      products: state.products.filter((p) => p.id !== id),
+    }));
   },
 
   adjustStock: (productId, quantityChange) => {
-    set((state) => {
-      const next = state.products.map((p) => {
+    set((state) => ({
+      products: state.products.map((p) => {
         if (p.id === productId) {
           const newQty = Math.max(0, p.stockQuantity + quantityChange);
           return { ...p, stockQuantity: newQty };
         }
         return p;
-      });
-      cacheLocalProducts(next);
-      return { products: next };
-    });
+      }),
+    }));
   },
 }));
-

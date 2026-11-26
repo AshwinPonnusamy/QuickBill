@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Text } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, FlatList, Alert, Text, RefreshControl } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Divider } from '../../components/heroui';
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
@@ -9,8 +9,10 @@ import { useBusinessStore } from '../../store/business.store';
 import { useProductStore } from '../../store/product.store';
 import { useBillStore } from '../../store/bill.store';
 import { billingService } from '../../services/billing.service';
+import { productService } from '../../services/product.service';
 import { formatRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
+import { useCan, RoleGate } from '../../utils/permissions';
 import { Customer, Product, ProductUnit } from '../../types';
 import { User, Search, X, Tag, ChevronDown } from '../../components/common/Icons';
 
@@ -18,7 +20,8 @@ export default function CreateBillScreen() {
   const router = useRouter();
   const { language } = useAuthStore();
   const { business } = useBusinessStore();
-  const { products, categories } = useProductStore();
+  const { products, categories, setProducts, setCategories } = useProductStore();
+  const canDo = useCan();
   const { 
     cart, 
     customer, 
@@ -38,6 +41,7 @@ export default function CreateBillScreen() {
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Modals state
   const [customItemVisible, setCustomItemVisible] = useState(false);
@@ -53,11 +57,32 @@ export default function CreateBillScreen() {
   const [discType, setDiscType] = useState<'none' | 'fixed' | 'percentage'>(discountType);
   const [discVal, setDiscVal] = useState(String(discountValue || ''));
 
-  useEffect(() => {
-    if (business) {
-      billingService.getCustomers(business.id).then(setCustomers);
+  const refreshCatalogAndCustomers = useCallback(async () => {
+    if (!business) return;
+    setIsRefreshing(true);
+    try {
+      const [custList, prods, cats] = await Promise.all([
+        billingService.getCustomers(business.id),
+        productService.getProducts(business.id),
+        productService.getCategories(business.id),
+      ]);
+      setCustomers(custList);
+      setProducts(prods);
+      setCategories(cats);
+    } finally {
+      setIsRefreshing(false);
     }
-  }, [business]);
+  }, [business, setProducts, setCategories]);
+
+  useEffect(() => {
+    refreshCatalogAndCustomers();
+  }, [refreshCatalogAndCustomers]);
+
+  useEffect(() => {
+    if (!canDo('apply_discount') && (discountType !== 'none' || discountValue !== 0)) {
+      setDiscount('none', 0);
+    }
+  }, [canDo, discountType, discountValue]);
 
   // Filter products by category & search
   const filteredProducts = products.filter((p) => {
@@ -86,12 +111,16 @@ export default function CreateBillScreen() {
       Alert.alert(t.error, 'Please enter customer name.');
       return;
     }
-    const created = await billingService.addCustomer(business.id, {
+    const res = await billingService.addCustomer(business.id, {
       name: newCustName.trim(),
       phone: newCustPhone.trim() || undefined,
     });
-    setCustomers([created, ...customers]);
-    setCustomer(created);
+    if (res.error || !res.customer) {
+      Alert.alert(t.error, res.error || 'Failed to add customer.');
+      return;
+    }
+    setCustomers([res.customer, ...customers]);
+    setCustomer(res.customer);
     setNewCustName('');
     setNewCustPhone('');
     setCustomerModalVisible(false);
@@ -159,16 +188,18 @@ export default function CreateBillScreen() {
           }
           style={styles.searchInput}
         />
-        <Button
-          variant="bordered"
-          color="primary"
-          size="md"
-          radius="md"
-          onPress={() => setCustomItemVisible(true)}
-          style={styles.customBtn}
-        >
-          + Custom
-        </Button>
+        <RoleGate permission="manage_products">
+          <Button
+            variant="bordered"
+            color="primary"
+            size="md"
+            radius="md"
+            onPress={() => setCustomItemVisible(true)}
+            style={styles.customBtn}
+          >
+            + Custom
+          </Button>
+        </RoleGate>
       </View>
 
       {/* Categories Horizontal Ribbon */}
@@ -208,6 +239,9 @@ export default function CreateBillScreen() {
         keyExtractor={(item) => item.id}
         numColumns={2}
         contentContainerStyle={styles.productList}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={refreshCatalogAndCustomers} />
+        }
         renderItem={({ item }) => {
           const inCartItem = cart.find((c) => c.productId === item.id);
           const cartQty = inCartItem?.quantity || 0;
@@ -258,17 +292,19 @@ export default function CreateBillScreen() {
       {/* Cart Summary Drawer / Bottom Bar */}
       <Card radius="none" shadow="lg" style={styles.bottomBar}>
         <View style={styles.summaryRow}>
-          <TouchableOpacity
-            style={styles.discountTrigger}
-            onPress={() => setDiscountModalVisible(true)}
-          >
-            <View style={styles.discountRow}>
-              <Tag size={14} color={COLORS.secondary} style={{ marginRight: 4 }} />
-              <Text style={styles.discountText}>
-                {calculation.discountPaise > 0 ? `-${formatRupees(calculation.discountPaise)}` : 'Add Discount'}
-              </Text>
-            </View>
-          </TouchableOpacity>
+          <RoleGate permission="apply_discount" fallback={<View />}>
+            <TouchableOpacity
+              style={styles.discountTrigger}
+              onPress={() => setDiscountModalVisible(true)}
+            >
+              <View style={styles.discountRow}>
+                <Tag size={14} color={COLORS.secondary} style={{ marginRight: 4 }} />
+                <Text style={styles.discountText}>
+                  {calculation.discountPaise > 0 ? `-${formatRupees(calculation.discountPaise)}` : 'Add Discount'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          </RoleGate>
 
           <View style={styles.totalBlock}>
             <Text style={styles.totalLabel}>{cart.length} items • Subtotal {formatRupees(calculation.subtotalPaise)}</Text>
@@ -302,44 +338,46 @@ export default function CreateBillScreen() {
         </View>
       </Card>
 
-      {/* MODAL 1: Add Custom Item */}
-      <Modal
-        visible={customItemVisible}
-        onDismiss={() => setCustomItemVisible(false)}
-        contentContainerStyle={styles.modalContent}
-      >
-        <ModalHeader>
-          <Text style={styles.modalTitle}>
-            Add Custom Item
-          </Text>
-        </ModalHeader>
-        <ModalBody>
-          <Input
-            label="Item Description"
-            placeholder="e.g. Samosa Plate / Custom Charge"
-            value={customName}
-            onChangeText={setCustomName}
-          />
-          <Input
-            label="Price (₹)"
-            placeholder="e.g. 50"
-            value={customPrice}
-            onChangeText={setCustomPrice}
-            keyboardType="numeric"
-            startContent={<Text style={{ color: COLORS.textSecondary, fontWeight: 'bold' }}>₹</Text>}
-          />
-          <Button
-            color="secondary"
-            size="lg"
-            radius="md"
-            fullWidth
-            style={styles.modalSubmit}
-            onPress={handleAddCustom}
-          >
-            Add to Bill Cart
-          </Button>
-        </ModalBody>
-      </Modal>
+      {/* MODAL 1: Add Custom Item (owner/admin only) */}
+      <RoleGate permission="manage_products">
+        <Modal
+          visible={customItemVisible}
+          onDismiss={() => setCustomItemVisible(false)}
+          contentContainerStyle={styles.modalContent}
+        >
+          <ModalHeader>
+            <Text style={styles.modalTitle}>
+              Add Custom Item
+            </Text>
+          </ModalHeader>
+          <ModalBody>
+            <Input
+              label="Item Description"
+              placeholder="e.g. Custom Item"
+              value={customName}
+              onChangeText={setCustomName}
+            />
+            <Input
+              label="Price (₹)"
+              placeholder="e.g. 50"
+              value={customPrice}
+              onChangeText={setCustomPrice}
+              keyboardType="numeric"
+              startContent={<Text style={{ color: COLORS.textSecondary, fontWeight: 'bold' }}>₹</Text>}
+            />
+            <Button
+              color="secondary"
+              size="lg"
+              radius="md"
+              fullWidth
+              style={styles.modalSubmit}
+              onPress={handleAddCustom}
+            >
+              Add to Bill Cart
+            </Button>
+          </ModalBody>
+        </Modal>
+      </RoleGate>
 
       {/* MODAL 2: Customer Selection */}
       <Modal
@@ -407,75 +445,77 @@ export default function CreateBillScreen() {
         </ModalBody>
       </Modal>
 
-      {/* MODAL 3: Discount */}
-      <Modal
-        visible={discountModalVisible}
-        onDismiss={() => setDiscountModalVisible(false)}
-        contentContainerStyle={styles.modalContent}
-      >
-        <ModalHeader>
-          <Text style={styles.modalTitle}>
-            Apply Bill Discount
-          </Text>
-        </ModalHeader>
-        <ModalBody>
-          <View style={styles.discTypeRow}>
-            <Button
-              variant={discType === 'fixed' ? 'solid' : 'bordered'}
-              color={discType === 'fixed' ? 'secondary' : 'default'}
-              size="sm"
-              radius="md"
-              style={{ flex: 1 }}
-              onPress={() => setDiscType('fixed')}
-            >
-              Fixed (₹)
-            </Button>
-            <Button
-              variant={discType === 'percentage' ? 'solid' : 'bordered'}
-              color={discType === 'percentage' ? 'secondary' : 'default'}
-              size="sm"
-              radius="md"
-              style={{ flex: 1 }}
-              onPress={() => setDiscType('percentage')}
-            >
-              Percentage (%)
-            </Button>
-            <Button
-              variant={discType === 'none' ? 'solid' : 'bordered'}
-              color={discType === 'none' ? 'secondary' : 'default'}
-              size="sm"
-              radius="md"
-              style={{ flex: 1 }}
-              onPress={() => {
-                setDiscType('none');
-                setDiscVal('');
-              }}
-            >
-              None
-            </Button>
-          </View>
+      {/* MODAL 3: Discount (owner/admin only) */}
+      <RoleGate permission="apply_discount">
+        <Modal
+          visible={discountModalVisible}
+          onDismiss={() => setDiscountModalVisible(false)}
+          contentContainerStyle={styles.modalContent}
+        >
+          <ModalHeader>
+            <Text style={styles.modalTitle}>
+              Apply Bill Discount
+            </Text>
+          </ModalHeader>
+          <ModalBody>
+            <View style={styles.discTypeRow}>
+              <Button
+                variant={discType === 'fixed' ? 'solid' : 'bordered'}
+                color={discType === 'fixed' ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1 }}
+                onPress={() => setDiscType('fixed')}
+              >
+                Fixed (₹)
+              </Button>
+              <Button
+                variant={discType === 'percentage' ? 'solid' : 'bordered'}
+                color={discType === 'percentage' ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1 }}
+                onPress={() => setDiscType('percentage')}
+              >
+                Percentage (%)
+              </Button>
+              <Button
+                variant={discType === 'none' ? 'solid' : 'bordered'}
+                color={discType === 'none' ? 'secondary' : 'default'}
+                size="sm"
+                radius="md"
+                style={{ flex: 1 }}
+                onPress={() => {
+                  setDiscType('none');
+                  setDiscVal('');
+                }}
+              >
+                None
+              </Button>
+            </View>
 
-          {discType !== 'none' ? (
-            <Input
-              label={discType === 'fixed' ? 'Discount Amount (₹)' : 'Discount Percentage (%)'}
-              value={discVal}
-              onChangeText={setDiscVal}
-              keyboardType="numeric"
-            />
-          ) : null}
+            {discType !== 'none' ? (
+              <Input
+                label={discType === 'fixed' ? 'Discount Amount (₹)' : 'Discount Percentage (%)'}
+                value={discVal}
+                onChangeText={setDiscVal}
+                keyboardType="numeric"
+              />
+            ) : null}
 
-          <Button
-            color="secondary"
-            size="lg"
-            radius="md"
-            fullWidth
-            style={styles.modalSubmit}
-            onPress={handleApplyDiscount}
-          >
-            Apply Discount
-          </Button>
-        </ModalBody>
-      </Modal>
+            <Button
+              color="secondary"
+              size="lg"
+              radius="md"
+              fullWidth
+              style={styles.modalSubmit}
+              onPress={handleApplyDiscount}
+            >
+              Apply Discount
+            </Button>
+          </ModalBody>
+        </Modal>
+      </RoleGate>
     </View>
   );
 }

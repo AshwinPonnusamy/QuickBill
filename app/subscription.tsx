@@ -1,20 +1,27 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Badge, Divider } from '../components/heroui';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
 import { TRANSLATIONS } from '../constants/translations';
+import { useCan } from '../utils/permissions';
+import { safeGoBack } from '../utils/navigation';
 import { Check, Sparkles, CheckCircle2, Zap, ShieldCheck } from '../components/common/Icons';
 
 export default function SubscriptionScreen() {
   const router = useRouter();
   const { language } = useAuthStore();
-  const { business, subscription, setSubscription } = useBusinessStore();
+  const { business, subscription, isRoleLoaded, setSubscription } = useBusinessStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
+
+  if (isRoleLoaded && !canDo('manage_subscription')) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   const [cycle, setCycle] = useState<'monthly' | 'yearly'>('monthly');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -33,7 +40,7 @@ export default function SubscriptionScreen() {
         Alert.alert(
           t.success,
           `Congratulations! Your shop has been successfully upgraded to ${planName}.`,
-          [{ text: 'OK', onPress: () => router.back() }]
+          [{ text: 'OK', onPress: () => safeGoBack(router) }]
         );
       } else {
         Alert.alert(t.error, res.error || 'Upgrade failed');
@@ -69,9 +76,9 @@ export default function SubscriptionScreen() {
               <Text style={styles.currentLabel}>{t.currentPlan}</Text>
               <Text style={styles.currentPlanName}>
                 {activePlan === 'pro'
-                  ? '⭐ QuickBill Pro Business'
+                  ? 'QuickBill Pro Business'
                   : activePlan === 'starter'
-                  ? '⚡ QuickBill Starter Retail'
+                  ? 'QuickBill Starter Retail'
                   : 'QuickBill Free Plan'}
               </Text>
               {subscription?.expiresAt && activePlan !== 'free' ? (
@@ -79,7 +86,7 @@ export default function SubscriptionScreen() {
                   Valid until: {new Date(subscription.expiresAt).toLocaleDateString('en-IN')}
                 </Text>
               ) : (
-                <Text style={styles.renewalText}>Basic offline features active</Text>
+                <Text style={styles.renewalText}>Standard cloud billing features active</Text>
               )}
             </View>
             <Badge
@@ -138,7 +145,7 @@ export default function SubscriptionScreen() {
           <View style={styles.featuresList}>
             <View style={styles.featureRow}>
               <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />
-              <Text style={styles.featureItem}>100% Offline-first local billing</Text>
+              <Text style={styles.featureItem}>Real-time Supabase cloud billing</Text>
             </View>
             <View style={styles.featureRow}>
               <Check size={16} color={COLORS.success} style={{ marginRight: 8 }} />

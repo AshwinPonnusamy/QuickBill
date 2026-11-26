@@ -20,6 +20,7 @@ import {
   Building2,
   Camera,
 } from '../components/common/Icons';
+import { QuickBillLogo } from '../components/common/QuickBillLogo';
 
 const BUSINESS_TYPES: { type: BusinessType; label: string; Icon: React.ComponentType<{ size?: number; color?: string }> }[] = [
   { type: 'restaurant', label: 'Restaurant / Cafe', Icon: Utensils },
@@ -35,7 +36,7 @@ const BUSINESS_TYPES: { type: BusinessType; label: string; Icon: React.Component
 export default function BusinessSetupScreen() {
   const router = useRouter();
   const { user, profile, language } = useAuthStore();
-  const { setBusiness } = useBusinessStore();
+  const { setBusiness, setRole } = useBusinessStore();
   const t = TRANSLATIONS[language];
 
   const [businessName, setBusinessName] = useState('');
@@ -91,9 +92,15 @@ export default function BusinessSetupScreen() {
       return;
     }
 
+    const ownerId = user?.id || profile?.id;
+    if (!ownerId) {
+      Alert.alert(t.error, 'Please sign in before registering your shop.');
+      router.replace('/(auth)/login' as any);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const ownerId = user?.id || profile?.id || 'usr-demo-001';
       const res = await businessService.createBusiness(ownerId, {
         name: businessName.trim(),
         ownerName: ownerName.trim(),
@@ -118,6 +125,7 @@ export default function BusinessSetupScreen() {
 
       if (res.business) {
         setBusiness(res.business);
+        setRole('owner');
         Alert.alert(t.success, 'Business profile registered successfully!', [
           { text: 'Launch Billing', onPress: () => router.replace('/(tabs)' as any) },
         ]);
@@ -133,6 +141,9 @@ export default function BusinessSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       {/* Header */}
       <View style={styles.header}>
+        <View style={styles.brandRow}>
+          <QuickBillLogo size={38} showWordmark wordmarkSize={20} />
+        </View>
         <Text style={styles.title}>
           {t.businessSetupTitle}
         </Text>
@@ -316,6 +327,9 @@ const styles = StyleSheet.create({
   },
   header: {
     marginBottom: SPACING.lg,
+  },
+  brandRow: {
+    marginBottom: SPACING.sm,
   },
   title: {
     fontWeight: '800',

@@ -7,12 +7,15 @@ import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
 import { businessService } from '../../services/business.service';
+import { can } from '../../utils/permissions';
 import { TRANSLATIONS } from '../../constants/translations';
+import { safeGoBack } from '../../utils/navigation';
+import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function OtpScreen() {
   const router = useRouter();
-  const { language, setAuth } = useAuthStore();
-  const { setBusiness } = useBusinessStore();
+  const { language, setAuth, logout } = useAuthStore();
+  const { setBusiness, setRole, resetBusinessSession } = useBusinessStore();
   const t = TRANSLATIONS[language];
 
   const [phone, setPhone] = useState('');
@@ -57,11 +60,40 @@ export default function OtpScreen() {
 
       setAuth(res.user, res.profile);
       const biz = await businessService.getBusiness(res.user.id);
-      if (biz) {
-        setBusiness(biz);
+      if (!biz) {
+        const suspended = await businessService.isUserSuspended(res.user.id);
+        if (suspended) {
+          await authService.signOut();
+          logout();
+          resetBusinessSession();
+          Alert.alert(
+            'Account Suspended',
+            'Your staff account has been suspended by the shop owner.'
+          );
+          return;
+        }
+        router.replace('/business-setup' as any);
+        return;
+      }
+
+      if (biz.ownerId !== res.user.id) {
+        const status = await businessService.getMembershipStatus(biz.id, res.user.id);
+        if (status !== 'active') {
+          await authService.signOut();
+          logout();
+          resetBusinessSession();
+          Alert.alert('Access Denied', 'Your staff membership is no longer active.');
+          return;
+        }
+      }
+
+      const role = await businessService.getMyRole(biz.id, res.user.id);
+      setBusiness(biz);
+      setRole(role);
+      if (can(role, 'view_reports')) {
         router.replace('/(tabs)' as any);
       } else {
-        router.replace('/business-setup' as any);
+        router.replace('/(tabs)/new-bill' as any);
       }
     } catch (e: any) {
       Alert.alert(t.error, e.message);
@@ -77,6 +109,9 @@ export default function OtpScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerArea}>
+          <View style={styles.logoWrapper}>
+            <QuickBillLogo size={60} />
+          </View>
           <Text style={styles.title}>
             {step === 'phone' ? 'Mobile Login' : t.verifyOtp}
           </Text>
@@ -139,7 +174,7 @@ export default function OtpScreen() {
           )}
         </Card>
 
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => safeGoBack(router, '/(auth)/login')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back to Login with Password</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -160,6 +195,9 @@ const styles = StyleSheet.create({
   headerArea: {
     alignItems: 'center',
     marginBottom: SPACING.xl,
+  },
+  logoWrapper: {
+    marginBottom: SPACING.md,
   },
   title: {
     fontWeight: '800',

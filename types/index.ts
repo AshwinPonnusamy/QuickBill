@@ -113,7 +113,6 @@ export interface Customer {
 export type DiscountType = 'none' | 'fixed' | 'percentage';
 export type PaymentStatus = 'paid' | 'partial' | 'unpaid' | 'void';
 export type PaymentMethod = 'cash' | 'upi' | 'card' | 'credit' | 'split';
-export type SyncStatus = 'pending' | 'synced' | 'failed';
 
 export interface CartItem {
   id: string; // product id or custom id
@@ -180,7 +179,7 @@ export interface PaymentRecord {
   invoiceId?: string;
   customerId?: string;
   amountPaise: number;
-  paymentMethod: PaymentMethod;
+  paymentMethod: Exclude<PaymentMethod, 'split'>;
   paymentReference?: string;
   status: 'completed' | 'pending' | 'failed' | 'refunded';
   localId?: string;
@@ -215,7 +214,6 @@ export interface Invoice {
   isVoid: boolean;
   voidReason?: string;
   voidedAt?: string;
-  syncStatus: SyncStatus;
   createdAt: string;
   items?: InvoiceItem[];
   payments?: PaymentRecord[];
@@ -249,18 +247,3 @@ export interface Subscription {
   cloudBackupEnabled: boolean;
   advancedReportsEnabled: boolean;
 }
-
-export interface SyncQueueItem {
-  id: string;
-  businessId: string;
-  entityType: 'invoice' | 'product' | 'customer' | 'stock_movement';
-  entityId: string;
-  operation: 'insert' | 'update' | 'delete';
-  payload: string; // JSON encoded
-  retryCount: number;
-  status: 'pending' | 'processing' | 'failed';
-  errorMessage?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-

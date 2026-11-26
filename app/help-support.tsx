@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, Text } from 'react-native';
 import { Button, Card, Input, Divider, Badge } from '../components/heroui';
 import { useRouter } from 'expo-router';
@@ -8,16 +8,10 @@ import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { TRANSLATIONS } from '../constants/translations';
 import {
-  MessageSquare,
   Phone,
   Mail,
-  HelpCircle,
   ChevronDown,
-  ChevronRight,
-  ShieldCheck,
-  FileText,
   Sparkles,
-  Zap,
 } from '../components/common/Icons';
 
 interface FaqItem {
@@ -27,8 +21,8 @@ interface FaqItem {
 
 const FAQS: FaqItem[] = [
   {
-    q: 'How does offline billing work?',
-    a: 'QuickBill stores all your products, bills, and customer records locally in SQLite on your device. You can create bills seamlessly without internet. Once connected, your transactions automatically sync with the cloud.',
+    q: 'Where is my billing data stored?',
+    a: 'QuickBill securely stores all your products, invoices, payments, and customer records in your Supabase PostgreSQL cloud database with Row-Level Security so your data stays up to date across sessions.',
   },
   {
     q: 'Can I connect a Bluetooth thermal printer?',

@@ -1,77 +1,102 @@
 import { supabase, isSupabaseConfigured } from './supabase';
-import { Product, Category, StockMovement } from '../types';
-import { 
-  cacheLocalProducts, 
-  getLocalProducts, 
-  getDB, 
-  enqueueSyncItem 
-} from '../database/sqlite';
+import { Product, Category } from '../types';
+import { useBusinessStore } from '../store/business.store';
+import { can } from '../utils/permissions';
+import { checkAndLogoutIfSuspended } from './sessionGuard';
+
+const CONFIG_ERROR = 'Supabase is not configured. Please check your environment variables.';
+
+const mapProductRow = (p: any): Product => ({
+  id: p.id,
+  businessId: p.business_id,
+  categoryId: p.category_id || undefined,
+  name: p.name,
+  sku: p.sku || undefined,
+  barcode: p.barcode || undefined,
+  sellingPricePaise: Number(p.selling_price_paise),
+  purchasePricePaise: p.purchase_price_paise ? Number(p.purchase_price_paise) : undefined,
+  unit: p.unit,
+  taxRate: Number(p.tax_rate),
+  isTaxInclusive: Boolean(p.is_tax_inclusive),
+  stockQuantity: Number(p.stock_quantity),
+  lowStockThreshold: Number(p.low_stock_threshold),
+  imageUrl: p.image_url || undefined,
+  isFavourite: Boolean(p.is_favourite),
+  isActive: Boolean(p.is_active),
+  createdAt: p.created_at,
+  updatedAt: p.updated_at,
+});
+
+const STAFF_SAFE_PRODUCT_COLUMNS =
+  'id, business_id, category_id, name, sku, barcode, selling_price_paise, unit, tax_rate, is_tax_inclusive, stock_quantity, low_stock_threshold, image_url, is_favourite, is_active, created_at, updated_at';
 
 export const productService = {
   /**
-   * Fetch all products for a business.
-   * Pulls from Supabase if online, caches in SQLite, or falls back to SQLite offline.
+   * Fetch all active products for a business from Supabase.
+   * When role cannot view cost prices, reads from products_staff_view (or non-cost columns)
+   * so purchase_price_paise is not exposed to staff.
    */
   async getProducts(businessId: string): Promise<Product[]> {
-    if (!isSupabaseConfigured()) {
-      return getLocalProducts(businessId);
-    }
+    if (!isSupabaseConfigured()) return [];
+
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    const includeCostPrice = isRoleLoaded && can(role, 'view_cost_price');
 
     try {
+      if (includeCostPrice) {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .eq('business_id', businessId)
+          .eq('is_active', true)
+          .order('name', { ascending: true });
+
+        if (error || !data) {
+          console.warn('Error fetching products:', error?.message);
+          return [];
+        }
+
+        return data.map(mapProductRow);
+      }
+
+      // Staff/restricted path: use products_staff_view without purchase_price_paise
+      const { data: viewData, error: viewError } = await supabase
+        .from('products_staff_view')
+        .select(STAFF_SAFE_PRODUCT_COLUMNS)
+        .eq('business_id', businessId)
+        .eq('is_active', true)
+        .order('name', { ascending: true });
+
+      if (!viewError && viewData) {
+        return viewData.map(mapProductRow);
+      }
+
+      // Fallback if view is not yet migrated: still omit purchase_price_paise
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(STAFF_SAFE_PRODUCT_COLUMNS)
         .eq('business_id', businessId)
         .eq('is_active', true)
         .order('name', { ascending: true });
 
       if (error || !data) {
-        return getLocalProducts(businessId);
+        console.warn('Error fetching products:', error?.message);
+        await checkAndLogoutIfSuspended(error?.message);
+        return [];
       }
 
-      const products: Product[] = data.map((p) => ({
-        id: p.id,
-        businessId: p.business_id,
-        categoryId: p.category_id,
-        name: p.name,
-        sku: p.sku,
-        barcode: p.barcode,
-        sellingPricePaise: Number(p.selling_price_paise),
-        purchasePricePaise: p.purchase_price_paise ? Number(p.purchase_price_paise) : undefined,
-        unit: p.unit,
-        taxRate: Number(p.tax_rate),
-        isTaxInclusive: p.is_tax_inclusive,
-        stockQuantity: Number(p.stock_quantity),
-        lowStockThreshold: Number(p.low_stock_threshold),
-        imageUrl: p.image_url,
-        isFavourite: p.is_favourite,
-        isActive: p.is_active,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
-      }));
-
-      // Cache locally in SQLite
-      cacheLocalProducts(products);
-      return products;
-    } catch (e) {
-      return getLocalProducts(businessId);
+      return data.map(mapProductRow);
+    } catch (e: any) {
+      console.warn('Error fetching products:', e.message);
+      return [];
     }
   },
 
   /**
-   * Fetch categories for a business
+   * Fetch active categories for a business from Supabase
    */
   async getCategories(businessId: string): Promise<Category[]> {
-    if (!isSupabaseConfigured()) {
-      const defaultCategories: Category[] = [
-        { id: 'cat-1', businessId, name: 'Beverages / Tea / Coffee', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-2', businessId, name: 'Snacks & Sweets', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-3', businessId, name: 'Meals / Tiffin', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-4', businessId, name: 'Groceries / Provisions', isActive: true, createdAt: new Date().toISOString() },
-        { id: 'cat-5', businessId, name: 'Dairy & Bakery', isActive: true, createdAt: new Date().toISOString() },
-      ];
-      return defaultCategories;
-    }
+    if (!isSupabaseConfigured()) return [];
 
     try {
       const { data, error } = await supabase
@@ -87,31 +112,25 @@ export const productService = {
         id: c.id,
         businessId: c.business_id,
         name: c.name,
-        icon: c.icon,
-        color: c.color,
-        isActive: c.is_active,
+        icon: c.icon || undefined,
+        color: c.color || undefined,
+        isActive: Boolean(c.is_active),
         createdAt: c.created_at,
       }));
-    } catch (e) {
+    } catch {
       return [];
     }
   },
 
   /**
-   * Create category
+   * Create category in Supabase
    */
   async createCategory(businessId: string, name: string): Promise<Category | null> {
-    const id = `cat-${Date.now()}`;
-    const newCategory: Category = {
-      id,
-      businessId,
-      name,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-    };
+    if (!isSupabaseConfigured()) return null;
 
-    if (!isSupabaseConfigured()) {
-      return newCategory;
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'manage_products')) {
+      return null;
     }
 
     try {
@@ -119,107 +138,97 @@ export const productService = {
         .from('categories')
         .insert({
           business_id: businessId,
-          name,
+          name: name.trim(),
         })
         .select()
         .single();
 
-      if (error || !data) return newCategory;
+      if (error || !data) return null;
+
       return {
         id: data.id,
         businessId: data.business_id,
         name: data.name,
-        isActive: data.is_active,
+        icon: data.icon || undefined,
+        color: data.color || undefined,
+        isActive: Boolean(data.is_active),
         createdAt: data.created_at,
       };
-    } catch (e) {
-      return newCategory;
+    } catch {
+      return null;
     }
   },
 
   /**
-   * Create or update a product
+   * Create or update a product directly in Supabase
    */
   async saveProduct(
     businessId: string,
-    product: Omit<Product, 'businessId' | 'createdAt' | 'updatedAt'>
+    product: Omit<Product, 'id' | 'businessId' | 'createdAt' | 'updatedAt'> & { id?: string }
   ): Promise<{ product: Product | null; error?: string }> {
-    const isNew = !product.id || product.id.startsWith('temp-');
-    const id = isNew ? `prod-${Date.now()}` : product.id;
-
-    const fullProduct: Product = {
-      ...product,
-      id,
-      businessId,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    // Cache locally immediately
-    cacheLocalProducts([fullProduct]);
-
     if (!isSupabaseConfigured()) {
-      return { product: fullProduct };
+      return { product: null, error: CONFIG_ERROR };
     }
 
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'manage_products')) {
+      return { product: null, error: 'Not permitted' };
+    }
+
+    const payload = {
+      business_id: businessId,
+      category_id: product.categoryId || null,
+      name: product.name,
+      sku: product.sku || null,
+      barcode: product.barcode || null,
+      selling_price_paise: product.sellingPricePaise,
+      purchase_price_paise: product.purchasePricePaise ?? null,
+      unit: product.unit,
+      tax_rate: product.taxRate,
+      is_tax_inclusive: product.isTaxInclusive,
+      stock_quantity: product.stockQuantity,
+      low_stock_threshold: product.lowStockThreshold,
+      image_url: product.imageUrl || null,
+      is_favourite: product.isFavourite,
+      is_active: product.isActive,
+    };
+
     try {
-      const payload = {
-        id: isNew ? undefined : product.id,
-        business_id: businessId,
-        category_id: product.categoryId || null,
-        name: product.name,
-        sku: product.sku || null,
-        barcode: product.barcode || null,
-        selling_price_paise: product.sellingPricePaise,
-        purchase_price_paise: product.purchasePricePaise || null,
-        unit: product.unit,
-        tax_rate: product.taxRate,
-        is_tax_inclusive: product.isTaxInclusive,
-        stock_quantity: product.stockQuantity,
-        low_stock_threshold: product.lowStockThreshold,
-        image_url: product.imageUrl || null,
-        is_favourite: product.isFavourite,
-        is_active: product.isActive,
-      };
+      if (!product.id) {
+        const { data, error } = await supabase
+          .from('products')
+          .insert(payload)
+          .select()
+          .single();
+
+        if (error || !data) {
+          return { product: null, error: error?.message || 'Failed to save product' };
+        }
+        return { product: mapProductRow(data) };
+      }
 
       const { data, error } = await supabase
         .from('products')
-        .upsert(payload)
+        .update({
+          ...payload,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', product.id)
+        .eq('business_id', businessId)
         .select()
         .single();
 
-      if (error) {
-        // Enqueue to sync queue for offline retry
-        enqueueSyncItem({
-          id: `sync-prod-${id}`,
-          businessId,
-          entityType: 'product',
-          entityId: id,
-          operation: isNew ? 'insert' : 'update',
-          payload: JSON.stringify(fullProduct),
-          retryCount: 0,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-        return { product: fullProduct };
+      if (error || !data) {
+        return { product: null, error: error?.message || 'Failed to update product' };
       }
-
-      const returned: Product = {
-        ...fullProduct,
-        id: data.id,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
-      cacheLocalProducts([returned]);
-      return { product: returned };
+      return { product: mapProductRow(data) };
     } catch (err: any) {
-      return { product: fullProduct };
+      return { product: null, error: err.message || 'Failed to save product' };
     }
   },
 
   /**
-   * Adjust stock and log stock movement
+   * Adjust stock and log stock movement in Supabase
    */
   async recordStockAdjustment(
     businessId: string,
@@ -229,23 +238,32 @@ export const productService = {
     currentStock: number,
     reason: string
   ): Promise<{ success: boolean; newStock: number; error?: string }> {
-    const newStock = movementType === 'return' ? currentStock - quantity : currentStock + quantity;
-
-    // Update local cache
-    const db = getDB();
-    if (db && typeof db.runSync === 'function') {
-      try {
-        db.runSync(`UPDATE local_products SET stock_quantity = ? WHERE id = ?;`, [newStock, productId]);
-      } catch (e) {}
-    }
-
     if (!isSupabaseConfigured()) {
-      return { success: true, newStock };
+      return { success: false, newStock: currentStock, error: CONFIG_ERROR };
     }
+
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'adjust_stock')) {
+      return { success: false, newStock: currentStock, error: 'Not permitted' };
+    }
+
+    const newStock = Math.max(
+      0,
+      movementType === 'return' ? currentStock - quantity : currentStock + quantity
+    );
 
     try {
-      await supabase.from('products').update({ stock_quantity: newStock, updated_at: new Date().toISOString() }).eq('id', productId);
-      await supabase.from('stock_movements').insert({
+      const { error: updateErr } = await supabase
+        .from('products')
+        .update({ stock_quantity: newStock, updated_at: new Date().toISOString() })
+        .eq('id', productId)
+        .eq('business_id', businessId);
+
+      if (updateErr) {
+        return { success: false, newStock: currentStock, error: updateErr.message };
+      }
+
+      const { error: moveErr } = await supabase.from('stock_movements').insert({
         business_id: businessId,
         product_id: productId,
         movement_type: movementType,
@@ -254,29 +272,44 @@ export const productService = {
         new_stock: newStock,
         reason,
       });
+
+      if (moveErr) {
+        console.warn('Stock movement log failed:', moveErr.message);
+      }
+
       return { success: true, newStock };
     } catch (e: any) {
-      return { success: true, newStock };
+      return { success: false, newStock: currentStock, error: e.message || 'Stock adjustment failed' };
     }
   },
 
   /**
-   * Delete / Deactivate product
+   * Deactivate product in Supabase
    */
-  async deleteProduct(businessId: string, productId: string): Promise<boolean> {
-    const db = getDB();
-    if (db && typeof db.runSync === 'function') {
-      try {
-        db.runSync(`DELETE FROM local_products WHERE id = ?;`, [productId]);
-      } catch (e) {}
+  async deleteProduct(
+    businessId: string,
+    productId: string
+  ): Promise<{ success: boolean; error?: string }> {
+    if (!isSupabaseConfigured()) {
+      return { success: false, error: CONFIG_ERROR };
     }
-    if (!isSupabaseConfigured()) return true;
+
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'manage_products')) {
+      return { success: false, error: 'Not permitted' };
+    }
+
     try {
-      await supabase.from('products').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', productId);
-      return true;
-    } catch {
-      return true;
+      const { error } = await supabase
+        .from('products')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', productId)
+        .eq('business_id', businessId);
+
+      if (error) return { success: false, error: error.message };
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || 'Failed to delete product' };
     }
   },
 };
-

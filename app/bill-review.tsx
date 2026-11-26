@@ -9,6 +9,7 @@ import { useBusinessStore } from '../store/business.store';
 import { useBillStore } from '../store/bill.store';
 import { formatRupees, getCurrentFinancialYear } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
+import { safeGoBack } from '../utils/navigation';
 
 export default function BillReviewScreen() {
   const router = useRouter();
@@ -150,7 +151,7 @@ export default function BillReviewScreen() {
           size="lg"
           radius="md"
           style={{ flex: 1 }}
-          onPress={() => router.back()}
+          onPress={() => safeGoBack(router, '/(tabs)/new-bill')}
         >
           {t.editBill}
         </Button>

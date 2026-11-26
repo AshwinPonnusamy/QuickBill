@@ -6,7 +6,9 @@ import { COLORS, SPACING } from '../../constants/theme';
 import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
+import { safeGoBack } from '../../utils/navigation';
 import { Mail } from '../../components/common/Icons';
+import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -30,7 +32,7 @@ export default function ForgotPasswordScreen() {
         Alert.alert(
           t.success,
           'Password reset link has been sent to your email. Please check your inbox.',
-          [{ text: 'OK', onPress: () => router.back() }]
+          [{ text: 'OK', onPress: () => safeGoBack(router, '/(auth)/login') }]
         );
       }
     } catch (e: any) {
@@ -47,6 +49,9 @@ export default function ForgotPasswordScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerArea}>
+          <View style={styles.logoWrapper}>
+            <QuickBillLogo size={60} />
+          </View>
           <Text style={styles.title}>
             {t.forgotPassword}
           </Text>
@@ -79,7 +84,7 @@ export default function ForgotPasswordScreen() {
           </Button>
         </Card>
 
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => safeGoBack(router, '/(auth)/login')} style={styles.backBtn}>
           <Text style={styles.backBtnText}>← Back to Login</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -100,6 +105,9 @@ const styles = StyleSheet.create({
   headerArea: {
     alignItems: 'center',
     marginBottom: SPACING.xl,
+  },
+  logoWrapper: {
+    marginBottom: SPACING.md,
   },
   title: {
     fontWeight: '800',

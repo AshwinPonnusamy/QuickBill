@@ -7,14 +7,18 @@ import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { authService } from '../../services/auth.service';
 import { businessService } from '../../services/business.service';
+import { productService } from '../../services/product.service';
+import { useProductStore } from '../../store/product.store';
+import { can } from '../../utils/permissions';
 import { TRANSLATIONS } from '../../constants/translations';
 import { Receipt, Phone, Lock, Eye, EyeOff } from '../../components/common/Icons';
 import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { language, setAuth } = useAuthStore();
-  const { setBusiness } = useBusinessStore();
+  const { language, setAuth, logout } = useAuthStore();
+  const { setBusiness, setRole, setSubscription, resetBusinessSession } = useBusinessStore();
+  const { setProducts, setCategories } = useProductStore();
   const t = TRANSLATIONS[language];
 
   const [identifier, setIdentifier] = useState('');
@@ -43,13 +47,52 @@ export default function LoginScreen() {
 
       setAuth(res.user, res.profile);
 
-      // Check if user has business setup
+      // Check if user has business setup or suspended staff membership
       const biz = await businessService.getBusiness(res.user.id);
-      if (biz) {
-        setBusiness(biz);
+      if (!biz) {
+        const suspended = await businessService.isUserSuspended(res.user.id);
+        if (suspended) {
+          await authService.signOut();
+          logout();
+          resetBusinessSession();
+          Alert.alert(
+            'Account Suspended',
+            'Your staff account has been suspended by the shop owner. Contact your shop owner for access.'
+          );
+          return;
+        }
+        router.replace('/business-setup' as any);
+        return;
+      }
+
+      if (biz.ownerId !== res.user.id) {
+        const status = await businessService.getMembershipStatus(biz.id, res.user.id);
+        if (status !== 'active') {
+          await authService.signOut();
+          logout();
+          resetBusinessSession();
+          Alert.alert('Access Denied', 'Your staff membership is no longer active.');
+          return;
+        }
+      }
+
+      const role = await businessService.getMyRole(biz.id, res.user.id);
+      setBusiness(biz);
+      setRole(role);
+
+      const [sub, prods, cats] = await Promise.all([
+        businessService.getSubscription(biz.id),
+        productService.getProducts(biz.id),
+        productService.getCategories(biz.id),
+      ]);
+      setSubscription(sub);
+      setProducts(prods);
+      setCategories(cats);
+
+      if (can(role, 'view_reports')) {
         router.replace('/(tabs)' as any);
       } else {
-        router.replace('/business-setup' as any);
+        router.replace('/(tabs)/new-bill' as any);
       }
     } catch (err: any) {
       Alert.alert(t.error, err.message || 'Login failed');
@@ -80,8 +123,8 @@ export default function LoginScreen() {
         {/* Input Form Card */}
         <Card radius="xl" shadow="md" style={styles.formCard}>
           <Input
-            label={t.phone}
-            placeholder={t.phonePlaceholder}
+            label="Email or Phone Number"
+            placeholder="Enter email or 10-digit mobile number"
             value={identifier}
             onChangeText={setIdentifier}
             keyboardType="email-address"

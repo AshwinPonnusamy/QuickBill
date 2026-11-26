@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text, RefreshControl } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Badge, Divider } from '../../components/heroui';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
@@ -9,6 +9,7 @@ import { useProductStore } from '../../store/product.store';
 import { productService } from '../../services/product.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
+import { useCan, RoleGate } from '../../utils/permissions';
 import { Product, ProductUnit } from '../../types';
 import { Search, Plus, Boxes, Pencil, Trash2 } from '../../components/common/Icons';
 
@@ -17,8 +18,32 @@ const UNITS: ProductUnit[] = ['item', 'kg', 'g', 'liter', 'ml', 'meter', 'packet
 export default function ProductsScreen() {
   const { language } = useAuthStore();
   const { business } = useBusinessStore();
-  const { products, categories, addProduct, updateProduct, deleteProduct, adjustStock } = useProductStore();
+  const { products, categories, setProducts, setCategories, addProduct, updateProduct, deleteProduct, adjustStock } = useProductStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
+
+  const canManageProducts = canDo('manage_products');
+  const canAdjustStock = canDo('adjust_stock');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const loadProducts = useCallback(async () => {
+    if (!business) return;
+    setIsRefreshing(true);
+    try {
+      const [prods, cats] = await Promise.all([
+        productService.getProducts(business.id),
+        productService.getCategories(business.id),
+      ]);
+      setProducts(prods);
+      setCategories(cats);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [business, setProducts, setCategories]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
 
   const [search, setSearch] = useState('');
   const [selectedCat, setSelectedCat] = useState<string | null>(null);
@@ -117,14 +142,17 @@ export default function ProductsScreen() {
     };
 
     const res = await productService.saveProduct(business.id, payload as any);
-    if (res.product) {
-      if (isEditing) {
-        updateProduct(res.product.id, res.product);
-      } else {
-        addProduct(res.product);
-      }
-      setModalVisible(false);
+    if (res.error || !res.product) {
+      Alert.alert(t.error, res.error || 'Failed to save product.');
+      return;
     }
+
+    if (isEditing) {
+      updateProduct(res.product.id, res.product);
+    } else {
+      addProduct(res.product);
+    }
+    setModalVisible(false);
   };
 
   const handleStockAdjustment = async () => {
@@ -134,7 +162,7 @@ export default function ProductsScreen() {
     }
 
     const qty = Number(stockDelta);
-    await productService.recordStockAdjustment(
+    const res = await productService.recordStockAdjustment(
       business.id,
       stockProduct.id,
       movementType,
@@ -142,6 +170,11 @@ export default function ProductsScreen() {
       stockProduct.stockQuantity,
       stockReason || `Manual ${movementType}`
     );
+
+    if (!res.success) {
+      Alert.alert(t.error, res.error || 'Failed to update stock.');
+      return;
+    }
 
     adjustStock(stockProduct.id, movementType === 'return' ? -qty : qty);
     setStockModalVisible(false);
@@ -161,7 +194,11 @@ export default function ProductsScreen() {
           style: 'destructive',
           onPress: async () => {
             if (business) {
-              await productService.deleteProduct(business.id, editingId);
+              const res = await productService.deleteProduct(business.id, editingId);
+              if (!res.success) {
+                Alert.alert(t.error, res.error || 'Failed to delete product.');
+                return;
+              }
               deleteProduct(editingId);
               setModalVisible(false);
             }
@@ -184,16 +221,18 @@ export default function ProductsScreen() {
           startContent={<Search size={18} color={COLORS.textSecondary} />}
           style={styles.searchInput}
         />
-        <Button
-          color="primary"
-          size="md"
-          radius="md"
-          startContent={<Plus size={16} color={COLORS.white} />}
-          onPress={openAddModal}
-          style={styles.addBtn}
-        >
-          Add
-        </Button>
+        <RoleGate permission="manage_products">
+          <Button
+            color="primary"
+            size="md"
+            radius="md"
+            startContent={<Plus size={16} color={COLORS.white} />}
+            onPress={openAddModal}
+            style={styles.addBtn}
+          >
+            Add
+          </Button>
+        </RoleGate>
       </View>
 
       {/* Categories ribbon */}
@@ -227,8 +266,39 @@ export default function ProductsScreen() {
       </View>
 
       {/* Products List */}
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {filteredProducts.map((p) => {
+      <ScrollView
+        contentContainerStyle={[styles.scrollContent, { flexGrow: 1 }]}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={loadProducts} />
+        }
+      >
+        {filteredProducts.length === 0 ? (
+          <Card radius="lg" shadow="sm" style={styles.emptyCard}>
+            <Boxes size={38} color={COLORS.textMuted} style={{ marginBottom: 8 }} />
+            <Text style={styles.emptyTitle}>
+              {products.length === 0 ? 'No products in your catalog yet' : 'No matching products'}
+            </Text>
+            <Text style={styles.emptySub}>
+              {products.length === 0
+                ? canManageProducts
+                  ? 'Tap Add to create your first product.'
+                  : 'Ask your shop owner to add products to the catalog.'
+                : 'Try adjusting your search or category filter.'}
+            </Text>
+            <Button
+              variant="bordered"
+              color="secondary"
+              size="sm"
+              radius="md"
+              isLoading={isRefreshing}
+              style={{ marginTop: SPACING.md }}
+              onPress={loadProducts}
+            >
+              Refresh Catalog
+            </Button>
+          </Card>
+        ) : (
+          filteredProducts.map((p) => {
           const isLow = p.stockQuantity <= p.lowStockThreshold;
           return (
             <Card key={p.id} radius="lg" shadow="sm" style={styles.prodCard}>
@@ -253,45 +323,55 @@ export default function ProductsScreen() {
                 </View>
               </View>
 
-              <Divider style={{ marginVertical: SPACING.sm }} />
+              {canAdjustStock || canManageProducts ? (
+                <>
+                  <Divider style={{ marginVertical: SPACING.sm }} />
 
-              <View style={styles.actionRow}>
-                <Button
-                  variant="flat"
-                  color="secondary"
-                  size="sm"
-                  radius="sm"
-                  startContent={<Boxes size={14} color={COLORS.secondary} />}
-                  onPress={() => {
-                    setStockProduct(p);
-                    setStockModalVisible(true);
-                  }}
-                >
-                  Adjust Stock
-                </Button>
+                  <View style={styles.actionRow}>
+                    <RoleGate permission="adjust_stock">
+                      <Button
+                        variant="flat"
+                        color="secondary"
+                        size="sm"
+                        radius="sm"
+                        startContent={<Boxes size={14} color={COLORS.secondary} />}
+                        onPress={() => {
+                          setStockProduct(p);
+                          setStockModalVisible(true);
+                        }}
+                      >
+                        Adjust Stock
+                      </Button>
+                    </RoleGate>
 
-                <Button
-                  variant="flat"
-                  color="primary"
-                  size="sm"
-                  radius="sm"
-                  startContent={<Pencil size={14} color={COLORS.primary} />}
-                  onPress={() => openEditModal(p)}
-                >
-                  Edit
-                </Button>
-              </View>
+                    <RoleGate permission="manage_products">
+                      <Button
+                        variant="flat"
+                        color="primary"
+                        size="sm"
+                        radius="sm"
+                        startContent={<Pencil size={14} color={COLORS.primary} />}
+                        onPress={() => openEditModal(p)}
+                      >
+                        Edit
+                      </Button>
+                    </RoleGate>
+                  </View>
+                </>
+              ) : null}
             </Card>
           );
-        })}
+        })
+        )}
       </ScrollView>
 
-      {/* MODAL 1: Add / Edit Product */}
-      <Modal
-        visible={modalVisible}
-        onDismiss={() => setModalVisible(false)}
-        contentContainerStyle={styles.modalScrollBox}
-      >
+      {/* MODAL 1: Add / Edit Product (owner/admin only) */}
+      <RoleGate permission="manage_products">
+        <Modal
+          visible={modalVisible}
+          onDismiss={() => setModalVisible(false)}
+          contentContainerStyle={styles.modalScrollBox}
+        >
         <ModalHeader>
           <Text style={styles.modalTitle}>
             {isEditing ? 'Edit Product' : 'Add New Product'}
@@ -398,14 +478,16 @@ export default function ProductsScreen() {
             ) : null}
           </ScrollView>
         </ModalBody>
-      </Modal>
+        </Modal>
+      </RoleGate>
 
-      {/* MODAL 2: Stock Adjustment */}
-      <Modal
-        visible={stockModalVisible}
-        onDismiss={() => setStockModalVisible(false)}
-        contentContainerStyle={styles.modalBox}
-      >
+      {/* MODAL 2: Stock Adjustment (owner/admin only) */}
+      <RoleGate permission="adjust_stock">
+        <Modal
+          visible={stockModalVisible}
+          onDismiss={() => setStockModalVisible(false)}
+          contentContainerStyle={styles.modalBox}
+        >
         <ModalHeader>
           <Text style={styles.modalTitle}>
             Adjust Stock: {stockProduct?.name}
@@ -465,7 +547,8 @@ export default function ProductsScreen() {
             Apply Stock Update
           </Button>
         </ModalBody>
-      </Modal>
+        </Modal>
+      </RoleGate>
     </View>
   );
 }
@@ -588,5 +671,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: SPACING.md,
+  },
+  emptyCard: {
+    padding: SPACING.xl,
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginTop: SPACING.md,
+  },
+  emptyTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  emptySub: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginTop: 4,
   },
 });

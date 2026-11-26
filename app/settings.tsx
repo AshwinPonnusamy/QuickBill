@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Divider } from '../components/heroui';
-import { useRouter } from 'expo-router';
+import { useRouter, Redirect } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
+import { useProductStore } from '../store/product.store';
 import { authService } from '../services/auth.service';
 import { businessService } from '../services/business.service';
-import { syncService } from '../services/sync.service';
 import { TRANSLATIONS } from '../constants/translations';
+import { useCan, RoleGate } from '../utils/permissions';
+import { BusinessType } from '../types';
 import {
   Store,
   Globe,
   Tag,
   Printer,
   Sparkles,
-  RefreshCw,
   Users,
   ShieldCheck,
   MessageSquare,
@@ -25,53 +26,105 @@ import {
   ChevronRight,
 } from '../components/common/Icons';
 
+const SHOP_TYPES: { type: BusinessType; label: string }[] = [
+  { type: 'retail', label: 'General Retail' },
+  { type: 'grocery', label: 'Grocery / Kirana' },
+  { type: 'supermarket', label: 'Supermarket' },
+  { type: 'restaurant', label: 'Restaurant / Cafe' },
+  { type: 'bakery', label: 'Bakery & Sweets' },
+  { type: 'tea_shop', label: 'Tea / Snack Stall' },
+  { type: 'clothing', label: 'Clothing / Textiles' },
+  { type: 'other', label: 'Other' },
+];
+
 export default function SettingsScreen() {
   const router = useRouter();
   const { language, logout } = useAuthStore();
-  const { business, subscription, updateBusiness } = useBusinessStore();
+  const { business, subscription, isRoleLoaded, updateBusiness, resetBusinessSession } = useBusinessStore();
+  const { setProducts, setCategories } = useProductStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
 
   // Modals
   const [shopEditModal, setShopEditModal] = useState(false);
+  const [isSavingShop, setIsSavingShop] = useState(false);
   const [editName, setEditName] = useState(business?.name || '');
+  const [editBusinessType, setEditBusinessType] = useState<BusinessType>(business?.businessType || 'retail');
+  const [editOwnerName, setEditOwnerName] = useState(business?.ownerName || '');
   const [editPhone, setEditPhone] = useState(business?.phone || '');
+  const [editEmail, setEditEmail] = useState(business?.email || '');
   const [editAddress, setEditAddress] = useState(business?.address || '');
+  const [editIsGstRegistered, setEditIsGstRegistered] = useState(business?.isGstRegistered ?? false);
   const [editGstin, setEditGstin] = useState(business?.gstin || '');
+  const [editDefaultTaxRate, setEditDefaultTaxRate] = useState(String(business?.defaultTaxRate ?? 5));
+  const [editInvoicePrefix, setEditInvoicePrefix] = useState(business?.invoicePrefix || 'QB');
   const [taxInclusive, setTaxInclusive] = useState(business?.taxInclusive ?? true);
-  const [syncing, setSyncing] = useState(false);
+
+  const openShopEditModal = () => {
+    setEditName(business?.name || '');
+    setEditBusinessType(business?.businessType || 'retail');
+    setEditOwnerName(business?.ownerName || '');
+    setEditPhone(business?.phone || '');
+    setEditEmail(business?.email || '');
+    setEditAddress(business?.address || '');
+    setEditIsGstRegistered(business?.isGstRegistered ?? false);
+    setEditGstin(business?.gstin || '');
+    setEditDefaultTaxRate(String(business?.defaultTaxRate ?? 5));
+    setEditInvoicePrefix(business?.invoicePrefix || 'QB');
+    setTaxInclusive(business?.taxInclusive ?? true);
+    setShopEditModal(true);
+  };
 
   const handleSaveShopDetails = async () => {
     if (!business) return;
-    await businessService.updateBusiness(business.id, {
-      name: editName,
-      phone: editPhone,
-      address: editAddress,
-      gstin: editGstin,
-      taxInclusive,
-    });
-    updateBusiness({
-      name: editName,
-      phone: editPhone,
-      address: editAddress,
-      gstin: editGstin,
-      taxInclusive,
-    });
-    setShopEditModal(false);
-    Alert.alert(t.success, 'Shop profile updated successfully.');
-  };
+    if (!editName.trim()) {
+      Alert.alert(t.error, 'Please enter your shop name.');
+      return;
+    }
+    if (!editOwnerName.trim()) {
+      Alert.alert(t.error, 'Please enter the owner name.');
+      return;
+    }
+    if (!editPhone.trim()) {
+      Alert.alert(t.error, 'Please enter a contact phone number.');
+      return;
+    }
+    if (!editAddress.trim()) {
+      Alert.alert(t.error, 'Please enter your shop address.');
+      return;
+    }
+    const normalizedGstin = editGstin.trim().toUpperCase();
+    if (editIsGstRegistered && normalizedGstin.length !== 15) {
+      Alert.alert(t.error, 'Please enter a valid 15-character GSTIN.');
+      return;
+    }
 
-  const handleManualSync = async () => {
-    setSyncing(true);
+    const updates = {
+      name: editName.trim(),
+      businessType: editBusinessType,
+      ownerName: editOwnerName.trim(),
+      phone: editPhone.trim(),
+      email: editEmail.trim() || undefined,
+      address: editAddress.trim(),
+      isGstRegistered: editIsGstRegistered,
+      gstin: editIsGstRegistered ? normalizedGstin : undefined,
+      defaultTaxRate: Number(editDefaultTaxRate) || 0,
+      invoicePrefix: editInvoicePrefix.trim().toUpperCase() || 'QB',
+      taxInclusive,
+    };
+
+    setIsSavingShop(true);
     try {
-      const res = await syncService.processSyncQueue();
-      Alert.alert(
-        t.success,
-        `Cloud Sync Complete: ${res.processed} pending operations synchronized.`
-      );
-    } catch (e: any) {
-      Alert.alert(t.error, e.message || 'Sync failed');
+      const res = await businessService.updateBusiness(business.id, updates);
+      if (!res.success) {
+        Alert.alert(t.error, res.error || 'Failed to update shop profile.');
+        return;
+      }
+      updateBusiness(updates);
+      setShopEditModal(false);
+      Alert.alert(t.success, 'Shop profile updated successfully.');
     } finally {
-      setSyncing(false);
+      setIsSavingShop(false);
     }
   };
 
@@ -84,6 +137,9 @@ export default function SettingsScreen() {
         onPress: async () => {
           await authService.signOut();
           logout();
+          resetBusinessSession();
+          setProducts([]);
+          setCategories([]);
           router.replace('/(auth)/login' as any);
         },
       },
@@ -92,22 +148,29 @@ export default function SettingsScreen() {
 
   const handleDeleteAccount = () => {
     Alert.alert(
-      'Delete Shop Account & Data',
-      'This will permanently delete all your local database transactions, products, customer records and receipts. This cannot be undone.',
+      'Sign Out & Reset Session',
+      'This will sign you out and clear your current app session. Contact support to permanently delete your cloud shop records.',
       [
         { text: t.cancel, style: 'cancel' },
         {
-          text: 'Permanently Delete',
+          text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
             await authService.signOut();
             logout();
+            resetBusinessSession();
+            setProducts([]);
+            setCategories([]);
             router.replace('/(auth)/onboarding' as any);
           },
         },
       ]
     );
   };
+
+  if (isRoleLoaded && !canDo('manage_settings')) {
+    return <Redirect href={'/(tabs)/new-bill' as any} />;
+  }
 
   return (
     <View style={styles.container}>
@@ -131,7 +194,7 @@ export default function SettingsScreen() {
             color="primary"
             size="sm"
             radius="md"
-            onPress={() => setShopEditModal(true)}
+            onPress={openShopEditModal}
           >
             Edit
           </Button>
@@ -156,7 +219,7 @@ export default function SettingsScreen() {
 
           <Divider style={styles.menuDivider} />
 
-          <TouchableOpacity style={styles.menuItem} onPress={() => setShopEditModal(true)}>
+          <TouchableOpacity style={styles.menuItem} onPress={openShopEditModal}>
             <View style={styles.menuIconBox}>
               <Tag size={18} color={COLORS.primary} />
             </View>
@@ -208,41 +271,23 @@ export default function SettingsScreen() {
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
 
-          <Divider style={styles.menuDivider} />
+          <RoleGate permission="manage_staff">
+            <Divider style={styles.menuDivider} />
 
-          <TouchableOpacity style={styles.menuItem} onPress={handleManualSync} disabled={syncing}>
-            <View style={styles.menuIconBox}>
-              <RefreshCw size={18} color={COLORS.secondary} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>{t.backupSync}</Text>
-              <Text style={styles.menuSub}>
-                {syncing ? 'Synchronizing with Supabase...' : 'Trigger manual cloud sync'}
-              </Text>
-            </View>
-            <ChevronRight size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
-
-          <Divider style={styles.menuDivider} />
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() =>
-              Alert.alert(
-                t.staffManagement,
-                `Role: Owner (${business?.ownerName}). Multi-staff permission management is enabled on Pro Plan.`
-              )
-            }
-          >
-            <View style={styles.menuIconBox}>
-              <Users size={18} color={COLORS.primary} />
-            </View>
-            <View style={styles.menuTextContainer}>
-              <Text style={styles.menuTitle}>{t.staffManagement}</Text>
-              <Text style={styles.menuSub}>Roles: Owner, Admin, Cashier</Text>
-            </View>
-            <ChevronRight size={18} color={COLORS.textMuted} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/manage-staff' as any)}
+            >
+              <View style={styles.menuIconBox}>
+                <Users size={18} color={COLORS.primary} />
+              </View>
+              <View style={styles.menuTextContainer}>
+                <Text style={styles.menuTitle}>{t.staffManagement}</Text>
+                <Text style={styles.menuSub}>Add staff logins, suspend access & reset passwords</Text>
+              </View>
+              <ChevronRight size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          </RoleGate>
         </Card>
 
         {/* SECTION 3: Legal & Support */}
@@ -253,7 +298,7 @@ export default function SettingsScreen() {
             onPress={() =>
               Alert.alert(
                 t.privacyPolicy,
-                'QuickBill stores all billing records locally on device and uses encrypted Supabase PostgreSQL storage with Row-Level Security for business data isolation.'
+                'QuickBill uses encrypted Supabase PostgreSQL cloud storage with Row-Level Security for complete business data isolation.'
               )
             }
           >
@@ -319,48 +364,112 @@ export default function SettingsScreen() {
           </Text>
         </ModalHeader>
         <ModalBody>
-          <Input
-            label={t.businessName}
-            value={editName}
-            onChangeText={setEditName}
-          />
+          <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Input
+              label={t.businessName}
+              value={editName}
+              onChangeText={setEditName}
+            />
 
-          <Input
-            label={t.phone}
-            value={editPhone}
-            onChangeText={setEditPhone}
-            keyboardType="phone-pad"
-          />
+            <Text style={styles.fieldLabel}>Shop Type</Text>
+            <View style={styles.typeGrid}>
+              {SHOP_TYPES.map((item) => {
+                const selected = editBusinessType === item.type;
+                return (
+                  <TouchableOpacity
+                    key={item.type}
+                    style={[styles.typeChip, selected && styles.typeChipActive]}
+                    onPress={() => setEditBusinessType(item.type)}
+                  >
+                    <Text style={[styles.typeChipText, selected && styles.typeChipTextActive]}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
 
-          <Input
-            label={t.shopAddress}
-            value={editAddress}
-            onChangeText={setEditAddress}
-            multiline
-            numberOfLines={2}
-          />
+            <Input
+              label={t.ownerName}
+              value={editOwnerName}
+              onChangeText={setEditOwnerName}
+            />
 
-          <Input
-            label={t.gstin}
-            value={editGstin}
-            onChangeText={(txt) => setEditGstin(txt.toUpperCase())}
-          />
+            <Input
+              label={t.phone}
+              value={editPhone}
+              onChangeText={setEditPhone}
+              keyboardType="phone-pad"
+            />
 
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Prices Include GST</Text>
-            <Switch isSelected={taxInclusive} onValueChange={setTaxInclusive} color="secondary" />
-          </View>
+            <Input
+              label="Business Email (Optional)"
+              value={editEmail}
+              onChangeText={setEditEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
 
-          <Button
-            color="primary"
-            size="lg"
-            radius="md"
-            fullWidth
-            style={styles.saveBtn}
-            onPress={handleSaveShopDetails}
-          >
-            {t.save} Changes
-          </Button>
+            <Input
+              label={t.shopAddress}
+              value={editAddress}
+              onChangeText={setEditAddress}
+              multiline
+              numberOfLines={2}
+            />
+
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>GST Registered</Text>
+              <Switch isSelected={editIsGstRegistered} onValueChange={setEditIsGstRegistered} color="secondary" />
+            </View>
+
+            {editIsGstRegistered && (
+              <Input
+                label={t.gstin}
+                value={editGstin}
+                onChangeText={(txt) => setEditGstin(txt.toUpperCase())}
+                maxLength={15}
+                autoCapitalize="characters"
+              />
+            )}
+
+            <View style={styles.rowInputs}>
+              <View style={styles.halfInput}>
+                <Input
+                  label="Default Tax (%)"
+                  value={editDefaultTaxRate}
+                  onChangeText={setEditDefaultTaxRate}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.halfInput}>
+                <Input
+                  label="Invoice Prefix"
+                  value={editInvoicePrefix}
+                  onChangeText={(txt) => setEditInvoicePrefix(txt.toUpperCase())}
+                  maxLength={6}
+                  autoCapitalize="characters"
+                />
+              </View>
+            </View>
+
+            <View style={styles.switchRow}>
+              <Text style={styles.switchLabel}>Prices Include GST</Text>
+              <Switch isSelected={taxInclusive} onValueChange={setTaxInclusive} color="secondary" />
+            </View>
+
+            <Button
+              color="primary"
+              size="lg"
+              radius="md"
+              fullWidth
+              isLoading={isSavingShop}
+              style={styles.saveBtn}
+              onPress={handleSaveShopDetails}
+            >
+              {t.save} Changes
+            </Button>
+          </ScrollView>
         </ModalBody>
       </Modal>
     </View>
@@ -456,10 +565,54 @@ const styles = StyleSheet.create({
   modalBox: {
     paddingBottom: SPACING.md,
   },
+  modalScroll: {
+    maxHeight: 460,
+  },
   modalTitle: {
     fontWeight: '800',
     color: COLORS.primary,
     fontSize: 18,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+    marginTop: SPACING.xs,
+  },
+  typeGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: SPACING.sm,
+  },
+  typeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: ROUNDNESS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+  },
+  typeChipActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryContainer,
+  },
+  typeChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: COLORS.textSecondary,
+  },
+  typeChipTextActive: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+  },
+  halfInput: {
+    flex: 1,
   },
   switchRow: {
     flexDirection: 'row',

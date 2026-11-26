@@ -4,13 +4,13 @@ import { Button, Card, Input, Modal, ModalHeader, ModalBody, ModalFooter, Badge,
 import { useRouter } from 'expo-router';
 import { COLORS, SPACING, ROUNDNESS } from '../../constants/theme';
 import { Header } from '../../components/common/Header';
-import { SyncStatusBadge } from '../../components/common/SyncStatusBadge';
 import { useAuthStore } from '../../store/auth.store';
 import { useBusinessStore } from '../../store/business.store';
 import { billingService } from '../../services/billing.service';
 import { pdfService } from '../../services/pdf.service';
 import { formatRupees } from '../../utils/billingCalculator';
 import { TRANSLATIONS } from '../../constants/translations';
+import { useCan, RoleGate } from '../../utils/permissions';
 import { Invoice } from '../../types';
 import {
   Search,
@@ -37,7 +37,9 @@ export default function BillHistoryScreen() {
   const router = useRouter();
   const { language } = useAuthStore();
   const { business } = useBusinessStore();
+  const canDo = useCan();
   const t = TRANSLATIONS[language];
+  const canViewAllInvoices = canDo('view_all_invoices');
 
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [search, setSearch] = useState('');
@@ -181,7 +183,11 @@ export default function BillHistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title={t.billHistoryTitle} showBack={false} />
+      <Header
+        title={canViewAllInvoices ? t.billHistoryTitle : 'My Bills'}
+        subtitle={canViewAllInvoices ? undefined : 'Bills created by you'}
+        showBack={false}
+      />
 
       {/* Search Input Bar with Filter Button */}
       <View style={styles.searchBar}>
@@ -295,7 +301,6 @@ export default function BillHistoryScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.invNumber}>{inv.invoiceNumber}</Text>
-                    <SyncStatusBadge status={inv.syncStatus} />
                   </View>
                   <Text style={styles.invDate}>
                     {new Date(inv.createdAt).toLocaleDateString('en-IN', {
@@ -361,17 +366,19 @@ export default function BillHistoryScreen() {
                   </TouchableOpacity>
 
                   {!inv.isVoid ? (
-                    <Button
-                      variant="light"
-                      color="danger"
-                      size="sm"
-                      onPress={() => {
-                        setSelectedInvoice(inv);
-                        setVoidModalVisible(true);
-                      }}
-                    >
-                      Void
-                    </Button>
+                    <RoleGate permission="void_invoice">
+                      <Button
+                        variant="light"
+                        color="danger"
+                        size="sm"
+                        onPress={() => {
+                          setSelectedInvoice(inv);
+                          setVoidModalVisible(true);
+                        }}
+                      >
+                        Void
+                      </Button>
+                    </RoleGate>
                   ) : null}
                 </View>
               </View>
@@ -475,39 +482,41 @@ export default function BillHistoryScreen() {
         </ModalFooter>
       </Modal>
 
-      {/* Void Invoice Confirmation Modal */}
-      <Modal isOpen={voidModalVisible} onClose={() => setVoidModalVisible(false)}>
-        <ModalHeader>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.primary }}>{t.voidBill}</Text>
-            <TouchableOpacity onPress={() => setVoidModalVisible(false)}>
-              <X size={18} color={COLORS.textSecondary} />
-            </TouchableOpacity>
-          </View>
-        </ModalHeader>
-        <ModalBody>
-          <Text style={styles.modalNotice}>
-            Cancelling this bill will mark it as VOID and reverse any stock adjustments or udhar balances.
-          </Text>
+      {/* Void Invoice Confirmation Modal (owner/admin only) */}
+      <RoleGate permission="void_invoice">
+        <Modal isOpen={voidModalVisible} onClose={() => setVoidModalVisible(false)}>
+          <ModalHeader>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <Text style={{ fontSize: 16, fontWeight: '800', color: COLORS.primary }}>{t.voidBill}</Text>
+              <TouchableOpacity onPress={() => setVoidModalVisible(false)}>
+                <X size={18} color={COLORS.textSecondary} />
+              </TouchableOpacity>
+            </View>
+          </ModalHeader>
+          <ModalBody>
+            <Text style={styles.modalNotice}>
+              Cancelling this bill will mark it as VOID and reverse any stock adjustments or udhar balances.
+            </Text>
 
-          <Input
-            label={t.voidReason}
-            placeholder="e.g. Customer returned items / wrong entry"
-            value={voidReason}
-            onChangeText={setVoidReason}
-            multiline
-            numberOfLines={3}
-          />
-        </ModalBody>
-        <ModalFooter>
-          <Button variant="bordered" color="default" onPress={() => setVoidModalVisible(false)}>
-            {t.cancel}
-          </Button>
-          <Button color="danger" onPress={handleConfirmVoid}>
-            Confirm Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+            <Input
+              label={t.voidReason}
+              placeholder="e.g. Customer returned items / wrong entry"
+              value={voidReason}
+              onChangeText={setVoidReason}
+              multiline
+              numberOfLines={3}
+            />
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="bordered" color="default" onPress={() => setVoidModalVisible(false)}>
+              {t.cancel}
+            </Button>
+            <Button color="danger" onPress={handleConfirmVoid}>
+              Confirm Cancel
+            </Button>
+          </ModalFooter>
+        </Modal>
+      </RoleGate>
     </View>
   );
 }

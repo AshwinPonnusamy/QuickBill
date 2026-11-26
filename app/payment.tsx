@@ -7,6 +7,7 @@ import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { useBillStore } from '../store/bill.store';
+import { useProductStore } from '../store/product.store';
 import { billingService } from '../services/billing.service';
 import { formatRupees, paiseToRupees, rupeesToPaise } from '../utils/billingCalculator';
 import { TRANSLATIONS } from '../constants/translations';
@@ -18,6 +19,7 @@ export default function PaymentScreen() {
   const { language } = useAuthStore();
   const { business } = useBusinessStore();
   const { customer, notes, getCalculation, clearBill } = useBillStore();
+  const { adjustStock } = useProductStore();
   const t = TRANSLATIONS[language];
 
   const calculation = getCalculation();
@@ -83,6 +85,14 @@ export default function PaymentScreen() {
   const processInvoice = async (paidPaise: number) => {
     setIsSubmitting(true);
     try {
+      const splitBreakdown =
+        paymentMethod === 'split'
+          ? {
+              cashPaise: rupeesToPaise(Number(splitCash) || 0),
+              upiPaise: rupeesToPaise(Number(splitUpi) || 0),
+            }
+          : undefined;
+
       const res = await billingService.createInvoice(
         business!.id,
         calculation,
@@ -90,19 +100,29 @@ export default function PaymentScreen() {
         paidPaise,
         customer,
         notes || undefined,
-        business?.invoicePrefix || 'QB'
+        business?.invoicePrefix || 'QB',
+        splitBreakdown
       );
 
-      if (res.invoice) {
-        clearBill();
-        router.replace({
-          pathname: '/receipt-preview',
-          params: {
-            invoiceData: JSON.stringify(res.invoice),
-            autoShare: autoSendWhatsApp ? '1' : '0',
-          },
-        } as any);
+      if (res.error || !res.invoice) {
+        Alert.alert(t.error, res.error || 'Payment failed');
+        return;
       }
+
+      for (const item of calculation.items) {
+        if (item.cartItem.productId) {
+          adjustStock(item.cartItem.productId, -item.quantity);
+        }
+      }
+
+      clearBill();
+      router.replace({
+        pathname: '/receipt-preview',
+        params: {
+          invoiceData: JSON.stringify(res.invoice),
+          autoShare: autoSendWhatsApp ? '1' : '0',
+        },
+      } as any);
     } catch (err: any) {
       Alert.alert(t.error, err.message || 'Payment failed');
     } finally {

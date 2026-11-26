@@ -19,11 +19,6 @@ export const TRANSLATIONS = {
     error: 'Error',
     retry: 'Retry',
     emptyState: 'No items found',
-    syncStatus: 'Sync Status',
-    synced: 'Synced',
-    pendingSync: 'Pending Sync',
-    syncFailed: 'Sync Failed',
-    offlineMode: 'Offline Mode Active',
 
     // Currency
     currencySymbol: '₹',

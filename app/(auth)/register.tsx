@@ -7,6 +7,7 @@ import { useAuthStore } from '../../store/auth.store';
 import { authService } from '../../services/auth.service';
 import { TRANSLATIONS } from '../../constants/translations';
 import { User, Phone, Lock, KeyRound } from '../../components/common/Icons';
+import { QuickBillLogo } from '../../components/common/QuickBillLogo';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -63,6 +64,9 @@ export default function RegisterScreen() {
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
         {/* Header */}
         <View style={styles.headerArea}>
+          <View style={styles.logoWrapper}>
+            <QuickBillLogo size={62} />
+          </View>
           <Text style={styles.title}>
             {t.register}
           </Text>
@@ -82,8 +86,8 @@ export default function RegisterScreen() {
           />
 
           <Input
-            label={t.phone}
-            placeholder={t.phonePlaceholder}
+            label="Email or Phone Number"
+            placeholder="Enter email or 10-digit mobile number"
             value={identifier}
             onChangeText={setIdentifier}
             keyboardType="email-address"
@@ -147,6 +151,9 @@ const styles = StyleSheet.create({
   headerArea: {
     alignItems: 'center',
     marginBottom: SPACING.lg,
+  },
+  logoWrapper: {
+    marginBottom: SPACING.sm,
   },
   title: {
     fontWeight: '800',

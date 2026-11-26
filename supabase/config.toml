@@ -1,0 +1,3 @@
+# Supabase CLI project configuration
+[functions.create-staff]
+verify_jwt = false

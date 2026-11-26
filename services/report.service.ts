@@ -1,5 +1,7 @@
-import { Invoice, Product } from '../types';
+import { Invoice } from '../types';
 import { paiseToRupees } from '../utils/billingCalculator';
+import { useBusinessStore } from '../store/business.store';
+import { can } from '../utils/permissions';
 
 export interface SalesReportMetrics {
   totalRevenuePaise: number;
@@ -24,6 +26,20 @@ export interface SalesReportMetrics {
 }
 
 export const reportService = {
+  /**
+   * Role-checked entry point for sales report metrics
+   */
+  getAuthorizedReport(
+    invoices: Invoice[],
+    period: 'daily' | 'weekly' | 'monthly' | 'all' = 'weekly'
+  ): { metrics: SalesReportMetrics | null; error?: string } {
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'view_reports')) {
+      return { metrics: null, error: 'Not permitted' };
+    }
+    return { metrics: this.generateReport(invoices, period) };
+  },
+
   /**
    * Generates sales report metrics for given period
    */
