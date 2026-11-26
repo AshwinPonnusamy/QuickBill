@@ -48,48 +48,68 @@ export default function ReportsScreen() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'all'>('weekly');
   const [activeTab, setActiveTab] = useState<ReportTab>('overview');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [viewMetrics, setViewMetrics] = useState<SalesReportMetrics | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const needsDetailBreakdown = activeTab === 'items' || activeTab === 'customers';
 
   const loadData = useCallback(async () => {
     if (!business || !canViewReports) return;
     setIsRefreshing(true);
     try {
-      const data = await billingService.getInvoices(business.id, {
-        limit: 500,
-        withItems: true,
-        withPayments: true,
-      });
-      setInvoices(data);
+      if (needsDetailBreakdown) {
+        const data = await billingService.getInvoices(business.id, {
+          limit: 500,
+          withItems: true,
+          withPayments: true,
+        });
+        setInvoices(data);
+      } else {
+        const res = await reportService.fetchReportForPeriod(business.id, period);
+        if (res.invoices.length > 0) setInvoices(res.invoices);
+        setViewMetrics(res.metrics);
+      }
     } finally {
       setIsRefreshing(false);
     }
-  }, [business, canViewReports]);
+  }, [business, canViewReports, needsDetailBreakdown, period]);
 
   useEffect(() => {
     if (!business || !canViewReports) return;
     let cancelled = false;
     setIsRefreshing(true);
-    billingService
-      .getInvoices(business.id, { limit: 500, withItems: true, withPayments: true })
-      .then((data) => {
-        if (!cancelled) setInvoices(data);
-      })
-      .finally(() => {
-        if (!cancelled) setIsRefreshing(false);
-      });
+
+    const task = needsDetailBreakdown
+      ? billingService
+          .getInvoices(business.id, { limit: 500, withItems: true, withPayments: true })
+          .then((data) => {
+            if (!cancelled) setInvoices(data);
+          })
+      : reportService.fetchReportForPeriod(business.id, period).then((res) => {
+          if (cancelled) return;
+          if (res.invoices.length > 0) setInvoices(res.invoices);
+          setViewMetrics(res.metrics);
+        });
+
+    task.finally(() => {
+      if (!cancelled) setIsRefreshing(false);
+    });
     return () => {
       cancelled = true;
     };
-  }, [business, canViewReports]);
+  }, [business, canViewReports, needsDetailBreakdown, period]);
 
   if (isRoleLoaded && !canViewReports) {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
 
   const report: SalesReportMetrics = useMemo(() => {
+    if (!needsDetailBreakdown && viewMetrics) {
+      return viewMetrics;
+    }
     const authorized = reportService.getAuthorizedReport(invoices, period);
     return authorized.metrics || reportService.generateReport([], period);
-  }, [invoices, period]);
+  }, [needsDetailBreakdown, viewMetrics, invoices, period]);
 
   const reportTabs: { id: ReportTab; label: string; Icon: any }[] = [
     { id: 'overview', label: 'Overview', Icon: BarChart3 },

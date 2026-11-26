@@ -2,6 +2,24 @@ import { Invoice } from '../types';
 import { paiseToRupees } from '../utils/billingCalculator';
 import { useBusinessStore } from '../store/business.store';
 import { can } from '../utils/permissions';
+import { supabase, isSupabaseConfigured } from './supabase';
+import { billingService } from './billing.service';
+
+export interface DailySalesRow {
+  business_id: string;
+  day: string;
+  bills: number;
+  revenue_paise: number;
+  tax_paise: number;
+  cgst_paise?: number;
+  sgst_paise?: number;
+  igst_paise?: number;
+  discount_paise: number;
+  pending_udhar_paise?: number;
+  cash_paise: number;
+  upi_paise: number;
+  card_paise: number;
+}
 
 export interface SalesReportMetrics {
   totalRevenuePaise: number;
@@ -38,6 +56,116 @@ export const reportService = {
       return { metrics: null, error: 'Not permitted' };
     }
     return { metrics: this.generateReport(invoices, period) };
+  },
+
+  /**
+   * Queries pre-aggregated `reports_daily_sales` SQL view for multi-day periods so large
+   * businesses do not download hundreds of full invoices, falling back to `getInvoices`
+   * when `daily` slot breakdown or fallback is needed.
+   */
+  async fetchReportForPeriod(
+    businessId: string,
+    period: 'daily' | 'weekly' | 'monthly' | 'all' = 'weekly'
+  ): Promise<{ metrics: SalesReportMetrics | null; invoices: Invoice[]; error?: string }> {
+    const { role, isRoleLoaded } = useBusinessStore.getState();
+    if (!isRoleLoaded || !can(role, 'view_reports')) {
+      return { metrics: null, invoices: [], error: 'Not permitted' };
+    }
+
+    if (period !== 'daily' && isSupabaseConfigured()) {
+      try {
+        let query = supabase
+          .from('reports_daily_sales')
+          .select('*')
+          .eq('business_id', businessId)
+          .order('day', { ascending: true });
+
+        if (period === 'weekly' || period === 'monthly') {
+          const daysBack = period === 'weekly' ? 7 : 30;
+          const cutoff = new Date(Date.now() - daysBack * 24 * 60 * 60 * 1000);
+          const dayIso = cutoff.toISOString().slice(0, 10);
+          query = query.gte('day', dayIso);
+        }
+
+        const { data: rows, error } = await query;
+        if (!error && Array.isArray(rows)) {
+          const typedRows = rows as DailySalesRow[];
+          let totalRevenuePaise = 0;
+          let totalBills = 0;
+          let cashPaymentsPaise = 0;
+          let upiPaymentsPaise = 0;
+          let cardPaymentsPaise = 0;
+          let pendingUdharPaise = 0;
+          let totalGstPaise = 0;
+          let cgstPaise = 0;
+          let sgstPaise = 0;
+          let igstPaise = 0;
+          let totalDiscountGivenPaise = 0;
+
+          const daySeries = new Map<string, number>();
+          typedRows.forEach((r) => {
+            totalRevenuePaise += Number(r.revenue_paise || 0);
+            totalBills += Number(r.bills || 0);
+            cashPaymentsPaise += Number(r.cash_paise || 0);
+            upiPaymentsPaise += Number(r.upi_paise || 0);
+            cardPaymentsPaise += Number(r.card_paise || 0);
+            pendingUdharPaise += Number(r.pending_udhar_paise || 0);
+            totalGstPaise += Number(r.tax_paise || 0);
+            cgstPaise += Number(r.cgst_paise || 0);
+            sgstPaise += Number(r.sgst_paise || 0);
+            igstPaise += Number(r.igst_paise || 0);
+            totalDiscountGivenPaise += Number(r.discount_paise || 0);
+
+            const d = new Date(`${r.day}T00:00:00`);
+            const label =
+              period === 'monthly' || period === 'all'
+                ? d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+                : d.toLocaleDateString('en-US', { weekday: 'short' });
+            daySeries.set(label, Math.round(paiseToRupees(Number(r.revenue_paise || 0))));
+          });
+
+          const chartData = Array.from(daySeries.entries()).map(([label, value]) => ({
+            label,
+            value,
+            frontColor: '#087E8B',
+          }));
+
+          return {
+            metrics: {
+              totalRevenuePaise,
+              totalBills,
+              averageBillValuePaise: totalBills > 0 ? Math.round(totalRevenuePaise / totalBills) : 0,
+              cashPaymentsPaise,
+              upiPaymentsPaise,
+              cardPaymentsPaise,
+              pendingUdharPaise,
+              totalGstPaise,
+              cgstPaise,
+              sgstPaise,
+              igstPaise,
+              customerBillCount: 0,
+              walkInBillCount: 0,
+              totalDiscountGivenPaise,
+              chartData,
+              topProducts: [],
+            },
+            invoices: [],
+          };
+        }
+      } catch {
+        // Fall back to client-side invoice aggregation when view is unavailable
+      }
+    }
+
+    const invoices = await billingService.getInvoices(businessId, {
+      limit: 500,
+      withItems: true,
+      withPayments: true,
+    });
+    return {
+      metrics: this.generateReport(invoices, period),
+      invoices,
+    };
   },
 
   /**
