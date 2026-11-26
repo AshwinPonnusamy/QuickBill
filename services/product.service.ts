@@ -228,7 +228,8 @@ export const productService = {
   },
 
   /**
-   * Adjust stock and log stock movement in Supabase
+   * Adjust stock atomically via adjust_stock RPC (locks product row FOR UPDATE,
+   * sets stock_movements.created_by = auth.uid(), and returns authoritative new stock).
    */
   async recordStockAdjustment(
     businessId: string,
@@ -247,35 +248,27 @@ export const productService = {
       return { success: false, newStock: currentStock, error: 'Not permitted' };
     }
 
-    const newStock = Math.max(
-      0,
-      movementType === 'return' ? currentStock - quantity : currentStock + quantity
-    );
-
     try {
-      const { error: updateErr } = await supabase
-        .from('products')
-        .update({ stock_quantity: newStock, updated_at: new Date().toISOString() })
-        .eq('id', productId)
-        .eq('business_id', businessId);
-
-      if (updateErr) {
-        return { success: false, newStock: currentStock, error: updateErr.message };
-      }
-
-      const { error: moveErr } = await supabase.from('stock_movements').insert({
-        business_id: businessId,
-        product_id: productId,
-        movement_type: movementType,
-        quantity,
-        previous_stock: currentStock,
-        new_stock: newStock,
-        reason,
+      const { data, error } = await supabase.rpc('adjust_stock', {
+        p_business_id: businessId,
+        p_product_id: productId,
+        p_movement_type: movementType,
+        p_quantity: quantity,
+        p_reason: reason,
       });
 
-      if (moveErr) {
-        console.warn('Stock movement log failed:', moveErr.message);
+      if (error) {
+        await checkAndLogoutIfSuspended(error.message);
+        return { success: false, newStock: currentStock, error: error.message };
       }
+
+      const newStock =
+        data !== null && data !== undefined && !Number.isNaN(Number(data))
+          ? Number(data)
+          : Math.max(
+              0,
+              movementType === 'return' ? currentStock - quantity : currentStock + quantity
+            );
 
       return { success: true, newStock };
     } catch (e: any) {

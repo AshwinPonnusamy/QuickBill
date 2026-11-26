@@ -20,7 +20,40 @@ const CONFIG_ERROR = 'Supabase is not configured. Please check your environment 
 const generateClientToken = () =>
   `loc-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
 
+const MAX_INVOICE_RETRY = 3;
+
+const isUniqueViolation = (error: any): boolean => {
+  if (!error) return false;
+  const code = String(error.code || '');
+  const msg = String(error.message || '').toLowerCase();
+  return code === '23505' || msg.includes('duplicate key') || msg.includes('unique constraint');
+};
+
 export const billingService = {
+  /**
+   * Parses trailing sequence from latest invoice_number and computes next number
+   * without expensive exact count queries.
+   */
+  async getNextInvoiceSeq(businessId: string, financialYear: string): Promise<number> {
+    const { data } = await supabase
+      .from('invoices')
+      .select('invoice_number')
+      .eq('business_id', businessId)
+      .eq('financial_year', financialYear)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const latestNumber = data?.[0]?.invoice_number;
+    if (typeof latestNumber === 'string') {
+      const parts = latestNumber.split('-');
+      const parsed = Number(parts[parts.length - 1]);
+      if (Number.isFinite(parsed) && parsed >= 1) {
+        return Math.floor(parsed) + 1;
+      }
+    }
+    return 1;
+  },
+
   /**
    * Computes next sequential invoice number for a business & financial year from Supabase
    */
@@ -29,29 +62,13 @@ export const billingService = {
     invoicePrefix: string,
     financialYear: string
   ): Promise<string> {
-    const { data, count } = await supabase
-      .from('invoices')
-      .select('invoice_number', { count: 'exact' })
-      .eq('business_id', businessId)
-      .eq('financial_year', financialYear)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    let nextSeq = (count || 0) + 1;
-    const latestNumber = data?.[0]?.invoice_number;
-    if (typeof latestNumber === 'string') {
-      const parts = latestNumber.split('-');
-      const parsed = Number(parts[parts.length - 1]);
-      if (!Number.isNaN(parsed) && parsed >= nextSeq) {
-        nextSeq = parsed + 1;
-      }
-    }
-
+    const nextSeq = await this.getNextInvoiceSeq(businessId, financialYear);
     return formatInvoiceNumber(invoicePrefix, financialYear, nextSeq);
   },
 
   /**
-   * Finalizes an invoice atomically in Supabase via create_invoice_atomic RPC
+   * Finalizes an invoice atomically in Supabase via create_invoice_atomic RPC.
+   * Reuses the same localId across retries on 23505 (invoice_number race collision).
    */
   async createInvoice(
     businessId: string,
@@ -77,7 +94,6 @@ export const billingService = {
 
     try {
       const fy = getCurrentFinancialYear();
-      const invoiceNumber = await this.getNextInvoiceNumber(businessId, invoicePrefix, fy);
       const localId = generateClientToken();
 
       const balanceAmountPaise = Math.max(0, calculation.grandTotalPaise - paidAmountPaise);
@@ -172,43 +188,65 @@ export const billingService = {
         notes: p.notes || null,
       }));
 
-      const { data: invoiceId, error } = await supabase.rpc('create_invoice_atomic', {
-        p_business_id: businessId,
-        p_customer_id: customer?.id || null,
-        p_invoice_number: invoiceNumber,
-        p_financial_year: fy,
-        p_local_id: localId,
-        p_customer_name: customer?.name || 'Walk-in Customer',
-        p_customer_phone: customer?.phone || null,
-        p_subtotal_paise: calculation.subtotalPaise,
-        p_discount_type: calculation.discountType,
-        p_discount_value: calculation.discountValue,
-        p_discount_paise: calculation.discountPaise,
-        p_cgst_paise: calculation.cgstPaise,
-        p_sgst_paise: calculation.sgstPaise,
-        p_igst_paise: calculation.igstPaise,
-        p_total_tax_paise: calculation.totalTaxPaise,
-        p_grand_total_paise: calculation.grandTotalPaise,
-        p_paid_amount_paise: paidAmountPaise,
-        p_balance_amount_paise: balanceAmountPaise,
-        p_payment_status: paymentStatus,
-        p_payment_method: paymentMethod,
-        p_notes: notes || null,
-        p_items: rpcItems,
-        p_payments: rpcPayments,
-      });
+      let lastSeqAttempted = 0;
+      let finalInvoiceNumber = '';
+      let createdInvoiceId: string | null = null;
+      let lastError: any = null;
 
-      if (error || !invoiceId) {
-        await checkAndLogoutIfSuspended(error?.message);
-        return { invoice: null, error: error?.message || 'Failed to create invoice' };
+      for (let attempt = 0; attempt <= MAX_INVOICE_RETRY; attempt++) {
+        const fetchedSeq = await this.getNextInvoiceSeq(businessId, fy);
+        const seq = attempt === 0 ? fetchedSeq : Math.max(fetchedSeq, lastSeqAttempted + 1);
+        lastSeqAttempted = seq;
+        finalInvoiceNumber = formatInvoiceNumber(invoicePrefix, fy, seq);
+
+        const { data: invoiceId, error } = await supabase.rpc('create_invoice_atomic', {
+          p_business_id: businessId,
+          p_customer_id: customer?.id || null,
+          p_invoice_number: finalInvoiceNumber,
+          p_financial_year: fy,
+          p_local_id: localId,
+          p_customer_name: customer?.name || 'Walk-in Customer',
+          p_customer_phone: customer?.phone || null,
+          p_subtotal_paise: calculation.subtotalPaise,
+          p_discount_type: calculation.discountType,
+          p_discount_value: calculation.discountValue,
+          p_discount_paise: calculation.discountPaise,
+          p_cgst_paise: calculation.cgstPaise,
+          p_sgst_paise: calculation.sgstPaise,
+          p_igst_paise: calculation.igstPaise,
+          p_total_tax_paise: calculation.totalTaxPaise,
+          p_grand_total_paise: calculation.grandTotalPaise,
+          p_paid_amount_paise: paidAmountPaise,
+          p_balance_amount_paise: balanceAmountPaise,
+          p_payment_status: paymentStatus,
+          p_payment_method: paymentMethod,
+          p_notes: notes || null,
+          p_items: rpcItems,
+          p_payments: rpcPayments,
+        });
+
+        if (!error && invoiceId) {
+          createdInvoiceId = String(invoiceId);
+          break;
+        }
+
+        lastError = error;
+        if (!isUniqueViolation(error) || attempt === MAX_INVOICE_RETRY) {
+          break;
+        }
+      }
+
+      if (!createdInvoiceId) {
+        await checkAndLogoutIfSuspended(lastError?.message);
+        return { invoice: null, error: lastError?.message || 'Failed to create invoice' };
       }
 
       const createdAt = new Date().toISOString();
       const invoice: Invoice = {
-        id: String(invoiceId),
+        id: createdInvoiceId,
         businessId,
         customerId: customer?.id,
-        invoiceNumber,
+        invoiceNumber: finalInvoiceNumber,
         financialYear: fy,
         localId,
         customerName: customer?.name || 'Walk-in Customer',
@@ -421,12 +459,15 @@ export const billingService = {
   },
 
   /**
-   * Settle outstanding udhar balance for a customer in Supabase
+   * Settle outstanding udhar balance atomically via settle_customer_udhar RPC
+   * (decrements balance safely, logs payment and audit_logs record).
    */
   async settleCustomerUdhar(
     businessId: string,
-    customerId: string
-  ): Promise<{ success: boolean; error?: string }> {
+    customerId: string,
+    amountPaise?: number,
+    method: 'cash' | 'upi' | 'card' = 'cash'
+  ): Promise<{ success: boolean; newBalancePaise?: number; error?: string }> {
     if (!isSupabaseConfigured()) {
       return { success: false, error: CONFIG_ERROR };
     }
@@ -437,17 +478,21 @@ export const billingService = {
     }
 
     try {
-      const { error } = await supabase
-        .from('customers')
-        .update({
-          outstanding_balance_paise: 0,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', customerId)
-        .eq('business_id', businessId);
+      const { data, error } = await supabase.rpc('settle_customer_udhar', {
+        p_business_id: businessId,
+        p_customer_id: customerId,
+        p_amount_paise: amountPaise ?? null,
+        p_method: method,
+      });
 
-      if (error) return { success: false, error: error.message };
-      return { success: true };
+      if (error) {
+        await checkAndLogoutIfSuspended(error.message);
+        return { success: false, error: error.message };
+      }
+      return {
+        success: true,
+        newBalancePaise: data !== null && data !== undefined ? Number(data) : 0,
+      };
     } catch (e: any) {
       return { success: false, error: e.message || 'Failed to settle udhar' };
     }

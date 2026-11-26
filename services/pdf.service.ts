@@ -1,9 +1,10 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
-import { Share, Platform, Linking } from 'react-native';
+import { Share } from 'react-native';
 import { Invoice, Business } from '../types';
-import { formatRupees, paiseToRupees } from '../utils/billingCalculator';
+import { formatRupees } from '../utils/billingCalculator';
+import { escapeHtml } from '../utils/html';
 
 export const pdfService = {
   /**
@@ -23,15 +24,25 @@ export const pdfService = {
       minute: '2-digit',
     });
 
+    const safeInvoiceNumber = escapeHtml(invoice.invoiceNumber);
+    const safeDate = escapeHtml(dateFormatted);
+    const safeBusinessName = escapeHtml(business.name);
+    const safeBusinessAddress = escapeHtml(business.address);
+    const safeBusinessPhone = escapeHtml(business.phone);
+    const safeBusinessGstin = escapeHtml(business.gstin);
+    const safeCustomerName = escapeHtml(invoice.customerName);
+    const safeCustomerPhone = escapeHtml(invoice.customerPhone);
+    const safePaymentMethod = escapeHtml(invoice.paymentMethod);
+
     const itemsHtml = (invoice.items || [])
       .map(
         (it, idx) => `
         <tr style="border-bottom: 1px dashed #CBD5E1;">
           <td style="padding: 6px 2px; font-size: ${isThermal ? '12px' : '13px'};">
-            ${idx + 1}. ${it.productName}
+            ${idx + 1}. ${escapeHtml(it.productName)}
           </td>
           <td style="padding: 6px 2px; text-align: center; font-size: ${isThermal ? '12px' : '13px'};">
-            ${it.quantity} ${it.unit}
+            ${it.quantity} ${escapeHtml(it.unit)}
           </td>
           <td style="padding: 6px 2px; text-align: right; font-size: ${isThermal ? '12px' : '13px'};">
             ${formatRupees(it.unitPricePaise, false)}
@@ -70,7 +81,7 @@ export const pdfService = {
       <html>
       <head>
         <meta charset="utf-8">
-        <title>Receipt ${invoice.invoiceNumber}</title>
+        <title>Receipt ${safeInvoiceNumber}</title>
         <style>
           @page {
             size: ${isThermal ? '80mm auto' : 'A4'};
@@ -95,23 +106,23 @@ export const pdfService = {
       <body>
         <div class="text-center">
           <h2 style="margin: 0; font-size: ${isThermal ? '18px' : '24px'}; color: #15324B;">
-            ${business.name}
+            ${safeBusinessName}
           </h2>
-          <p style="margin: 2px 0; font-size: 12px; color: #475569;">${business.address}</p>
-          <p style="margin: 2px 0; font-size: 12px; color: #475569;">Phone: ${business.phone}</p>
-          ${business.isGstRegistered && business.gstin ? `<p style="margin: 2px 0; font-size: 11px; font-weight: bold;">GSTIN: ${business.gstin}</p>` : ''}
+          <p style="margin: 2px 0; font-size: 12px; color: #475569;">${safeBusinessAddress}</p>
+          <p style="margin: 2px 0; font-size: 12px; color: #475569;">Phone: ${safeBusinessPhone}</p>
+          ${business.isGstRegistered && business.gstin ? `<p style="margin: 2px 0; font-size: 11px; font-weight: bold;">GSTIN: ${safeBusinessGstin}</p>` : ''}
         </div>
 
         <div class="divider-dashed"></div>
 
         <div style="font-size: 12px; line-height: 1.5;">
           <div class="flex-between">
-            <span class="bold">Bill No: ${invoice.invoiceNumber}</span>
-            <span>${dateFormatted}</span>
+            <span class="bold">Bill No: ${safeInvoiceNumber}</span>
+            <span>${safeDate}</span>
           </div>
           ${
             invoice.customerName && invoice.customerName !== 'Walk-in Customer'
-              ? `<div>Customer: <b>${invoice.customerName}</b> ${invoice.customerPhone ? `(${invoice.customerPhone})` : ''}</div>`
+              ? `<div>Customer: <b>${safeCustomerName}</b> ${invoice.customerPhone ? `(${safeCustomerPhone})` : ''}</div>`
               : ''
           }
         </div>
@@ -155,7 +166,7 @@ export const pdfService = {
           </div>
           <div class="flex-between" style="font-size: 12px; margin-top: 4px;">
             <span>Payment Mode:</span>
-            <span style="text-transform: uppercase; font-weight: 600;">${invoice.paymentMethod}</span>
+            <span style="text-transform: uppercase; font-weight: 600;">${safePaymentMethod}</span>
           </div>
           <div class="flex-between" style="font-size: 12px;">
             <span>Paid:</span>

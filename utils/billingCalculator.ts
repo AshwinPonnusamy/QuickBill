@@ -1,9 +1,21 @@
-import { 
-  CartItem, 
-  CalculatedItem, 
-  BillCalculationResult, 
-  DiscountType 
+import {
+  CartItem,
+  CalculatedItem,
+  BillCalculationResult,
+  DiscountType,
 } from '../types';
+
+/**
+ * Normalizes a quantity value: returns finite numbers > 0 (including fractions like 0.25),
+ * falling back to 1 for 0, negative, or non-finite values.
+ */
+export function normalizeQuantity(quantity: unknown): number {
+  const num = Number(quantity);
+  if (Number.isFinite(num) && num > 0) {
+    return num;
+  }
+  return 1;
+}
 
 /**
  * Converts integer paise to decimal rupees.
@@ -68,16 +80,21 @@ export function formatInvoiceNumber(prefix: string, fy: string, seq: number): st
 export function calculateItemTotals(
   cartItem: CartItem,
   itemDiscountPaise: number = 0,
-  isInterState: boolean = false
+  isInterState: boolean = false,
+  precomputedGrossPaise?: number
 ): CalculatedItem {
-  const qty = Number(cartItem.quantity) || 1;
-  const unitPrice = Math.round(Number(cartItem.unitPricePaise) || 0);
-  const grossSubtotalPaise = Math.round(qty * unitPrice);
+  const qty = normalizeQuantity(cartItem.quantity);
+  const unitPrice = Math.max(0, Math.round(Number(cartItem.unitPricePaise) || 0));
+  const grossSubtotalPaise =
+    precomputedGrossPaise !== undefined
+      ? precomputedGrossPaise
+      : Math.round(qty * unitPrice);
 
-  const discountPaise = Math.min(grossSubtotalPaise, Math.max(0, itemDiscountPaise));
+  const safeDiscountInput = Number.isFinite(itemDiscountPaise) ? itemDiscountPaise : 0;
+  const discountPaise = Math.min(grossSubtotalPaise, Math.max(0, Math.round(safeDiscountInput)));
   const effectiveSubtotalPaise = grossSubtotalPaise - discountPaise;
 
-  const taxRate = Number(cartItem.taxRate) || 0;
+  const taxRate = Math.max(0, Number(cartItem.taxRate) || 0);
   let taxableAmountPaise = 0;
   let totalTaxPaise = 0;
   let totalPaise = 0;
@@ -87,12 +104,10 @@ export function calculateItemTotals(
     totalTaxPaise = 0;
     totalPaise = effectiveSubtotalPaise;
   } else if (cartItem.isTaxInclusive) {
-    // Formula: Taxable = Total / (1 + Rate / 100)
     taxableAmountPaise = Math.round(effectiveSubtotalPaise / (1 + taxRate / 100));
     totalTaxPaise = effectiveSubtotalPaise - taxableAmountPaise;
     totalPaise = effectiveSubtotalPaise;
   } else {
-    // Formula: Tax = Taxable * (Rate / 100)
     taxableAmountPaise = effectiveSubtotalPaise;
     totalTaxPaise = Math.round((taxableAmountPaise * taxRate) / 100);
     totalPaise = taxableAmountPaise + totalTaxPaise;
@@ -125,6 +140,71 @@ export function calculateItemTotals(
 }
 
 /**
+ * Proportionally allocates `totalDiscountPaise` across line grosses without
+ * exceeding any line's gross, redistributing rounding remainders so the
+ * sum of line discounts equals `totalDiscountPaise` whenever totalDiscount <= subtotal.
+ */
+function allocateDiscountsAcrossLines(
+  lineGrosses: number[],
+  subtotalPaise: number,
+  totalDiscountPaise: number
+): number[] {
+  const shares = new Array<number>(lineGrosses.length).fill(0);
+  if (lineGrosses.length === 0 || subtotalPaise <= 0 || totalDiscountPaise <= 0) {
+    return shares;
+  }
+
+  const target = Math.min(subtotalPaise, totalDiscountPaise);
+  let allocated = 0;
+
+  for (let i = 0; i < lineGrosses.length; i++) {
+    const base = Math.min(
+      lineGrosses[i],
+      Math.floor((lineGrosses[i] * target) / subtotalPaise)
+    );
+    shares[i] = base;
+    allocated += base;
+  }
+
+  let remainder = target - allocated;
+  if (remainder > 0) {
+    // Prioritize lines with largest fractional quota remainders (Hamilton apportionment)
+    const rankedIndices = lineGrosses
+      .map((gross, idx) => ({
+        idx,
+        room: gross - shares[idx],
+        frac: (gross * target) % subtotalPaise,
+      }))
+      .filter((entry) => entry.room > 0)
+      .sort((a, b) => b.frac - a.frac || a.idx - b.idx);
+
+    for (const entry of rankedIndices) {
+      if (remainder <= 0) break;
+      const room = lineGrosses[entry.idx] - shares[entry.idx];
+      if (room > 0) {
+        const take = Math.min(room, 1, remainder);
+        shares[entry.idx] += take;
+        remainder -= take;
+      }
+    }
+
+    // Defensive pass in case multiple paise of room remain on fewer lines
+    if (remainder > 0) {
+      for (let i = lineGrosses.length - 1; i >= 0 && remainder > 0; i--) {
+        const room = lineGrosses[i] - shares[i];
+        if (room > 0) {
+          const take = Math.min(room, remainder);
+          shares[i] += take;
+          remainder -= take;
+        }
+      }
+    }
+  }
+
+  return shares;
+}
+
+/**
  * Calculates complete bill total including line items, cart-level discounts,
  * itemized GST taxes, and rupee rounding.
  */
@@ -134,42 +214,33 @@ export function calculateBill(
   discountValue: number = 0,
   isInterState: boolean = false
 ): BillCalculationResult {
+  const lineGrosses: number[] = new Array(cartItems.length);
   let subtotalPaise = 0;
-  cartItems.forEach((item) => {
-    subtotalPaise += Math.round((Number(item.quantity) || 1) * (Number(item.unitPricePaise) || 0));
-  });
 
-  // Calculate bill-level discount in paise
-  let overallDiscountPaise = 0;
-  if (discountType === 'percentage' && discountValue > 0) {
-    const pct = Math.min(100, Math.max(0, Number(discountValue)));
-    overallDiscountPaise = Math.round((subtotalPaise * pct) / 100);
-  } else if (discountType === 'fixed' && discountValue > 0) {
-    overallDiscountPaise = Math.min(subtotalPaise, rupeesToPaise(Number(discountValue)));
+  for (let i = 0; i < cartItems.length; i++) {
+    const qty = normalizeQuantity(cartItems[i].quantity);
+    const unitPrice = Math.max(0, Math.round(Number(cartItems[i].unitPricePaise) || 0));
+    const gross = Math.round(qty * unitPrice);
+    lineGrosses[i] = gross;
+    subtotalPaise += gross;
   }
 
-  // Proportionally allocate cart discount across items so line taxes are exact
+  const safeDiscountVal = Number.isFinite(discountValue) ? discountValue : 0;
+  let overallDiscountPaise = 0;
+  if (discountType === 'percentage' && safeDiscountVal > 0) {
+    const pct = Math.min(100, Math.max(0, safeDiscountVal));
+    overallDiscountPaise = Math.min(subtotalPaise, Math.round((subtotalPaise * pct) / 100));
+  } else if (discountType === 'fixed' && safeDiscountVal > 0) {
+    overallDiscountPaise = Math.min(subtotalPaise, Math.max(0, rupeesToPaise(safeDiscountVal)));
+  }
+
+  const lineDiscounts = allocateDiscountsAcrossLines(
+    lineGrosses,
+    subtotalPaise,
+    overallDiscountPaise
+  );
+
   const calculatedItems: CalculatedItem[] = [];
-  let allocatedDiscount = 0;
-
-  cartItems.forEach((item, index) => {
-    const itemGross = Math.round((Number(item.quantity) || 1) * (Number(item.unitPricePaise) || 0));
-    let itemDisc = 0;
-
-    if (subtotalPaise > 0 && overallDiscountPaise > 0) {
-      if (index === cartItems.length - 1) {
-        // Last item absorbs any rounding difference
-        itemDisc = overallDiscountPaise - allocatedDiscount;
-      } else {
-        itemDisc = Math.round((itemGross / subtotalPaise) * overallDiscountPaise);
-        allocatedDiscount += itemDisc;
-      }
-    }
-
-    const calc = calculateItemTotals(item, itemDisc, isInterState);
-    calculatedItems.push(calc);
-  });
-
   let taxableSubtotalPaise = 0;
   let cgstPaise = 0;
   let sgstPaise = 0;
@@ -177,18 +248,24 @@ export function calculateBill(
   let totalTaxPaise = 0;
   let unroundedGrandTotalPaise = 0;
 
-  calculatedItems.forEach((item) => {
-    taxableSubtotalPaise += item.taxableAmountPaise;
-    cgstPaise += item.cgstPaise;
-    sgstPaise += item.sgstPaise;
-    igstPaise += item.igstPaise;
-    totalTaxPaise += item.totalTaxPaise;
-    unroundedGrandTotalPaise += item.totalPaise;
-  });
+  for (let i = 0; i < cartItems.length; i++) {
+    const calc = calculateItemTotals(
+      cartItems[i],
+      lineDiscounts[i],
+      isInterState,
+      lineGrosses[i]
+    );
+    calculatedItems.push(calc);
+    taxableSubtotalPaise += calc.taxableAmountPaise;
+    cgstPaise += calc.cgstPaise;
+    sgstPaise += calc.sgstPaise;
+    igstPaise += calc.igstPaise;
+    totalTaxPaise += calc.totalTaxPaise;
+    unroundedGrandTotalPaise += calc.totalPaise;
+  }
 
   // Round off paise to nearest full rupee (standard practice in Indian retail)
-  const exactRupees = unroundedGrandTotalPaise / 100;
-  const roundedRupees = Math.round(exactRupees);
+  const roundedRupees = Math.round(unroundedGrandTotalPaise / 100);
   const grandTotalPaise = roundedRupees * 100;
   const roundOffPaise = grandTotalPaise - unroundedGrandTotalPaise;
 

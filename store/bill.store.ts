@@ -1,13 +1,15 @@
 import { create } from 'zustand';
-import { 
-  CartItem, 
-  Product, 
-  Customer, 
-  DiscountType, 
-  BillCalculationResult, 
-  ProductUnit 
+import {
+  CartItem,
+  Product,
+  Customer,
+  DiscountType,
+  BillCalculationResult,
+  ProductUnit,
 } from '../types';
-import { calculateBill } from '../utils/billingCalculator';
+import { calculateBill, normalizeQuantity } from '../utils/billingCalculator';
+
+let customItemCounter = 0;
 
 interface BillState {
   cart: CartItem[];
@@ -30,91 +32,118 @@ interface BillState {
   getCalculation: () => BillCalculationResult;
 }
 
-export const useBillStore = create<BillState>((set, get) => ({
-  cart: [],
-  customer: null,
-  discountType: 'none',
-  discountValue: 0,
-  isInterState: false,
-  notes: '',
+export const useBillStore = create<BillState>((set, get) => {
+  let cachedInputs: {
+    cart: CartItem[];
+    discountType: DiscountType;
+    discountValue: number;
+    isInterState: boolean;
+  } | null = null;
+  let cachedCalculation: BillCalculationResult | null = null;
 
-  addToCart: (product, quantity = 1) => {
-    set((state) => {
-      const existingIndex = state.cart.findIndex((item) => item.productId === product.id);
-      if (existingIndex > -1) {
-        const nextCart = [...state.cart];
-        nextCart[existingIndex].quantity += quantity;
-        return { cart: nextCart };
+  return {
+    cart: [],
+    customer: null,
+    discountType: 'none',
+    discountValue: 0,
+    isInterState: false,
+    notes: '',
+
+    addToCart: (product, quantity = 1) => {
+      const addQty = normalizeQuantity(quantity);
+      set((state) => {
+        const existingIndex = state.cart.findIndex((item) => item.productId === product.id);
+        if (existingIndex > -1) {
+          return {
+            cart: state.cart.map((item, index) =>
+              index === existingIndex
+                ? { ...item, quantity: item.quantity + addQty }
+                : item
+            ),
+          };
+        }
+
+        const newItem: CartItem = {
+          id: `cart-${product.id}-${++customItemCounter}`,
+          productId: product.id,
+          name: product.name,
+          unit: product.unit,
+          quantity: addQty,
+          unitPricePaise: product.sellingPricePaise,
+          taxRate: product.taxRate,
+          isTaxInclusive: product.isTaxInclusive,
+        };
+        return { cart: [...state.cart, newItem] };
+      });
+    },
+
+    updateQuantity: (itemId, quantity) => {
+      set((state) => {
+        if (!Number.isFinite(quantity) || quantity <= 0) {
+          return { cart: state.cart.filter((i) => i.id !== itemId) };
+        }
+        return {
+          cart: state.cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
+        };
+      });
+    },
+
+    removeFromCart: (itemId) => {
+      set((state) => ({
+        cart: state.cart.filter((i) => i.id !== itemId),
+      }));
+    },
+
+    addCustomItem: (name, pricePaise, taxRate = 0, unit = 'item') => {
+      set((state) => {
+        const customItem: CartItem = {
+          id: `custom-${Date.now()}-${++customItemCounter}`,
+          name,
+          unit,
+          quantity: 1,
+          unitPricePaise: pricePaise,
+          taxRate,
+          isTaxInclusive: false,
+        };
+        return { cart: [...state.cart, customItem] };
+      });
+    },
+
+    setCustomer: (customer) => set({ customer }),
+
+    setDiscount: (discountType, discountValue) => set({ discountType, discountValue }),
+
+    setIsInterState: (isInterState) => set({ isInterState }),
+
+    setNotes: (notes) => set({ notes }),
+
+    clearBill: () => {
+      set({
+        cart: [],
+        customer: null,
+        discountType: 'none',
+        discountValue: 0,
+        isInterState: false,
+        notes: '',
+      });
+    },
+
+    getCalculation: () => {
+      const { cart, discountType, discountValue, isInterState } = get();
+      if (
+        cachedInputs &&
+        cachedCalculation &&
+        cachedInputs.cart === cart &&
+        cachedInputs.discountType === discountType &&
+        cachedInputs.discountValue === discountValue &&
+        cachedInputs.isInterState === isInterState
+      ) {
+        return cachedCalculation;
       }
 
-      const newItem: CartItem = {
-        id: `cart-${product.id}-${Date.now()}`,
-        productId: product.id,
-        name: product.name,
-        unit: product.unit,
-        quantity,
-        unitPricePaise: product.sellingPricePaise,
-        taxRate: product.taxRate,
-        isTaxInclusive: product.isTaxInclusive,
-      };
-      return { cart: [...state.cart, newItem] };
-    });
-  },
-
-  updateQuantity: (itemId, quantity) => {
-    set((state) => {
-      if (quantity <= 0) {
-        return { cart: state.cart.filter((i) => i.id !== itemId) };
-      }
-      return {
-        cart: state.cart.map((i) => (i.id === itemId ? { ...i, quantity } : i)),
-      };
-    });
-  },
-
-  removeFromCart: (itemId) => {
-    set((state) => ({
-      cart: state.cart.filter((i) => i.id !== itemId),
-    }));
-  },
-
-  addCustomItem: (name, pricePaise, taxRate = 0, unit = 'item') => {
-    set((state) => {
-      const customItem: CartItem = {
-        id: `custom-${Date.now()}`,
-        name,
-        unit,
-        quantity: 1,
-        unitPricePaise: pricePaise,
-        taxRate,
-        isTaxInclusive: false,
-      };
-      return { cart: [...state.cart, customItem] };
-    });
-  },
-
-  setCustomer: (customer) => set({ customer }),
-
-  setDiscount: (discountType, discountValue) => set({ discountType, discountValue }),
-
-  setIsInterState: (isInterState) => set({ isInterState }),
-
-  setNotes: (notes) => set({ notes }),
-
-  clearBill: () => {
-    set({
-      cart: [],
-      customer: null,
-      discountType: 'none',
-      discountValue: 0,
-      isInterState: false,
-      notes: '',
-    });
-  },
-
-  getCalculation: () => {
-    const { cart, discountType, discountValue, isInterState } = get();
-    return calculateBill(cart, discountType, discountValue, isInterState);
-  },
-}));
-
+      cachedInputs = { cart, discountType, discountValue, isInterState };
+      cachedCalculation = calculateBill(cart, discountType, discountValue, isInterState);
+      return cachedCalculation;
+    },
+  };
+});

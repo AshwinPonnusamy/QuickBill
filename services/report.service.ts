@@ -87,9 +87,20 @@ export const reportService = {
     const productMap = new Map<string, { quantity: number; revenuePaise: number }>();
     const dayMap = new Map<string, number>();
 
+    const dayLabelCache = new Map<string, string>();
+    const formatCachedDayLabel = (invDate: Date, isMonthly: boolean): string => {
+      const key = `${invDate.getFullYear()}-${invDate.getMonth()}-${invDate.getDate()}-${isMonthly ? 'm' : 'w'}`;
+      const existing = dayLabelCache.get(key);
+      if (existing) return existing;
+      const formatted = isMonthly
+        ? invDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
+        : invDate.toLocaleDateString('en-US', { weekday: 'short' });
+      dayLabelCache.set(key, formatted);
+      return formatted;
+    };
+
     // Initialize days for chart according to period
     if (period === 'daily') {
-      // 4-hour slots
       const slots = ['Morning (6-11)', 'Noon (11-15)', 'Eve (15-19)', 'Night (19-23)'];
       slots.forEach((s) => dayMap.set(s, 0));
     } else {
@@ -97,10 +108,7 @@ export const reportService = {
       for (let i = daysCount - 1; i >= 0; i--) {
         const d = new Date(now);
         d.setDate(now.getDate() - i);
-        const dayLabel = period === 'monthly' 
-          ? d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-          : d.toLocaleDateString('en-US', { weekday: 'short' });
-        dayMap.set(dayLabel, 0);
+        dayMap.set(formatCachedDayLabel(d, period === 'monthly'), 0);
       }
     }
 
@@ -114,23 +122,43 @@ export const reportService = {
       sgstPaise += inv.sgstPaise || 0;
       igstPaise += inv.igstPaise || 0;
 
-      // Discount & Customer categorization
+      // Discount & Customer categorization (handle '' / 'Walk-in' / 'Walk-in Customer' case-insensitively)
       totalDiscountGivenPaise += inv.discountPaise || 0;
-      if (inv.customerName && inv.customerName.trim() !== '' && inv.customerName !== 'Walk-in') {
-        customerBillCount++;
-      } else {
+      const normalizedName = (inv.customerName || '').trim().toLowerCase();
+      const isWalkIn =
+        !inv.customerId &&
+        (normalizedName === '' ||
+          normalizedName === 'walk-in' ||
+          normalizedName === 'walk-in customer');
+      if (isWalkIn) {
         walkInBillCount++;
+      } else {
+        customerBillCount++;
       }
 
-      if (inv.paymentMethod === 'cash') cashPaymentsPaise += inv.paidAmountPaise;
-      else if (inv.paymentMethod === 'upi') upiPaymentsPaise += inv.paidAmountPaise;
-      else if (inv.paymentMethod === 'card') cardPaymentsPaise += inv.paidAmountPaise;
-      else if (inv.paymentMethod === 'split') {
-        cashPaymentsPaise += Math.round(inv.paidAmountPaise / 2);
-        upiPaymentsPaise += inv.paidAmountPaise - Math.round(inv.paidAmountPaise / 2);
+      // Prefer real payment records from `payments` table; use 50/50 split only as fallback
+      const completedPayments = (inv.payments || []).filter(
+        (p) => !p.status || p.status === 'completed'
+      );
+      if (completedPayments.length > 0) {
+        completedPayments.forEach((p) => {
+          if (p.paymentMethod === 'cash') cashPaymentsPaise += p.amountPaise;
+          else if (p.paymentMethod === 'upi') upiPaymentsPaise += p.amountPaise;
+          else if (p.paymentMethod === 'card') cardPaymentsPaise += p.amountPaise;
+        });
+      } else if (inv.paymentMethod === 'cash') {
+        cashPaymentsPaise += inv.paidAmountPaise;
+      } else if (inv.paymentMethod === 'upi') {
+        upiPaymentsPaise += inv.paidAmountPaise;
+      } else if (inv.paymentMethod === 'card') {
+        cardPaymentsPaise += inv.paidAmountPaise;
+      } else if (inv.paymentMethod === 'split') {
+        const cashShare = Math.round(inv.paidAmountPaise / 2);
+        cashPaymentsPaise += cashShare;
+        upiPaymentsPaise += inv.paidAmountPaise - cashShare;
       }
 
-      // Group for chart
+      // Group for chart using cached day label lookup
       const invDate = new Date(inv.createdAt);
       let dayLabel = '';
       if (period === 'daily') {
@@ -139,10 +167,8 @@ export const reportService = {
         else if (h >= 11 && h < 15) dayLabel = 'Noon (11-15)';
         else if (h >= 15 && h < 19) dayLabel = 'Eve (15-19)';
         else dayLabel = 'Night (19-23)';
-      } else if (period === 'monthly') {
-        dayLabel = invDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
       } else {
-        dayLabel = invDate.toLocaleDateString('en-US', { weekday: 'short' });
+        dayLabel = formatCachedDayLabel(invDate, period === 'monthly');
       }
 
       if (dayMap.has(dayLabel)) {

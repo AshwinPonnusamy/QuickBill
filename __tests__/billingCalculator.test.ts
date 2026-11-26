@@ -6,6 +6,7 @@ import {
   formatInvoiceNumber,
   calculateItemTotals,
   calculateBill,
+  normalizeQuantity,
 } from '../utils/billingCalculator';
 import { CartItem } from '../types';
 
@@ -149,6 +150,41 @@ describe('QuickBill Billing Calculator & GST Engine', () => {
       expect(bill.subtotalPaise).toBe(25000);
       expect(bill.discountPaise).toBe(5000); // 5000 paise
       expect(bill.grandTotalPaise).toBe(20000); // ₹200
+    });
+
+    test('normalizeQuantity handles 0, negative, NaN and preserves fractional quantities', () => {
+      expect(normalizeQuantity(0)).toBe(1);
+      expect(normalizeQuantity(-5)).toBe(1);
+      expect(normalizeQuantity(Number.NaN)).toBe(1);
+      expect(normalizeQuantity(0.25)).toBe(0.25);
+
+      const zeroQtyItem: CartItem = {
+        id: 'q0',
+        name: 'Loose Rice',
+        unit: 'kg',
+        quantity: 0,
+        unitPricePaise: 6000,
+        taxRate: 0,
+        isTaxInclusive: true,
+      };
+      expect(calculateItemTotals(zeroQtyItem).quantity).toBe(1);
+      expect(calculateItemTotals({ ...zeroQtyItem, quantity: 0.25 }).subtotalPaise).toBe(1500);
+    });
+
+    test('discount allocation preserves sum(line discounts) === bill discount across 3 lines', () => {
+      const items: CartItem[] = [
+        { id: 'a', name: 'A', unit: 'item', quantity: 1, unitPricePaise: 1000, taxRate: 5, isTaxInclusive: false },
+        { id: 'b', name: 'B', unit: 'item', quantity: 1, unitPricePaise: 1000, taxRate: 5, isTaxInclusive: false },
+        { id: 'c', name: 'C', unit: 'item', quantity: 1, unitPricePaise: 2, taxRate: 5, isTaxInclusive: false },
+      ];
+      // Total gross = 2002; fixed discount ₹20.01 = 2001 paise -> line C gross is only 2 paise!
+      const bill = calculateBill(items, 'fixed', 20.01);
+      const sumLineDiscounts = bill.items.reduce((s, it) => s + it.discountPaise, 0);
+      expect(bill.discountPaise).toBe(2001);
+      expect(sumLineDiscounts).toBe(bill.discountPaise);
+      for (const line of bill.items) {
+        expect(line.discountPaise).toBeLessThanOrEqual(line.subtotalPaise);
+      }
     });
   });
 });

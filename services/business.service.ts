@@ -5,6 +5,13 @@ import { can } from '../utils/permissions';
 
 const CONFIG_ERROR = 'Supabase is not configured. Please check your environment variables.';
 
+// Tracks business/user pairs already synced in this session so getBusiness does not repeat upserts
+const syncedOwnerMemberships = new Set<string>();
+
+export const clearSyncedMembershipsCache = () => {
+  syncedOwnerMemberships.clear();
+};
+
 const mapBusinessRow = (raw: any): Business => ({
   id: raw.id,
   ownerId: raw.owner_id,
@@ -137,31 +144,37 @@ export const businessService = {
         .maybeSingle();
 
       if (!ownedError && ownedBiz) {
-        // Ensure owner membership exists for RLS on child tables (categories, products, invoices)
-        void (async () => {
-          try {
-            const { data: existingMember } = await supabase
-              .from('business_members')
-              .select('id')
-              .eq('business_id', ownedBiz.id)
-              .eq('user_id', userId)
-              .maybeSingle();
+        // Ensure owner membership exists once per session for RLS on child tables
+        const syncKey = `${ownedBiz.id}:${userId}`;
+        if (!syncedOwnerMemberships.has(syncKey)) {
+          syncedOwnerMemberships.add(syncKey);
+          void (async () => {
+            try {
+              const { data: existingMember } = await supabase
+                .from('business_members')
+                .select('id')
+                .eq('business_id', ownedBiz.id)
+                .eq('user_id', userId)
+                .maybeSingle();
 
-            if (!existingMember) {
-              const { error: insertErr } = await supabase.from('business_members').insert({
-                business_id: ownedBiz.id,
-                user_id: userId,
-                role: 'owner',
-                status: 'active',
-              });
-              if (insertErr) {
-                console.warn('Could not sync owner membership:', insertErr.message);
+              if (!existingMember) {
+                const { error: insertErr } = await supabase.from('business_members').insert({
+                  business_id: ownedBiz.id,
+                  user_id: userId,
+                  role: 'owner',
+                  status: 'active',
+                });
+                if (insertErr) {
+                  syncedOwnerMemberships.delete(syncKey);
+                  console.warn('Could not sync owner membership:', insertErr.message);
+                }
               }
+            } catch (err: any) {
+              syncedOwnerMemberships.delete(syncKey);
+              console.warn('Could not sync owner membership:', err?.message || err);
             }
-          } catch (err: any) {
-            console.warn('Could not sync owner membership:', err?.message || err);
-          }
-        })();
+          })();
+        }
 
         return mapBusinessRow(ownedBiz);
       }
