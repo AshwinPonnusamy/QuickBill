@@ -9,14 +9,6 @@
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-router",
-      [
-        "expo-navigation-bar",
-        {
-          "hidden": true,
-          "enforceContrast": false,
-          "style": "dark"
-        }
-      ],
       "expo-font",
       "expo-sharing",
       "expo-status-bar"

@@ -2,8 +2,9 @@ import React, { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
 import { Stack } from 'expo-router';
 import { PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationBar } from 'expo-navigation-bar';
+import { NavigationBar, setVisibilityAsync } from 'expo-navigation-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useShallow } from 'zustand/react/shallow';
 import { AppPaperTheme } from '../constants/theme';
@@ -43,19 +44,20 @@ export default function RootLayout() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
 
-    const applyImmersiveNavBar = () => {
+    const showDefaultNavBar = () => {
       try {
-        NavigationBar.setHidden(true);
+        NavigationBar.setHidden(false);
         NavigationBar.setStyle('dark');
+        void setVisibilityAsync('visible').catch(() => {});
       } catch {
-        // Ignore if running in an environment where native module is unavailable
+        // Ignore if native module is unavailable
       }
     };
 
-    applyImmersiveNavBar();
+    showDefaultNavBar();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') {
-        applyImmersiveNavBar();
+        showDefaultNavBar();
       }
     });
 
@@ -174,10 +176,10 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <PaperProvider theme={AppPaperTheme}>
-      <StatusBar style="light" />
-      {Platform.OS === 'android' ? <NavigationBar hidden style="dark" /> : null}
-      <Stack
+    <SafeAreaProvider>
+      <PaperProvider theme={AppPaperTheme}>
+        <StatusBar style="light" />
+        <Stack
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
@@ -196,6 +198,7 @@ export default function RootLayout() {
         <Stack.Screen name="customers" />
         <Stack.Screen name="help-support" />
       </Stack>
-    </PaperProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }

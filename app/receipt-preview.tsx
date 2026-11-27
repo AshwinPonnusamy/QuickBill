@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Divider } from '../components/heroui';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
@@ -16,6 +17,7 @@ import { QuickBillLogo } from '../components/common/QuickBillLogo';
 
 export default function ReceiptPreviewScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const language = useAuthStore((s) => s.language);
   const business = useBusinessStore((s) => s.business);
@@ -143,7 +145,12 @@ export default function ReceiptPreviewScreen() {
         </Button>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, SPACING.lg) + 16 },
+        ]}
+      >
         {/* Receipt Mock Paper Surface */}
         <Card
           radius="sm"

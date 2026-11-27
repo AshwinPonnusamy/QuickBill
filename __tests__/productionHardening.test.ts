@@ -273,14 +273,21 @@ describe('§2 Discount Permission Enforcement', () => {
   test('no-discount invoice from staff proceeds to RPC', async () => {
     useBusinessStore.getState().setRole('staff');
     setupInvoiceSeqMock(null);
-    mockRpc.mockResolvedValueOnce({ data: 'inv-staff-nodiscnew', error: null });
+    mockRpc
+      .mockResolvedValueOnce({ data: 6, error: null })
+      .mockResolvedValueOnce({ data: 'inv-staff-nodiscnew', error: null });
 
     const calcNoDisc = makeCalc();
     const result = await billingService.createInvoice('biz-1', calcNoDisc, 'cash', 11800);
     expect(result.invoice?.id).toBe('inv-staff-nodiscnew');
+    expect(mockRpc).toHaveBeenCalledWith('get_next_invoice_seq', {
+      p_business_id: 'biz-1',
+      p_financial_year: expect.any(String),
+    });
     expect(mockRpc).toHaveBeenCalledWith('create_invoice_atomic', expect.objectContaining({
       p_discount_type: 'none',
       p_discount_paise: 0,
+      p_invoice_number: expect.stringMatching(/-0006$/),
     }));
   });
 });
@@ -450,6 +457,18 @@ describe('§5 Duplicate Invoice Prevention', () => {
     // Numbers should be distinct and ascending
     expect(invNumbers[0]).not.toBe(invNumbers[1]);
     expect(invNumbers[1]).not.toBe(invNumbers[2]);
+  });
+
+  test('getNextInvoiceSeq uses get_next_invoice_seq RPC to avoid staff RLS numbering collisions', async () => {
+    useBusinessStore.getState().setRole('staff');
+    mockRpc.mockResolvedValueOnce({ data: 42, error: null });
+
+    const seq = await billingService.getNextInvoiceSeq('biz-1', '2026-2027');
+    expect(seq).toBe(42);
+    expect(mockRpc).toHaveBeenCalledWith('get_next_invoice_seq', {
+      p_business_id: 'biz-1',
+      p_financial_year: '2026-2027',
+    });
   });
 
   test('non-23505 error stops retrying immediately', async () => {

@@ -465,6 +465,16 @@ BEGIN
 
   RAISE NOTICE 'TEST 13 PASSED: adjust_stock rejects invalid movement_type';
 
+  -- =========================================================================
+  -- TEST 14: Staff get_next_invoice_seq sees business-wide max (no 23505)
+  -- =========================================================================
+  PERFORM set_config('request.jwt.claim.sub', v_staff_id::TEXT, TRUE);
+  IF public.get_next_invoice_seq(v_business_id, '2026-2027') < 3 THEN
+    RAISE EXCEPTION 'TEST 14 FAIL: Staff get_next_invoice_seq did not see owner/admin invoices';
+  END IF;
+
+  RAISE NOTICE 'TEST 14 PASSED: Staff get_next_invoice_seq returns business-wide next sequence';
+
   RAISE NOTICE '================================================================';
   RAISE NOTICE 'ALL SQL SECURITY & INTEGRITY TESTS PASSED';
   RAISE NOTICE '================================================================';

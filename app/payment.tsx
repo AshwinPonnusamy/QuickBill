@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
 import { Button, Card, Input, Switch } from '../components/heroui';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
 import { useShallow } from 'zustand/react/shallow';
@@ -17,6 +18,7 @@ import { Banknote, QrCode, CreditCard, BookOpen, Split, AlertTriangle, MessageSq
 
 export default function PaymentScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const language = useAuthStore((s) => s.language);
   const business = useBusinessStore((s) => s.business);
   const { customer, notes, getCalculation, clearBill } = useBillStore(
@@ -313,7 +315,11 @@ export default function PaymentScreen() {
       </ScrollView>
 
       {/* Settle Action Button */}
-      <Card radius="none" shadow="lg" style={styles.bottomBar}>
+      <Card
+        radius="none"
+        shadow="lg"
+        style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, SPACING.md) }]}
+      >
         <Button
           color={paymentMethod === 'credit' ? 'warning' : 'success'}
           size="lg"

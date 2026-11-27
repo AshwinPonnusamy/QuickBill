@@ -106,13 +106,39 @@ export interface GetInvoicesOptions {
 
 export const billingService = {
   /**
-   * Parses trailing sequence from latest invoice_number and computes next number
-   * without expensive exact count queries.
+   * Computes the next business-wide invoice sequence via get_next_invoice_seq RPC
+   * (bypasses staff-only invoice SELECT RLS so staff never collide with owner/admin
+   * invoice numbers), with fallback to direct query for pre-migration environments.
    */
   async getNextInvoiceSeq(
     businessId: string,
     financialYear: string,
   ): Promise<number> {
+    const { role } = useBusinessStore.getState();
+    if (role === "staff") {
+      try {
+        if (typeof supabase.rpc === "function") {
+          const rpcRes = await supabase.rpc("get_next_invoice_seq", {
+            p_business_id: businessId,
+            p_financial_year: financialYear,
+          });
+          if (
+            rpcRes &&
+            !rpcRes.error &&
+            rpcRes.data !== null &&
+            rpcRes.data !== undefined
+          ) {
+            const seq = Number(rpcRes.data);
+            if (Number.isFinite(seq) && seq >= 1) {
+              return Math.floor(seq);
+            }
+          }
+        }
+      } catch {
+        // Fallback to direct query below if RPC is unavailable
+      }
+    }
+
     const { data } = await supabase
       .from("invoices")
       .select("invoice_number")
