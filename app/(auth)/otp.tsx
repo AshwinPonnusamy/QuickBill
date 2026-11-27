@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, ScrollView, Alert, KeyboardAvoidingView, Platform, Text } from 'react-native';
 import { Button, Card, Input } from '../../components/heroui';
 import { useRouter } from 'expo-router';
@@ -35,9 +35,17 @@ export default function OtpScreen() {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'phone' | 'verify'>('phone');
   const [isLoading, setIsLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setTimeout(() => setResendCooldown((prev) => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendCooldown]);
 
   const handleSendOtp = async () => {
-    if (!phone || phone.length < 10) {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 10) {
       Alert.alert(t.error, 'Please enter a valid 10-digit mobile number.');
       return;
     }
@@ -48,6 +56,7 @@ export default function OtpScreen() {
         Alert.alert(t.error, res.error);
       } else {
         setStep('verify');
+        setResendCooldown(30);
         Alert.alert(t.success, 'OTP has been sent to your mobile number.');
       }
     } catch (e: any) {
@@ -180,7 +189,16 @@ export default function OtpScreen() {
               >
                 {t.verifyOtp} & Enter
               </Button>
-              <TouchableOpacity onPress={() => setStep('phone')} style={styles.changePhoneBtn}>
+              <TouchableOpacity
+                disabled={resendCooldown > 0 || isLoading}
+                onPress={handleSendOtp}
+                style={styles.changePhoneBtn}
+              >
+                <Text style={[styles.changePhoneText, resendCooldown > 0 ? { opacity: 0.5 } : undefined]}>
+                  {resendCooldown > 0 ? `Resend OTP in ${resendCooldown}s` : 'Resend OTP'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setStep('phone'); setOtp(''); }} style={styles.changePhoneBtn}>
                 <Text style={styles.changePhoneText}>Change Mobile Number</Text>
               </TouchableOpacity>
             </>

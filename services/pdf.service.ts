@@ -13,9 +13,10 @@ export const pdfService = {
   generateReceiptHtml(
     invoice: Invoice,
     business: Business,
-    templateType: 'thermal' | 'a4' = 'thermal'
+    templateType: 'thermal' | 'thermal-58' | 'a4' = 'thermal'
   ): string {
-    const isThermal = templateType === 'thermal';
+    const isThermal = templateType === 'thermal' || templateType === 'thermal-58';
+    const isThermal58 = templateType === 'thermal-58';
     const dateFormatted = new Date(invoice.createdAt).toLocaleDateString('en-IN', {
       day: '2-digit',
       month: 'short',
@@ -84,7 +85,7 @@ export const pdfService = {
         <title>Receipt ${safeInvoiceNumber}</title>
         <style>
           @page {
-            size: ${isThermal ? '80mm auto' : 'A4'};
+            size: ${isThermal58 ? '58mm auto' : isThermal ? '80mm auto' : 'A4'};
             margin: ${isThermal ? '4mm' : '15mm'};
           }
           body {
@@ -92,7 +93,7 @@ export const pdfService = {
             color: #181C1E;
             margin: 0;
             padding: ${isThermal ? '6px' : '20px'};
-            width: ${isThermal ? '280px' : '100%'};
+            width: ${isThermal58 ? '200px' : isThermal ? '280px' : '100%'};
             margin: 0 auto;
           }
           .text-center { text-align: center; }
@@ -200,12 +201,12 @@ export const pdfService = {
   async createPdfFile(
     invoice: Invoice,
     business: Business,
-    templateType: 'thermal' | 'a4' = 'thermal'
+    templateType: 'thermal' | 'thermal-58' | 'a4' = 'thermal'
   ): Promise<string> {
     const html = this.generateReceiptHtml(invoice, business, templateType);
     const { uri: generatedUri } = await Print.printToFileAsync({
       html,
-      width: templateType === 'thermal' ? 280 : undefined,
+      width: templateType === 'thermal-58' ? 200 : templateType === 'thermal' ? 280 : undefined,
     });
 
     try {
@@ -233,7 +234,7 @@ export const pdfService = {
   async shareReceipt(
     invoice: Invoice,
     business: Business,
-    templateType: 'thermal' | 'a4' = 'thermal'
+    templateType: 'thermal' | 'thermal-58' | 'a4' = 'thermal'
   ): Promise<void> {
     const uri = await this.createPdfFile(invoice, business, templateType);
     const cleanUri = uri.startsWith('file://') ? uri : `file://${uri}`;
@@ -284,7 +285,7 @@ export const pdfService = {
   async printReceipt(
     invoice: Invoice,
     business: Business,
-    templateType: 'thermal' | 'a4' = 'thermal'
+    templateType: 'thermal' | 'thermal-58' | 'a4' = 'thermal'
   ): Promise<void> {
     const html = this.generateReceiptHtml(invoice, business, templateType);
     await Print.printAsync({
@@ -299,7 +300,7 @@ export const pdfService = {
   async sendWhatsAppReceipt(
     invoice: Invoice,
     business: Business,
-    templateType: 'thermal' | 'a4' = 'thermal'
+    templateType: 'thermal' | 'thermal-58' | 'a4' = 'thermal'
   ): Promise<void> {
     // Sharing the generated PDF document allows the user to select WhatsApp and send the actual PDF file attachment
     await this.shareReceipt(invoice, business, templateType);

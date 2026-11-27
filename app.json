@@ -16,7 +16,10 @@
           "enforceContrast": false,
           "style": "dark"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-sharing",
+      "expo-status-bar"
     ],
     "ios": {
       "supportsTablet": true,

@@ -45,6 +45,9 @@ describe('authService & staffService', () => {
       upsert: jest.fn().mockReturnThis(),
       update: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({ data: [], error: null }),
       maybeSingle: jest.fn().mockResolvedValue({ data: profileRow, error: null }),
       single: jest.fn().mockResolvedValue({ data: profileRow, error: null }),
     });
@@ -199,7 +202,7 @@ describe('authService & staffService', () => {
     expect(await authService.sendOtp('9876543210')).toEqual({ success: false, error: 'SMS disabled' });
 
     mockAuth.verifyOtp.mockResolvedValueOnce({ data: { user: null }, error: { message: 'Invalid code' } });
-    expect((await authService.verifyOtp('9876543210', '000000')).error).toBe('Invalid code');
+    expect((await authService.verifyOtp('9876543210', '000000')).error).toContain('Invalid verification code');
 
     mockAuth.resetPasswordForEmail.mockResolvedValueOnce({ error: { message: 'User missing' } });
     expect(await authService.resetPassword('x@y.com')).toEqual({ success: false, error: 'User missing' });
@@ -264,5 +267,34 @@ describe('authService & staffService', () => {
     const loggedOut = await checkAndLogoutIfSuspended('Not permitted');
     expect(loggedOut).toBe(true);
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  test('verifyOtp detects duplicate phone account conflict and maps OTP errors clearly', async () => {
+    // 1. Expired OTP
+    mockAuth.verifyOtp.mockResolvedValueOnce({ data: { user: null }, error: { message: 'Token has expired or is invalid (otp_expired)' } });
+    const expiredRes = await authService.verifyOtp('9876543210', '000000');
+    expect(expiredRes.error).toContain('expired');
+
+    // 2. Rate-limited OTP
+    mockAuth.signInWithOtp.mockResolvedValueOnce({ error: { message: 'For security purposes, rate limit exceeded (429)' } });
+    const rateRes = await authService.sendOtp('9876543210');
+    expect(rateRes.success).toBe(false);
+    expect(rateRes.error).toContain('Too many OTP attempts');
+
+    // 3. Duplicate account conflict (phone already owned by another user UUID)
+    mockAuth.verifyOtp.mockResolvedValueOnce({ data: { user: { id: 'otp-user-2' } }, error: null });
+    mockFrom.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      neq: jest.fn().mockReturnThis(),
+      or: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockResolvedValue({ data: [{ id: 'pw-user-1', phone: '9876543210' }], error: null }),
+    });
+    mockAuth.signOut.mockResolvedValueOnce({ error: null });
+
+    const conflictRes = await authService.verifyOtp('9876543210', '123456');
+    expect(conflictRes.accountConflict).toBe(true);
+    expect(conflictRes.user).toBeNull();
+    expect(conflictRes.error).toContain('already exists');
+    expect(mockAuth.signOut).toHaveBeenCalled();
   });
 });

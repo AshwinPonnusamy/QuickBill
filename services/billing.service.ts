@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabase';
+import { supabase, isSupabaseConfigured } from "./supabase";
 import {
   Invoice,
   InvoiceItem,
@@ -6,16 +6,17 @@ import {
   Customer,
   BillCalculationResult,
   PaymentMethod,
-} from '../types';
+} from "../types";
 import {
   getCurrentFinancialYear,
   formatInvoiceNumber,
-} from '../utils/billingCalculator';
-import { useBusinessStore } from '../store/business.store';
-import { can } from '../utils/permissions';
-import { checkAndLogoutIfSuspended } from './sessionGuard';
+} from "../utils/billingCalculator";
+import { useBusinessStore } from "../store/business.store";
+import { can } from "../utils/permissions";
+import { checkAndLogoutIfSuspended } from "./sessionGuard";
 
-const CONFIG_ERROR = 'Supabase is not configured. Please check your environment variables.';
+const CONFIG_ERROR =
+  "Supabase is not configured. Please check your environment variables.";
 
 const generateClientToken = () =>
   `loc-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
@@ -24,13 +25,17 @@ const MAX_INVOICE_RETRY = 3;
 
 const isUniqueViolation = (error: any): boolean => {
   if (!error) return false;
-  const code = String(error.code || '');
-  const msg = String(error.message || '').toLowerCase();
-  return code === '23505' || msg.includes('duplicate key') || msg.includes('unique constraint');
+  const code = String(error.code || "");
+  const msg = String(error.message || "").toLowerCase();
+  return (
+    code === "23505" ||
+    msg.includes("duplicate key") ||
+    msg.includes("unique constraint")
+  );
 };
 
 const INVOICE_HEADER_COLUMNS =
-  'id, business_id, customer_id, created_by, invoice_number, financial_year, local_id, customer_name, customer_phone, subtotal_paise, discount_type, discount_value, discount_paise, cgst_paise, sgst_paise, igst_paise, total_tax_paise, grand_total_paise, paid_amount_paise, balance_amount_paise, payment_status, payment_method, notes, is_void, void_reason, voided_at, created_at';
+  "id, business_id, customer_id, created_by, invoice_number, financial_year, local_id, customer_name, customer_phone, subtotal_paise, discount_type, discount_value, discount_paise, cgst_paise, sgst_paise, igst_paise, total_tax_paise, grand_total_paise, paid_amount_paise, balance_amount_paise, payment_status, payment_method, notes, is_void, void_reason, voided_at, created_at";
 
 const mapInvoiceRow = (d: any): Invoice => ({
   id: d.id,
@@ -104,18 +109,21 @@ export const billingService = {
    * Parses trailing sequence from latest invoice_number and computes next number
    * without expensive exact count queries.
    */
-  async getNextInvoiceSeq(businessId: string, financialYear: string): Promise<number> {
+  async getNextInvoiceSeq(
+    businessId: string,
+    financialYear: string,
+  ): Promise<number> {
     const { data } = await supabase
-      .from('invoices')
-      .select('invoice_number')
-      .eq('business_id', businessId)
-      .eq('financial_year', financialYear)
-      .order('created_at', { ascending: false })
+      .from("invoices")
+      .select("invoice_number")
+      .eq("business_id", businessId)
+      .eq("financial_year", financialYear)
+      .order("created_at", { ascending: false })
       .limit(1);
 
     const latestNumber = data?.[0]?.invoice_number;
-    if (typeof latestNumber === 'string') {
-      const parts = latestNumber.split('-');
+    if (typeof latestNumber === "string") {
+      const parts = latestNumber.split("-");
       const parsed = Number(parts[parts.length - 1]);
       if (Number.isFinite(parsed) && parsed >= 1) {
         return Math.floor(parsed) + 1;
@@ -130,7 +138,7 @@ export const billingService = {
   async getNextInvoiceNumber(
     businessId: string,
     invoicePrefix: string,
-    financialYear: string
+    financialYear: string,
   ): Promise<string> {
     const nextSeq = await this.getNextInvoiceSeq(businessId, financialYear);
     return formatInvoiceNumber(invoicePrefix, financialYear, nextSeq);
@@ -147,32 +155,40 @@ export const billingService = {
     paidAmountPaise: number,
     customer?: Customer | null,
     notes?: string,
-    invoicePrefix: string = 'QB',
-    splitBreakdown?: { cashPaise: number; upiPaise: number }
+    invoicePrefix: string = "QB",
+    splitBreakdown?: { cashPaise: number; upiPaise: number },
+    paymentReference?: string,
+    existingLocalId?: string,
   ): Promise<{ invoice: Invoice | null; error?: string }> {
     if (!isSupabaseConfigured()) {
       return { invoice: null, error: CONFIG_ERROR };
     }
 
     const { role, isRoleLoaded } = useBusinessStore.getState();
-    if (!isRoleLoaded || !can(role, 'create_bill')) {
-      return { invoice: null, error: 'Not permitted' };
+    if (!isRoleLoaded || !can(role, "create_bill")) {
+      return { invoice: null, error: "Not permitted" };
     }
-    if (!can(role, 'apply_discount') && calculation.discountPaise > 0) {
-      return { invoice: null, error: 'Not permitted: staff cannot apply discounts.' };
+    if (!can(role, "apply_discount") && calculation.discountPaise > 0) {
+      return {
+        invoice: null,
+        error: "Not permitted: staff cannot apply discounts.",
+      };
     }
 
     try {
       const fy = getCurrentFinancialYear();
-      const localId = generateClientToken();
+      const localId = existingLocalId || generateClientToken();
 
-      const balanceAmountPaise = Math.max(0, calculation.grandTotalPaise - paidAmountPaise);
+      const balanceAmountPaise = Math.max(
+        0,
+        calculation.grandTotalPaise - paidAmountPaise,
+      );
       const paymentStatus =
         balanceAmountPaise === 0
-          ? 'paid'
+          ? "paid"
           : paidAmountPaise > 0
-            ? 'partial'
-            : 'unpaid';
+            ? "partial"
+            : "unpaid";
 
       const items: InvoiceItem[] = calculation.items.map((it) => ({
         productId: it.cartItem.productId,
@@ -192,7 +208,7 @@ export const billingService = {
 
       // Database payments.payment_method permits: 'cash' | 'upi' | 'card' | 'credit'
       const payments: PaymentRecord[] =
-        paymentMethod === 'split' && splitBreakdown
+        paymentMethod === "split" && splitBreakdown
           ? [
               ...(splitBreakdown.cashPaise > 0
                 ? [
@@ -200,8 +216,8 @@ export const billingService = {
                       businessId,
                       customerId: customer?.id,
                       amountPaise: splitBreakdown.cashPaise,
-                      paymentMethod: 'cash' as const,
-                      status: 'completed' as const,
+                      paymentMethod: "cash" as const,
+                      status: "completed" as const,
                       localId: `${localId}-cash`,
                       notes: notes || undefined,
                     },
@@ -213,8 +229,8 @@ export const billingService = {
                       businessId,
                       customerId: customer?.id,
                       amountPaise: splitBreakdown.upiPaise,
-                      paymentMethod: 'upi' as const,
-                      status: 'completed' as const,
+                      paymentMethod: "upi" as const,
+                      status: "completed" as const,
                       localId: `${localId}-upi`,
                       notes: notes || undefined,
                     },
@@ -226,8 +242,10 @@ export const billingService = {
                 businessId,
                 customerId: customer?.id,
                 amountPaise: paidAmountPaise,
-                paymentMethod: paymentMethod === 'split' ? 'cash' : paymentMethod,
-                status: paidAmountPaise > 0 ? 'completed' : 'pending',
+                paymentMethod:
+                  paymentMethod === "split" ? "cash" : paymentMethod,
+                paymentReference: paymentReference?.trim() || undefined,
+                status: paidAmountPaise > 0 ? "completed" : "pending",
                 localId: `${localId}-pay`,
                 notes: notes || undefined,
               },
@@ -259,41 +277,47 @@ export const billingService = {
       }));
 
       let lastSeqAttempted = 0;
-      let finalInvoiceNumber = '';
+      let finalInvoiceNumber = "";
       let createdInvoiceId: string | null = null;
       let lastError: any = null;
 
       for (let attempt = 0; attempt <= MAX_INVOICE_RETRY; attempt++) {
         const fetchedSeq = await this.getNextInvoiceSeq(businessId, fy);
-        const seq = attempt === 0 ? fetchedSeq : Math.max(fetchedSeq, lastSeqAttempted + 1);
+        const seq =
+          attempt === 0
+            ? fetchedSeq
+            : Math.max(fetchedSeq, lastSeqAttempted + 1);
         lastSeqAttempted = seq;
         finalInvoiceNumber = formatInvoiceNumber(invoicePrefix, fy, seq);
 
-        const { data: invoiceId, error } = await supabase.rpc('create_invoice_atomic', {
-          p_business_id: businessId,
-          p_customer_id: customer?.id || null,
-          p_invoice_number: finalInvoiceNumber,
-          p_financial_year: fy,
-          p_local_id: localId,
-          p_customer_name: customer?.name || 'Walk-in Customer',
-          p_customer_phone: customer?.phone || null,
-          p_subtotal_paise: calculation.subtotalPaise,
-          p_discount_type: calculation.discountType,
-          p_discount_value: calculation.discountValue,
-          p_discount_paise: calculation.discountPaise,
-          p_cgst_paise: calculation.cgstPaise,
-          p_sgst_paise: calculation.sgstPaise,
-          p_igst_paise: calculation.igstPaise,
-          p_total_tax_paise: calculation.totalTaxPaise,
-          p_grand_total_paise: calculation.grandTotalPaise,
-          p_paid_amount_paise: paidAmountPaise,
-          p_balance_amount_paise: balanceAmountPaise,
-          p_payment_status: paymentStatus,
-          p_payment_method: paymentMethod,
-          p_notes: notes || null,
-          p_items: rpcItems,
-          p_payments: rpcPayments,
-        });
+        const { data: invoiceId, error } = await supabase.rpc(
+          "create_invoice_atomic",
+          {
+            p_business_id: businessId,
+            p_customer_id: customer?.id || null,
+            p_invoice_number: finalInvoiceNumber,
+            p_financial_year: fy,
+            p_local_id: localId,
+            p_customer_name: customer?.name || "Walk-in Customer",
+            p_customer_phone: customer?.phone || null,
+            p_subtotal_paise: calculation.subtotalPaise,
+            p_discount_type: calculation.discountType,
+            p_discount_value: calculation.discountValue,
+            p_discount_paise: calculation.discountPaise,
+            p_cgst_paise: calculation.cgstPaise,
+            p_sgst_paise: calculation.sgstPaise,
+            p_igst_paise: calculation.igstPaise,
+            p_total_tax_paise: calculation.totalTaxPaise,
+            p_grand_total_paise: calculation.grandTotalPaise,
+            p_paid_amount_paise: paidAmountPaise,
+            p_balance_amount_paise: balanceAmountPaise,
+            p_payment_status: paymentStatus,
+            p_payment_method: paymentMethod,
+            p_notes: notes || null,
+            p_items: rpcItems,
+            p_payments: rpcPayments,
+          },
+        );
 
         if (!error && invoiceId) {
           createdInvoiceId = String(invoiceId);
@@ -308,7 +332,10 @@ export const billingService = {
 
       if (!createdInvoiceId) {
         await checkAndLogoutIfSuspended(lastError?.message);
-        return { invoice: null, error: lastError?.message || 'Failed to create invoice' };
+        return {
+          invoice: null,
+          error: lastError?.message || "Failed to create invoice",
+        };
       }
 
       const createdAt = new Date().toISOString();
@@ -319,7 +346,7 @@ export const billingService = {
         invoiceNumber: finalInvoiceNumber,
         financialYear: fy,
         localId,
-        customerName: customer?.name || 'Walk-in Customer',
+        customerName: customer?.name || "Walk-in Customer",
         customerPhone: customer?.phone,
         subtotalPaise: calculation.subtotalPaise,
         discountType: calculation.discountType,
@@ -343,14 +370,20 @@ export const billingService = {
 
       return { invoice };
     } catch (err: any) {
-      return { invoice: null, error: err.message || 'Failed to create invoice' };
+      return {
+        invoice: null,
+        error: err.message || "Failed to create invoice",
+      };
     }
   },
 
   /**
    * Fetch invoice history from Supabase with cursor pagination and optional item/payment joins.
    */
-  async getInvoices(businessId: string, opts: GetInvoicesOptions = {}): Promise<Invoice[]> {
+  async getInvoices(
+    businessId: string,
+    opts: GetInvoicesOptions = {},
+  ): Promise<Invoice[]> {
     if (!isSupabaseConfigured()) return [];
 
     const {
@@ -362,28 +395,28 @@ export const billingService = {
     } = opts;
 
     const selectParts = [INVOICE_HEADER_COLUMNS];
-    if (withItems) selectParts.push('invoice_items(*)');
-    if (withPayments) selectParts.push('payments(*)');
+    if (withItems) selectParts.push("invoice_items(*)");
+    if (withPayments) selectParts.push("payments(*)");
 
     try {
       let query = supabase
-        .from('invoices')
-        .select(selectParts.join(', '))
-        .eq('business_id', businessId);
+        .from("invoices")
+        .select(selectParts.join(", "))
+        .eq("business_id", businessId);
 
       if (from) {
-        query = query.gte('created_at', from);
+        query = query.gte("created_at", from);
       }
       if (before) {
-        query = query.lt('created_at', before);
+        query = query.lt("created_at", before);
       }
 
       const { data, error } = await query
-        .order('created_at', { ascending: false })
+        .order("created_at", { ascending: false })
         .limit(limit);
 
       if (error || !data) {
-        console.warn('Error fetching invoices:', error?.message);
+        console.warn("Error fetching invoices:", error?.message);
         await checkAndLogoutIfSuspended(error?.message);
         return [];
       }
@@ -402,9 +435,9 @@ export const billingService = {
 
     try {
       const { data, error } = await supabase
-        .from('invoices')
+        .from("invoices")
         .select(`${INVOICE_HEADER_COLUMNS}, invoice_items(*), payments(*)`)
-        .eq('id', invoiceId)
+        .eq("id", invoiceId)
         .maybeSingle();
 
       if (error || !data) {
@@ -421,31 +454,34 @@ export const billingService = {
   /**
    * Cancel / void an invoice in Supabase
    */
-  async voidInvoice(invoiceId: string, reason: string): Promise<{ success: boolean; error?: string }> {
+  async voidInvoice(
+    invoiceId: string,
+    reason: string,
+  ): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured()) {
       return { success: false, error: CONFIG_ERROR };
     }
 
     const { role, isRoleLoaded } = useBusinessStore.getState();
-    if (!isRoleLoaded || !can(role, 'void_invoice')) {
-      return { success: false, error: 'Not permitted' };
+    if (!isRoleLoaded || !can(role, "void_invoice")) {
+      return { success: false, error: "Not permitted" };
     }
 
     try {
       const { error } = await supabase
-        .from('invoices')
+        .from("invoices")
         .update({
           is_void: true,
           void_reason: reason,
           voided_at: new Date().toISOString(),
-          payment_status: 'void',
+          payment_status: "void",
         })
-        .eq('id', invoiceId);
+        .eq("id", invoiceId);
 
       if (error) return { success: false, error: error.message };
       return { success: true };
     } catch (e: any) {
-      return { success: false, error: e.message || 'Failed to void invoice' };
+      return { success: false, error: e.message || "Failed to void invoice" };
     }
   },
 
@@ -457,10 +493,10 @@ export const billingService = {
 
     try {
       const { data, error } = await supabase
-        .from('customers')
-        .select('*')
-        .eq('business_id', businessId)
-        .order('name');
+        .from("customers")
+        .select("*")
+        .eq("business_id", businessId)
+        .order("name");
 
       if (error || !data) return [];
 
@@ -486,7 +522,14 @@ export const billingService = {
    */
   async addCustomer(
     businessId: string,
-    customer: Omit<Customer, 'id' | 'businessId' | 'createdAt' | 'updatedAt' | 'outstandingBalancePaise'>
+    customer: Omit<
+      Customer,
+      | "id"
+      | "businessId"
+      | "createdAt"
+      | "updatedAt"
+      | "outstandingBalancePaise"
+    >,
   ): Promise<{ customer: Customer | null; error?: string }> {
     if (!isSupabaseConfigured()) {
       return { customer: null, error: CONFIG_ERROR };
@@ -494,7 +537,7 @@ export const billingService = {
 
     try {
       const { data, error } = await supabase
-        .from('customers')
+        .from("customers")
         .insert({
           business_id: businessId,
           name: customer.name,
@@ -508,7 +551,10 @@ export const billingService = {
         .single();
 
       if (error || !data) {
-        return { customer: null, error: error?.message || 'Failed to add customer' };
+        return {
+          customer: null,
+          error: error?.message || "Failed to add customer",
+        };
       }
 
       return {
@@ -526,7 +572,7 @@ export const billingService = {
         },
       };
     } catch (e: any) {
-      return { customer: null, error: e.message || 'Failed to add customer' };
+      return { customer: null, error: e.message || "Failed to add customer" };
     }
   },
 
@@ -538,19 +584,19 @@ export const billingService = {
     businessId: string,
     customerId: string,
     amountPaise?: number,
-    method: 'cash' | 'upi' | 'card' = 'cash'
+    method: "cash" | "upi" | "card" = "cash",
   ): Promise<{ success: boolean; newBalancePaise?: number; error?: string }> {
     if (!isSupabaseConfigured()) {
       return { success: false, error: CONFIG_ERROR };
     }
 
     const { role, isRoleLoaded } = useBusinessStore.getState();
-    if (!isRoleLoaded || !can(role, 'settle_udhar')) {
-      return { success: false, error: 'Not permitted' };
+    if (!isRoleLoaded || !can(role, "settle_udhar")) {
+      return { success: false, error: "Not permitted" };
     }
 
     try {
-      const { data, error } = await supabase.rpc('settle_customer_udhar', {
+      const { data, error } = await supabase.rpc("settle_customer_udhar", {
         p_business_id: businessId,
         p_customer_id: customerId,
         p_amount_paise: amountPaise ?? null,
@@ -566,7 +612,7 @@ export const billingService = {
         newBalancePaise: data !== null && data !== undefined ? Number(data) : 0,
       };
     } catch (e: any) {
-      return { success: false, error: e.message || 'Failed to settle udhar' };
+      return { success: false, error: e.message || "Failed to settle udhar" };
     }
   },
 };

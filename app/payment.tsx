@@ -109,7 +109,8 @@ export default function PaymentScreen() {
         customer,
         notes || undefined,
         business?.invoicePrefix || 'QB',
-        splitBreakdown
+        splitBreakdown,
+        paymentReference || undefined
       );
 
       if (res.error || !res.invoice) {

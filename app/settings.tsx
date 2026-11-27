@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text, Share } from 'react-native';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Divider } from '../components/heroui';
 import { useRouter, Redirect } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
@@ -25,6 +25,7 @@ import {
   LogOut,
   Trash2,
   ChevronRight,
+  Share2,
 } from '../components/common/Icons';
 
 const SHOP_TYPES: { type: BusinessType; label: string }[] = [
@@ -144,6 +145,18 @@ export default function SettingsScreen() {
       Alert.alert(t.success, 'Shop profile updated successfully.');
     } finally {
       setIsSavingShop(false);
+    }
+  };
+
+  const handleShareApp = async () => {
+    try {
+      await Share.share({
+        title: 'QuickBill — Mobile POS & GST Billing',
+        message:
+          'Check out QuickBill! Fast mobile POS, GST billing, inventory & udhar management for retail shops.',
+      });
+    } catch (e: any) {
+      Alert.alert(t.error, e?.message || 'Unable to share right now.');
     }
   };
 
@@ -342,6 +355,22 @@ export default function SettingsScreen() {
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.helpSupport}</Text>
               <Text style={styles.menuSub}>Phone Helpline, Email & Support Tickets</Text>
+            </View>
+            <ChevronRight size={18} color={COLORS.textMuted} />
+          </TouchableOpacity>
+
+          <Divider style={styles.menuDivider} />
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleShareApp}
+          >
+            <View style={styles.menuIconBox}>
+              <Share2 size={18} color={COLORS.primary} />
+            </View>
+            <View style={styles.menuTextContainer}>
+              <Text style={styles.menuTitle}>Share App</Text>
+              <Text style={styles.menuSub}>Invite other shop owners to try QuickBill</Text>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
           </TouchableOpacity>
