@@ -119,8 +119,15 @@ export default function HomeDashboard() {
     return <Redirect href={'/(tabs)/new-bill' as any} />;
   }
 
+  const isProBusinessPlan = subscription?.status === 'active' && subscription.plan === 'pro_business';
   const isProPlan = subscription?.status === 'active' && subscription.plan === 'pro';
-  const planLabel = isProPlan ? 'PRO PLAN' : subscription?.plan === 'starter' ? 'STARTER' : 'FREE PLAN';
+  const planLabel = isProBusinessPlan
+    ? 'PRO BUSINESS'
+    : isProPlan
+    ? 'PRO PLAN'
+    : subscription?.plan === 'starter'
+    ? 'STARTER'
+    : 'FREE PLAN';
 
   return (
     <View style={styles.container}>

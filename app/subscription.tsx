@@ -8,6 +8,7 @@ import { Header } from '../components/common/Header';
 import { useAuthStore } from '../store/auth.store';
 import { useBusinessStore } from '../store/business.store';
 import { businessService } from '../services/business.service';
+import { staffService } from '../services/staff.service';
 import { TRANSLATIONS } from '../constants/translations';
 import { useCan } from '../utils/permissions';
 import { safeGoBack } from '../utils/navigation';
@@ -36,28 +37,92 @@ export default function SubscriptionScreen() {
 
   const activePlan = subscription?.status === 'active' ? (subscription?.plan || 'free') : 'free';
 
-  const handleUpgrade = async (targetPlan: 'starter' | 'pro') => {
+  const PLAN_NAMES: Record<'starter' | 'pro' | 'pro_business', string> = {
+    starter: 'QuickBill Starter',
+    pro: 'QuickBill Pro',
+    pro_business: 'QuickBill Pro Business',
+  };
+
+  const PLAN_SEATS: Record<'starter' | 'pro' | 'pro_business', number> = {
+    starter: 5,
+    pro: 15,
+    pro_business: -1,
+  };
+
+  const executePlanChange = async (
+    targetPlan: 'starter' | 'pro' | 'pro_business',
+    suspendExtraIds: string[] = []
+  ) => {
     if (!business) return;
     setIsProcessing(true);
     try {
       const res = await businessService.upgradeSubscription(business.id, targetPlan, cycle);
       if (res.success) {
+        for (const memberId of suspendExtraIds) {
+          await staffService.setStaffStatus(business.id, memberId, 'suspended');
+        }
         const updated = await businessService.getSubscription(business.id);
         setSubscription(updated);
-        const planName = targetPlan === 'pro' ? 'QuickBill Pro Business' : 'QuickBill Starter';
+        const planName = PLAN_NAMES[targetPlan];
+        const extraMsg =
+          suspendExtraIds.length > 0
+            ? ` ${suspendExtraIds.length} extra staff ${suspendExtraIds.length === 1 ? 'member was' : 'members were'} suspended to fit the ${updated.maxStaff < 0 ? 'unlimited' : updated.maxStaff}-seat limit.`
+            : '';
         Alert.alert(
           t.success,
-          `Congratulations! Your shop has been successfully upgraded to ${planName}.`,
+          `Your shop plan has been updated to ${planName}.${extraMsg}`,
           [{ text: 'OK', onPress: () => safeGoBack(router) }]
         );
       } else {
-        Alert.alert(t.error, res.error || 'Upgrade failed');
+        Alert.alert(t.error, res.error || 'Plan update failed');
       }
     } catch (e: any) {
       Alert.alert(t.error, e.message);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const handleUpgrade = async (targetPlan: 'starter' | 'pro' | 'pro_business') => {
+    if (!business) return;
+    const targetMaxSeats = PLAN_SEATS[targetPlan];
+
+    setIsProcessing(true);
+    try {
+      const staffRes = await staffService.listStaff(business.id);
+      const activeMembers = (staffRes.staff || []).filter((m) => m.status !== 'suspended');
+
+      if (targetMaxSeats > 0 && activeMembers.length > targetMaxSeats) {
+        const overCount = activeMembers.length - targetMaxSeats;
+        const removableStaff = activeMembers
+          .filter((m) => m.userId !== business.ownerId && m.role !== 'owner')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const extraIds = removableStaff.slice(0, overCount).map((m) => m.id);
+
+        setIsProcessing(false);
+        Alert.alert(
+          `Active Staff Exceeds ${PLAN_NAMES[targetPlan]} Limit`,
+          `You currently have ${activeMembers.length} active team members, but ${PLAN_NAMES[targetPlan]} supports ${targetMaxSeats} seats (including owner).`,
+          [
+            { text: t.cancel, style: 'cancel' },
+            {
+              text: 'Manage Staff',
+              onPress: () => router.push('/manage-staff' as any),
+            },
+            {
+              text: `Switch & Suspend ${extraIds.length}`,
+              style: 'destructive',
+              onPress: () => void executePlanChange(targetPlan, extraIds),
+            },
+          ]
+        );
+        return;
+      }
+    } catch {
+      // Proceed to plan change if staff pre-check fails
+    }
+
+    await executePlanChange(targetPlan);
   };
 
   const handleRestore = async () => {
@@ -83,8 +148,10 @@ export default function SubscriptionScreen() {
             <View>
               <Text style={styles.currentLabel}>{t.currentPlan}</Text>
               <Text style={styles.currentPlanName}>
-                {activePlan === 'pro'
+                {activePlan === 'pro_business'
                   ? 'QuickBill Pro Business'
+                  : activePlan === 'pro'
+                  ? 'QuickBill Pro'
                   : activePlan === 'starter'
                   ? 'QuickBill Starter Retail'
                   : 'QuickBill Free Plan'}
@@ -98,11 +165,17 @@ export default function SubscriptionScreen() {
               )}
             </View>
             <Badge
-              color={activePlan === 'pro' ? 'secondary' : activePlan === 'starter' ? 'warning' : 'default'}
+              color={
+                activePlan === 'pro_business' || activePlan === 'pro'
+                  ? 'secondary'
+                  : activePlan === 'starter'
+                  ? 'warning'
+                  : 'default'
+              }
               variant="flat"
               size="md"
             >
-              {activePlan.toUpperCase()}
+              {activePlan === 'pro_business' ? 'PRO BUSINESS' : activePlan.toUpperCase()}
             </Badge>
           </View>
         </Card>
@@ -230,7 +303,7 @@ export default function SubscriptionScreen() {
             </View>
             <View style={styles.featureRow}>
               <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
-              <Text style={styles.featureItemBold}>{t.starterFeatureStaff}</Text>
+              <Text style={styles.featureItemBold}>Up to 5 Team Seats</Text>
             </View>
             <View style={styles.featureRow}>
               <Zap size={16} color={COLORS.secondary} style={{ marginRight: 8 }} />
@@ -263,19 +336,19 @@ export default function SubscriptionScreen() {
         </Card>
 
         {/* ------------------------------------------------------------------ */}
-        {/* PLAN 3: PRO BUSINESS PLAN (₹299) */}
+        {/* PLAN 3: PRO PLAN (₹299) */}
         {/* ------------------------------------------------------------------ */}
         <Card radius="xl" shadow="md" style={[styles.planCard, styles.proCard, activePlan === 'pro' && styles.activePlanOutline]}>
           <View style={styles.badgeWrapper}>
             <View style={styles.proBadge}>
-              <Text style={styles.badgeText}>BEST FOR GROWING BUSINESSES</Text>
+              <Text style={styles.badgeText}>BEST FOR GROWING SHOPS</Text>
             </View>
           </View>
 
           <View style={styles.planHeader}>
             <View>
-              <Text style={[styles.planName, { color: COLORS.primary }]}>{t.proPlan}</Text>
-              <Text style={styles.planSubDesc}>Multi-counter supermarkets & restaurants</Text>
+              <Text style={[styles.planName, { color: COLORS.primary }]}>QuickBill Pro</Text>
+              <Text style={styles.planSubDesc}>Multi-counter retail & busy stores</Text>
             </View>
             <Text style={[styles.planPrice, { color: COLORS.secondaryDark }]}>
               {cycle === 'monthly' ? '₹299' : '₹2,499'}
@@ -295,7 +368,7 @@ export default function SubscriptionScreen() {
             </View>
             <View style={styles.featureRow}>
               <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
-              <Text style={styles.featureItemBold}>{t.proFeatureStaff}</Text>
+              <Text style={styles.featureItemBold}>Up to 15 Team Seats</Text>
             </View>
             <View style={styles.featureRow}>
               <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
@@ -327,6 +400,71 @@ export default function SubscriptionScreen() {
               onPress={() => handleUpgrade('pro')}
             >
               {cycle === 'monthly' ? 'Upgrade to Pro (₹299 / Month)' : 'Upgrade to Pro (₹2,499 / Year)'}
+            </Button>
+          )}
+        </Card>
+
+        {/* ------------------------------------------------------------------ */}
+        {/* PLAN 4: PRO BUSINESS PLAN (₹499) */}
+        {/* ------------------------------------------------------------------ */}
+        <Card radius="xl" shadow="md" style={[styles.planCard, styles.proCard, activePlan === 'pro_business' && styles.activePlanOutline]}>
+          <View style={styles.badgeWrapper}>
+            <View style={[styles.proBadge, { backgroundColor: COLORS.primary }]}>
+              <Text style={styles.badgeText}>MAX CAPACITY • MULTI-COUNTER</Text>
+            </View>
+          </View>
+
+          <View style={styles.planHeader}>
+            <View>
+              <Text style={[styles.planName, { color: COLORS.primary }]}>QuickBill Pro Business</Text>
+              <Text style={styles.planSubDesc}>Large supermarkets, chains & high-volume POS</Text>
+            </View>
+            <Text style={[styles.planPrice, { color: COLORS.primary }]}>
+              {cycle === 'monthly' ? '₹499' : '₹4,199'}
+            </Text>
+          </View>
+
+          <Text style={styles.cycleSubPrice}>
+            {cycle === 'monthly' ? '₹499 / Month (Billed Monthly)' : '₹4,199 / Year (Save 30% • ₹350/mo)'}
+          </Text>
+
+          <Divider style={{ marginVertical: SPACING.md }} />
+
+          <View style={styles.featuresList}>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>Unlimited Team Seats</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureReports}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <Sparkles size={16} color={COLORS.accent} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>{t.proFeatureCloud}</Text>
+            </View>
+            <View style={styles.featureRow}>
+              <ShieldCheck size={16} color={COLORS.success} style={{ marginRight: 8 }} />
+              <Text style={styles.featureItemBold}>Priority Dedicated Support & Onboarding</Text>
+            </View>
+          </View>
+
+          {activePlan === 'pro_business' ? (
+            <View style={styles.activeBanner}>
+              <CheckCircle2 size={16} color={COLORS.success} style={{ marginRight: 6 }} />
+              <Text style={styles.activeBannerText}>Current Active Plan</Text>
+            </View>
+          ) : (
+            <Button
+              color="primary"
+              size="lg"
+              radius="md"
+              fullWidth
+              isLoading={isProcessing}
+              style={styles.planBtn}
+              onPress={() => handleUpgrade('pro_business')}
+            >
+              {cycle === 'monthly' ? 'Upgrade to Pro Business (₹499 / Month)' : 'Upgrade to Pro Business (₹4,199 / Year)'}
             </Button>
           )}
         </Card>

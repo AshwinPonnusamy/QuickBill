@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Text, Share, Image } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
 import { Button, Card, Input, Modal, ModalHeader, ModalBody, Switch, Divider } from '../components/heroui';
 import { useRouter, Redirect } from 'expo-router';
+import Constants from 'expo-constants';
 import { useShallow } from 'zustand/react/shallow';
 import { COLORS, SPACING, ROUNDNESS } from '../constants/theme';
 import { Header } from '../components/common/Header';
@@ -74,6 +76,7 @@ export default function SettingsScreen() {
   const [editPhone, setEditPhone] = useState(business?.phone || '');
   const [editEmail, setEditEmail] = useState(business?.email || '');
   const [editAddress, setEditAddress] = useState(business?.address || '');
+  const [editLogoUrl, setEditLogoUrl] = useState(business?.logoUrl || '');
   const [editIsGstRegistered, setEditIsGstRegistered] = useState(business?.isGstRegistered ?? false);
   const [editGstin, setEditGstin] = useState(business?.gstin || '');
   const [editDefaultTaxRate, setEditDefaultTaxRate] = useState(String(business?.defaultTaxRate ?? 5));
@@ -87,12 +90,31 @@ export default function SettingsScreen() {
     setEditPhone(business?.phone || '');
     setEditEmail(business?.email || '');
     setEditAddress(business?.address || '');
+    setEditLogoUrl(business?.logoUrl || '');
     setEditIsGstRegistered(business?.isGstRegistered ?? false);
     setEditGstin(business?.gstin || '');
     setEditDefaultTaxRate(String(business?.defaultTaxRate ?? 5));
     setEditInvoicePrefix(business?.invoicePrefix || 'QB');
     setTaxInclusive(business?.taxInclusive ?? true);
     setShopEditModal(true);
+  };
+
+  const handlePickLogo = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+        base64: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setEditLogoUrl(result.assets[0].uri);
+      }
+    } catch (e: any) {
+      Alert.alert(t.error, e?.message || 'Could not select logo image.');
+    }
   };
 
   const handleSaveShopDetails = async () => {
@@ -126,6 +148,7 @@ export default function SettingsScreen() {
       phone: editPhone.trim(),
       email: editEmail.trim() || undefined,
       address: editAddress.trim(),
+      logoUrl: editLogoUrl.trim(),
       isGstRegistered: editIsGstRegistered,
       gstin: editIsGstRegistered ? normalizedGstin : undefined,
       defaultTaxRate: Number(editDefaultTaxRate) || 0,
@@ -140,7 +163,7 @@ export default function SettingsScreen() {
         Alert.alert(t.error, res.error || 'Failed to update shop profile.');
         return;
       }
-      updateBusiness(updates);
+      updateBusiness({ ...updates, logoUrl: updates.logoUrl || undefined });
       setShopEditModal(false);
       Alert.alert(t.success, 'Shop profile updated successfully.');
     } finally {
@@ -149,11 +172,16 @@ export default function SettingsScreen() {
   };
 
   const handleShareApp = async () => {
+    const downloadUrl =
+      process.env.EXPO_PUBLIC_APP_DOWNLOAD_URL ||
+      (Constants.expoConfig?.extra as { appDownloadUrl?: string } | undefined)?.appDownloadUrl ||
+      'https://github.com/AshwinPonnusamy/QuickBill/releases/latest';
+
     try {
       await Share.share({
-        title: 'QuickBill — Mobile POS & GST Billing',
-        message:
-          'Check out QuickBill! Fast mobile POS, GST billing, inventory & udhar management for retail shops.',
+        title: 'Download QuickBill — Mobile POS & GST Billing',
+        message: `Download QuickBill! Fast mobile POS, GST billing, inventory & udhar management for retail shops:\n${downloadUrl}`,
+        url: downloadUrl,
       });
     } catch (e: any) {
       Alert.alert(t.error, e?.message || 'Unable to share right now.');
@@ -212,13 +240,23 @@ export default function SettingsScreen() {
         {/* Business Profile Overview Card */}
         <Card radius="xl" shadow="sm" style={styles.profileCard}>
           <View style={styles.shopAvatar}>
-            <Store size={26} color={COLORS.primary} />
+            {business?.logoUrl ? (
+              <Image source={{ uri: business.logoUrl }} style={styles.shopAvatarImage} />
+            ) : (
+              <Store size={26} color={COLORS.primary} />
+            )}
           </View>
           <View style={styles.shopInfo}>
             <Text style={styles.shopName}>{business?.name || 'QuickBill Store'}</Text>
             <Text style={styles.shopOwner}>{business?.ownerName} • {business?.phone}</Text>
             <Text style={styles.shopBadge}>
-              {subscription?.plan === 'pro' ? 'Pro Business' : subscription?.plan === 'starter' ? 'Starter Plan' : 'Free Plan'}
+              {subscription?.plan === 'pro_business'
+                ? 'Pro Business'
+                : subscription?.plan === 'pro'
+                ? 'Pro Plan'
+                : subscription?.plan === 'starter'
+                ? 'Starter Plan'
+                : 'Free Plan'}
             </Text>
           </View>
           <Button
@@ -297,7 +335,14 @@ export default function SettingsScreen() {
             <View style={styles.menuTextContainer}>
               <Text style={styles.menuTitle}>{t.subscriptionManagement}</Text>
               <Text style={styles.menuSub}>
-                Plan: {subscription?.plan === 'pro' ? 'Pro Business (Active)' : subscription?.plan === 'starter' ? 'Starter Plan (Active)' : 'Free Tier'}
+                Plan:{' '}
+                {subscription?.plan === 'pro_business'
+                  ? 'Pro Business (Active)'
+                  : subscription?.plan === 'pro'
+                  ? 'Pro Plan (Active)'
+                  : subscription?.plan === 'starter'
+                  ? 'Starter Plan (Active)'
+                  : 'Free Tier'}
               </Text>
             </View>
             <ChevronRight size={18} color={COLORS.textMuted} />
@@ -413,6 +458,33 @@ export default function SettingsScreen() {
         </ModalHeader>
         <ModalBody>
           <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Text style={styles.fieldLabel}>Store Logo</Text>
+            <View style={styles.logoPickerRow}>
+              <View style={styles.logoPreviewBox}>
+                {editLogoUrl ? (
+                  <Image source={{ uri: editLogoUrl }} style={styles.logoPreviewImage} />
+                ) : (
+                  <Store size={26} color={COLORS.primary} />
+                )}
+              </View>
+              <View style={styles.logoActionsCol}>
+                <Button variant="flat" color="primary" size="sm" radius="md" onPress={handlePickLogo}>
+                  {editLogoUrl ? 'Change Logo' : 'Upload Logo'}
+                </Button>
+                {editLogoUrl ? (
+                  <Button
+                    variant="light"
+                    color="danger"
+                    size="sm"
+                    radius="md"
+                    onPress={() => setEditLogoUrl('')}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </View>
+            </View>
+
             <Input
               label={t.businessName}
               value={editName}
@@ -547,6 +619,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: SPACING.md,
+    overflow: 'hidden',
+  },
+  shopAvatarImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  logoPickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    marginBottom: SPACING.md,
+  },
+  logoPreviewBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 16,
+    backgroundColor: COLORS.primaryContainer,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  logoPreviewImage: {
+    width: 60,
+    height: 60,
+  },
+  logoActionsCol: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
   },
   shopInfo: {
     flex: 1,

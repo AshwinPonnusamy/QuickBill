@@ -145,8 +145,11 @@ export default function ManageStaffScreen() {
   }
 
   const maxSeats = subscription?.maxStaff ?? 1;
+  const isUnlimitedSeats = maxSeats < 0;
   const activeSeatsUsed = members.filter((m) => m.status !== 'suspended').length;
-  const isAtSeatLimit = activeSeatsUsed >= maxSeats;
+  const isOverSeatLimit = !isUnlimitedSeats && activeSeatsUsed > maxSeats;
+  const isAtSeatLimit = !isUnlimitedSeats && activeSeatsUsed >= maxSeats;
+  const overSeatCount = isUnlimitedSeats ? 0 : Math.max(0, activeSeatsUsed - maxSeats);
   const staffOnlyMembers = members.filter((m) => m.userId !== business?.ownerId);
 
   const handleOpenAddModal = () => {
@@ -350,8 +353,12 @@ export default function ManageStaffScreen() {
           <View style={styles.summaryTopRow}>
             <View style={{ flex: 1 }}>
               <Text style={styles.summaryTitle}>Team Seats</Text>
-              <Text style={styles.summaryCount}>
-                {activeSeatsUsed} of {maxSeats} {maxSeats === 1 ? 'seat' : 'seats'} used
+              <Text style={[styles.summaryCount, isOverSeatLimit && { color: COLORS.error }]}>
+                {isUnlimitedSeats
+                  ? `${activeSeatsUsed} active (Unlimited seats)`
+                  : `${activeSeatsUsed} of ${maxSeats} ${maxSeats === 1 ? 'seat' : 'seats'} used${
+                      isOverSeatLimit ? ` (${overSeatCount} over limit)` : ''
+                    }`}
               </Text>
               <Text style={styles.summarySub}>
                 Includes shop owner. Staff can create bills and view only their own bills.
@@ -370,11 +377,17 @@ export default function ManageStaffScreen() {
           </View>
 
           {isAtSeatLimit ? (
-            <View style={styles.upgradeBanner}>
+            <View style={[styles.upgradeBanner, isOverSeatLimit && styles.overLimitBanner]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.upgradeTitle}>Staff limit reached on current plan</Text>
+                <Text style={[styles.upgradeTitle, isOverSeatLimit && { color: COLORS.error }]}>
+                  {isOverSeatLimit
+                    ? `Plan seat limit exceeded (${activeSeatsUsed}/${maxSeats})`
+                    : 'Staff limit reached on current plan'}
+                </Text>
                 <Text style={styles.upgradeSub}>
-                  {maxSeats <= 1
+                  {isOverSeatLimit
+                    ? `Suspend or remove ${overSeatCount} active staff ${overSeatCount === 1 ? 'member' : 'members'} to match your current plan, or upgrade to Pro.`
+                    : maxSeats <= 1
                     ? 'Free plan supports owner only. Upgrade to Starter or Pro to add staff cashiers.'
                     : 'Upgrade to Pro to add more staff cashiers for your store.'}
                 </Text>
@@ -674,6 +687,11 @@ const styles = StyleSheet.create({
     padding: SPACING.sm,
     borderRadius: ROUNDNESS.md,
     backgroundColor: COLORS.secondaryContainer,
+  },
+  overLimitBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: COLORS.error,
   },
   upgradeTitle: {
     fontSize: 12,

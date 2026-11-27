@@ -475,6 +475,25 @@ BEGIN
 
   RAISE NOTICE 'TEST 14 PASSED: Staff get_next_invoice_seq returns business-wide next sequence';
 
+  -- =========================================================================
+  -- TEST 15: Subscription downgrade trigger auto-suspends extra staff
+  -- =========================================================================
+  INSERT INTO public.subscriptions (business_id, plan, status, max_staff)
+  VALUES (v_business_id, 'starter', 'active', 2)
+  ON CONFLICT (business_id) DO UPDATE SET plan = 'starter', status = 'active', max_staff = 2;
+
+  -- Reduce to 1 seat (free plan equivalent): both admin and staff should be suspended
+  UPDATE public.subscriptions SET plan = 'free', max_staff = 1 WHERE business_id = v_business_id;
+
+  IF EXISTS (
+    SELECT 1 FROM public.business_members
+    WHERE business_id = v_business_id AND user_id IN (v_admin_id, v_staff_id) AND status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'TEST 15 FAIL: Extra non-owner staff remained active after seat limit reduced to 1';
+  END IF;
+
+  RAISE NOTICE 'TEST 15 PASSED: Subscription seat-limit trigger auto-suspends extra non-owner members';
+
   RAISE NOTICE '================================================================';
   RAISE NOTICE 'ALL SQL SECURITY & INTEGRITY TESTS PASSED';
   RAISE NOTICE '================================================================';

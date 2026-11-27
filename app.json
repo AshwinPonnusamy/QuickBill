@@ -20,7 +20,7 @@
     "android": {
       "package": "com.quickbill.pos",
       "adaptiveIcon": {
-        "backgroundColor": "#4F46E5",
+        "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
       "predictiveBackGestureEnabled": false
@@ -30,6 +30,7 @@
       "bundler": "metro"
     },
     "extra": {
+      "appDownloadUrl": "https://github.com/AshwinPonnusamy/QuickBill/releases/latest",
       "router": {
         "asyncRoutes": {
           "web": true

@@ -372,7 +372,10 @@ export const businessService = {
         startsAt: data.starts_at,
         expiresAt: data.expires_at || undefined,
         autoRenew: Boolean(data.auto_renew),
-        maxStaff: Number(data.max_staff || 1),
+        maxStaff:
+          data.max_staff !== null && data.max_staff !== undefined
+            ? Number(data.max_staff)
+            : 1,
         cloudBackupEnabled: Boolean(data.cloud_backup_enabled),
         advancedReportsEnabled: Boolean(data.advanced_reports_enabled),
       };
@@ -386,7 +389,7 @@ export const businessService = {
    */
   async upgradeSubscription(
     businessId: string,
-    plan: 'starter' | 'pro',
+    plan: 'starter' | 'pro' | 'pro_business',
     billingCycle: 'monthly' | 'yearly'
   ): Promise<{ success: boolean; error?: string }> {
     if (!isSupabaseConfigured()) {
@@ -398,6 +401,12 @@ export const businessService = {
       return { success: false, error: 'Not permitted' };
     }
 
+    const PLAN_MAX_STAFF: Record<'starter' | 'pro' | 'pro_business', number> = {
+      starter: 5,
+      pro: 15,
+      pro_business: -1,
+    };
+
     const expiresAt = new Date();
     if (billingCycle === 'monthly') {
       expiresAt.setDate(expiresAt.getDate() + 30);
@@ -405,7 +414,8 @@ export const businessService = {
       expiresAt.setDate(expiresAt.getDate() + 365);
     }
 
-    const isPro = plan === 'pro';
+    const hasAdvancedReports = plan === 'pro' || plan === 'pro_business';
+    const maxStaff = PLAN_MAX_STAFF[plan];
 
     try {
       const { error } = await supabase
@@ -417,9 +427,9 @@ export const businessService = {
             billing_cycle: billingCycle,
             status: 'active',
             expires_at: expiresAt.toISOString(),
-            max_staff: isPro ? 5 : 2,
+            max_staff: maxStaff,
             cloud_backup_enabled: true,
-            advanced_reports_enabled: isPro,
+            advanced_reports_enabled: hasAdvancedReports,
             updated_at: new Date().toISOString(),
           },
           { onConflict: 'business_id' }

@@ -232,7 +232,7 @@ export interface StockMovement {
   createdAt: string;
 }
 
-export type SubscriptionPlan = 'free' | 'starter' | 'pro';
+export type SubscriptionPlan = 'free' | 'starter' | 'pro' | 'pro_business';
 
 export interface Subscription {
   id: string;
